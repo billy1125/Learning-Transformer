@@ -326,114 +326,124 @@ $$
 
 ## 10.2 Nadaraya-Watson 核回歸
 
-> 這一節提供一個具體的數學模型，說明注意力機制的非參數版本。
+> 本節以一個具體的數學模型，說明注意力機制的「非參數版本」如何運作。
+
+---
 
 ### 10.2.1 問題設定
 
 給定訓練資料集：
 
-$$
-\{(x_1, y_1), (x_2, y_2), \ldots, (x_n, y_n)\}
-$$
+$$\{(x_1, y_1),\ (x_2, y_2),\ \ldots,\ (x_n, y_n)\}$$
 
-目標：對任意輸入 \(x\)，估計對應輸出 $\hat{y}(x)$
+目標是：對任意新輸入 $x$，估計對應的輸出 $\hat{y}(x)$。
 
-### 10.2.2 平均匯聚（傳統方法）
+---
 
-最簡單的估計是**樣本均值**：
+### 10.2.2 平均匯聚（基準方法）
 
-$$
-\hat{y}(x) = f(x) = \frac{1}{n} \sum_{i=1}^n y_i
-$$
+最直覺的估計是取所有訓練輸出的**樣本均值**：
 
-這完全忽略了輸入 $x$ 的資訊，相當於注意力均勻分佈（$\alpha_i = 1/n$）。
+$$\hat{y}(x) = \frac{1}{n} \sum_{i=1}^n y_i$$
 
-**限制**：無法捕捉 $x$ 與 $y$ 之間的局部關係。
+這相當於每個訓練點的注意力權重都相等（$\alpha_i = 1/n$），也就是「一視同仁」。
 
-### 10.2.3 非參數注意力匯聚（Nadaraya-Watson）
+**根本問題**：預測結果完全與輸入 $x$ 無關，無法捕捉輸入與輸出之間的任何局部關係。
 
-**核心想法**：距離查詢 $x$ 越近的訓練點 $x_i$，對預測的影響應越大。
+---
 
-**Nadaraya-Watson 核回歸**（1964）：
+### 10.2.3 非參數注意力匯聚：Nadaraya-Watson 核回歸
 
-$$
-\hat{y}(x) = f(x) = \sum_{i=1}^n \frac{K(x - x_i)}{\displaystyle\sum_{j=1}^n K(x - x_j)} \cdot y_i
-$$
+#### 核心想法
 
-其中 $K(x, x_i)$ 是核函數（kernel function），這是用來衡量 $ x $ 與 $ x_i $ 的相似度。一般來說常使用高斯核：
+> 距離查詢點 $x$ 越近的訓練點 $x_i$，對預測的貢獻應該越大。
 
-$$
-K(u) = K(x, x_i) = \exp\left(-\frac{(x - x_i)^2}{2\sigma^2}\right)
-$$
+Nadaraya 與 Watson 在 1964 年提出的核回歸，正是這個想法的數學實現：
 
-- $\sigma$：控制平滑程度（帶寬, bandwidth）
+$$\hat{y}(x) = \sum_{i=1}^n \frac{K(x - x_i)}{\displaystyle\sum_{j=1}^n K(x - x_j)} \cdot y_i$$
+
+其中 $K(\cdot)$ 為**核函數（kernel function）**，負責衡量查詢點 $x$ 與訓練點 $x_i$ 之間的相似程度——距離越近，權重越大；距離越遠，權重越小。
+
+最常用的是**高斯核（Gaussian kernel）**，其定義為：
+
+$$K(u) = \exp\!\left(-\frac{u^2}{2\sigma^2}\right), \quad u = x - x_i$$
+
+也就是說，將差值 $u = x - x_i$ 代入後，得到：
+
+$$K(x, x_i) = \exp\!\left(-\frac{(x - x_i)^2}{2\sigma^2}\right)$$
+
+- $u = x - x_i$：查詢點與訓練點的距離
+- $(x - x_i)^2$：距離的平方，恆為非負值
+- $\sigma$（**帶寬，bandwidth**）：控制「關注範圍」的寬窄
+  - $\sigma$ 越大 → 曲線越平坦，遠處的點仍有一定影響力（**注意力分散**）
+  - $\sigma$ 越小 → 曲線越尖銳，只有極近的點才有顯著影響（**注意力集中**）
 
 #### 改寫為注意力形式
 
-代入高斯核，令 $\alpha(x, x_i)$ 表示注意力權重：
+代入高斯核（簡化令 $\sigma = 1$），令 $\alpha(x, x_i)$ 表示注意力權重：
 
-$$
-\alpha(x, x_i) = \frac{\exp\!\left(-\frac{(x - x_i)^2}{2}\right)}{\displaystyle\sum_{j=1}^n \exp\!\left(-\frac{(x - x_j)^2}{2}\right)} = \text{softmax}\!\left(-\frac{(x - x_i)^2}{2}\right)
-$$
+$$\alpha(x, x_i)
+= \frac{\exp\!\left(-\dfrac{(x - x_i)^2}{2}\right)}{\displaystyle\sum_{j=1}^n \exp\!\left(-\dfrac{(x - x_j)^2}{2}\right)}
+= \text{softmax}\!\left(-\frac{(x - x_i)^2}{2}\right)$$
 
-對比注意力機制的通用形式：
+預測值因此可以改寫為：
 
-$$
-f(x) = \sum_{i=1}^n \underbrace{\text{softmax}(a(x, x_i))}_{\alpha(x, x_i)} \cdot \underbrace{y_i}_{v_i}
-$$
+$$\hat{y}(x) = \sum_{i=1}^n \underbrace{\text{softmax}\bigl(a(x, x_i)\bigr)}_{\alpha(x,\, x_i)} \cdot \underbrace{y_i}_{v_i}$$
 
-**評分函數**為：$a(x, x_i) = -\frac{(x - x_i)^2}{2}$
+其中**評分函數**為：
 
-這等價於：**$x$ 與 $x_i$ 越接近（差值越小），分數越高，注意力越集中**。
+$$a(x, x_i) = -\frac{(x - x_i)^2}{2}$$
 
-#### 核回歸的性質分析
+差值越小（越相似） → 分數越高 → 注意力越集中，這正是注意力機制「按相似度分配權重」的直觀體現。
+
+#### 核回歸的性質
 
 | 性質 | 說明 |
 |---|---|
 | **局部性** | 只有附近的訓練點有顯著影響 |
 | **平滑性** | 預測值是訓練點的連續加權平均 |
-| **一致性** | 當 $n \to \infty$ 時，收斂到真實條件期望 |
-| **無參數** | 不需要訓練，但需要儲存所有訓練資料 |
+| **一致性** | 當 $n \to \infty$ 時，收斂至真實條件期望 |
+| **無參數** | 無需訓練，但預測時須保留所有訓練資料 |
+
+---
 
 ### 10.2.4 帶參數的注意力匯聚
 
-為了讓模型具備更強的表達能力，引入**可學習的參數** $w$：
+非參數版本的 $\sigma$ 必須手動設定。若改為引入**可學習參數** $w$，模型便能從資料中自動調整關注範圍：
 
-$$
-f(x) = \sum_{i=1}^n \text{softmax}\!\left(-\frac{1}{2}\bigl[(x - x_i) w\bigr]^2\right) \cdot y_i
-$$
+$$\hat{y}(x) = \sum_{i=1}^n \text{softmax}\!\left(-\frac{1}{2}\bigl[(x - x_i)\,w\bigr]^2\right) \cdot y_i$$
 
-其中 $w$ 是標量參數，控制注意力的「寬窄」：
+$w$ 的大小直接決定注意力的集中程度：
 
-| $w$ 值 | 效果 |
-|---|---|
-| 大的 $\lvert w \rvert$ | 注意力集中（窄核，過擬合風險）|
-| 小的 $\lvert w \rvert$ | 注意力分散（寬核，欠擬合風險）|
+| $w$ 的大小 | 效果 | 風險 |
+|---|---|---|
+| 較大 | 注意力集中（窄核） | 過擬合 |
+| 較小 | 注意力分散（寬核） | 欠擬合 |
 
-通過梯度下降學習最優的 $w$，使得模型在驗證集上表現最佳。
+透過梯度下降學習最佳的 $w$，模型就能在訓練資料上找到最合適的關注範圍。
 
-**矩陣化形式**：對於批次查詢 $\mathbf{x} = (x_{\text{query},1}, \ldots, x_{\text{query},m})$：
+**矩陣化形式**：對批次查詢 $\mathbf{x}_\text{query} \in \mathbb{R}^m$，可一次計算所有注意力權重：
 
-$$
-\text{Attention Weights} = \text{softmax}\!\left(-\frac{1}{2}\left(X_{\text{query}} - X_{\text{key}}\right)^2 w^2\right) \in \mathbb{R}^{m \times n}
-$$
+$$\text{Attention Weights} = \text{softmax}\!\left(-\frac{w^2}{2}\left(X_\text{query} - X_\text{key}\right)^2\right) \in \mathbb{R}^{m \times n}$$
+
+---
 
 ### 10.2.5 小結
 
-Nadaraya-Watson 核回歸揭示了注意力機制的**統計學根源**：
+Nadaraya-Watson 核回歸揭示了注意力機制的**統計學根源**。其核心公式：
 
-$$
-\boxed{f(x) = \sum_{i=1}^n \text{softmax}\bigl(a(x, x_i)\bigr) \cdot y_i}
-$$
+$$\boxed{\hat{y}(x) = \sum_{i=1}^n \text{softmax}\bigl(a(x, x_i)\bigr) \cdot y_i}$$
 
-| 注意力組件 | 核回歸對應 |
-|---|---|
-| Query $q$ | 測試輸入 $x$ |
-| Key $k_i$ | 訓練輸入 $x_i$ |
-| Value $v_i$ | 訓練標籤 $y_i$ |
-| 評分函數 $a$ | $-\frac{1}{2}(x - x_i)^2$ |
+與現代注意力機制的標準形式完全一致：
 
-從此出發，我們可以將評分函數推廣到向量空間，得到現代注意力機制。
+| 注意力組件 | 核回歸對應 | 角色 |
+|---|---|---|
+| Query $q$ | 測試輸入 $x$ | 「我想查詢什麼」 |
+| Key $k_i$ | 訓練輸入 $x_i$ | 「各資料點的索引」 |
+| Value $v_i$ | 訓練標籤 $y_i$ | 「實際攜帶的資訊」 |
+| 評分函數 $a$ | $-\frac{1}{2}(x - x_i)^2$ | 「相似程度的衡量」 |
+
+從這個一維的核回歸出發，只需將評分函數推廣到向量空間，便能得到現代注意力機制的完整形式。
 
 ---
 
