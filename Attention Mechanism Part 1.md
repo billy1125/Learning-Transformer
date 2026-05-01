@@ -26,11 +26,15 @@
 
 **類比到機器學習：**
 
-- 非自主性提示 → **Key**：資料本身的顯著特徵（「我能提供什麼」）
-- 自主性提示 → **Query**：當前任務的需求（「我在找什麼」）
-- 感知對象的內容 → **Value**：實際讀取的資訊（「我提供的具體內容」）
+|機制|向量|意義|名稱|
+|---|---|---|---|
+|非自主性提示|**Key(K)**|資料本身的顯著特徵（「我能提供什麼」）|查詢向量
+|自主性提示|**Query(Q)**|當前任務的需求（「我在找什麼」）|鍵向量
+|感知對象的內容|**Value(V)**|實際讀取的資訊（「我提供的具體內容」）|值向量
 
 ### 10.1.2 查詢、鍵與值（Query, Key, Value）
+
+**注意力機制（Attention Mechanism）** 的計算，本質上是在一組輸入向量之間，動態分配「權重」，讓模型在處理某個位置時，能選擇性地關注其他位置的重要資訊。這個計算在現代深度學習（尤其是 Transformer）中是核心運算。
 
 #### 抽象框架
 
@@ -51,6 +55,56 @@ $$
 $$
 \alpha(q, k_i) \geq 0, \qquad \sum_{i=1}^n \alpha(q, k_i) = 1
 $$
+
+#### 說明
+
+先從最標準的「縮放點積注意力（Scaled Dot-product Attention）」來說明。
+
+給定三組向量：
+- Query（查詢向量）\( Q \)
+- Key（鍵向量）\( K \)
+- Value（值向量）\( V \)
+
+注意力的計算分為三個主要步驟：
+
+1. 第一步是計算相似度（Attention Score），亦即對每個 Query，與所有 Key 做內積：
+
+$$
+\text{score}(Q, K) = Q K^T
+$$
+
+這個內積代表 Query 和每個 Key 的相關程度。
+
+2. 第二步是縮放與正規化，為了避免數值過大，會除以 \(\sqrt{d_k}\)（\(d_k\) 是 Key 的維度），然後經過 Softmax：
+
+$$
+\text{attention weights} = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)
+$$
+
+這一步會把分數轉成機率分佈，總和為 1，代表「關注比例」。
+
+3. 第三步是加權求和，用這些權重去加權對應的 Value：
+
+$$
+\text{output} = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V
+$$
+
+這個結果就是注意力機制的輸出。
+
+#### 直觀理解
+
+如果用直觀方式理解：
+- Query：現在要處理的資訊（例如一句話中的某個詞）
+- Key：所有可被參考的索引（其他詞）
+- Value：實際要取用的內容
+- Attention Weights：決定「該看誰比較多」
+
+> 整體效果就是：模型在處理某個元素時，不是平均看所有輸入，而是根據相似度動態選擇重點。
+
+總結來說，注意力機制的核心計算就是：
+1. 相似度（內積）
+2. 機率化（softmax）
+3. 加權整合（加權和）
 
 #### 與資料庫查詢的對比
 
@@ -104,6 +158,170 @@ $$
 
 > Query 決定需求，Key 提供匹配依據，Value 提供實際內容。注意力機制就是透過這三者的互動，讓模型在大量資訊中動態選擇最有用的部分，進而理解語言。
 
+### 10.1.6 計算範例
+
+以下用一個非常小的數值例子，完整做完一次 attention 計算流程，從相似度 → 機率分佈 → 加權整合，全部以矩陣運算完成，逐步展示「縮放點積注意力」的實際計算流程。為了可讀性，維度刻意設得很低。
+
+---
+
+假設有 2 個 token（例如一句話中的兩個詞）：
+
+- Token₁ =「我」
+- Token₂ =「吃」
+
+我們對它們做線性投影（線性特徵映射，類似編碼）後，得到：
+
+$$
+Q = \begin{bmatrix}
+1 & 0 \\
+0 & 1
+\end{bmatrix}, \quad
+K = \begin{bmatrix}
+1 & 1 \\
+1 & 0
+\end{bmatrix}, \quad
+V = \begin{bmatrix}
+1 & 2 \\
+3 & 4
+\end{bmatrix}
+$$
+
+這裡每一列對應一個 Token。
+
+---
+
+### Step 1：計算 attention score（QKᵀ）
+
+$$
+QK^T =
+\begin{bmatrix}
+1 & 0 \\
+0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+1 & 1 \\
+1 & 0
+\end{bmatrix}^T
+=
+\begin{bmatrix}
+1 & 1 \\
+1 & 0
+\end{bmatrix}
+$$
+
+---
+
+### Step 2：縮放（除以 $\sqrt{d_k}$ ）
+
+這裡 $d_k = 2$ ，所以 $\sqrt{2} \approx 1.414$
+
+$$
+\frac{QK^T}{\sqrt{2}} =
+\begin{bmatrix}
+0.707 & 0.707 \\
+0.707 & 0
+\end{bmatrix}
+$$
+
+---
+
+### Step 3：對每一列做 softmax
+
+第一列：
+
+$$
+\text{softmax}(0.707, 0.707) = (0.5, 0.5)
+$$
+
+第二列：
+
+$$
+\text{softmax}(0.707, 0) \approx (0.67, 0.33)
+$$
+
+因此 Attention Weights 為：
+
+$$
+\begin{bmatrix}
+0.5 & 0.5 \\
+0.67 & 0.33
+\end{bmatrix}
+$$
+
+---
+
+### Step 4：加權 Value（乘上 V）
+
+$$
+\text{output} =
+\begin{bmatrix}
+0.5 & 0.5 \\
+0.67 & 0.33
+\end{bmatrix}
+\begin{bmatrix}
+1 & 2 \\
+3 & 4
+\end{bmatrix}
+$$
+
+
+最終結果
+
+$$
+\text{output} =
+\begin{bmatrix}
+2 & 3 \\
+1.66 & 2.66
+\end{bmatrix}
+$$
+
+---
+
+### 直觀解讀（對應 NLP）
+
+#### 1. Attention Weights 的直觀意義
+
+- 第一個詞「我」：
+  - 平均關注自己與「吃」（0.5 / 0.5）
+
+- 第二個詞「吃」：
+  - 更偏向關注「我」（0.67），較少看自己（0.33）
+
+因此：
+- 「我」的表示融合了兩個詞的資訊（平均）
+- 「吃」的表示更強烈地依賴「我」
+
+#### 2. Output 的直觀意義
+
+注意力機制做的事情不是「決定看誰」，而是：把其他 Token 的資訊加權混合，生成一個新的語意表示
+
+第一列：token「我」的新表示，Output = (2, 3)
+
+解釋：
+
+「我」同時吸收平均融合自己的語意（value₁ = (1,2)）、「吃」的語意（value₂ = (3,4)）
+
+「我」的表示不再只是「我」，而是帶有「我 + 吃」的上下文資訊 → 可以理解成：「我（正在做某個動作）」的語境被強化
+
+第二列：token「吃」的新表示，Output ≈ (1.66, 2.66)
+
+解釋：
+
+「吃」主要吸收「我」的資訊（權重 0.67），較少保留自己原本的資訊
+
+「吃」這個詞被「誰在吃」這個資訊強烈影響 → 它的表示更偏向「被主詞修飾的動作」
+
+> Attention 的 output 可以這樣理解：每個 token 的新表示 = 「所有 token 的 value 向量」的加權平均（權重來自 query 與 key 的相似度）
+
+因此：它不是選一個詞，而是「軟選擇（soft selection）」→ 線性組合
+
+---
+
+| |說明|白話文|
+|--|--|--|
+|Attention Weights|決定資訊來源比例|告訴你「看誰比較多」|
+|Output|真正融合後的語意向量|把大家的資訊混在一起後的結果|
+
 ---
 
 ## 10.2 Nadaraya-Watson 核回歸
@@ -118,14 +336,14 @@ $$
 \{(x_1, y_1), (x_2, y_2), \ldots, (x_n, y_n)\}
 $$
 
-目標：對新輸入 $x$ 估計 $\mathbb{E}[y \mid x]$。
+目標：對任意輸入 \(x\)，估計對應輸出 $\hat{y}(x)$
 
-### 10.2.2 平均匯聚（基準方法）
+### 10.2.2 平均匯聚（傳統方法）
 
 最簡單的估計是**樣本均值**：
 
 $$
-f(x) = \frac{1}{n} \sum_{i=1}^n y_i
+\hat{y}(x) = f(x) = \frac{1}{n} \sum_{i=1}^n y_i
 $$
 
 這完全忽略了輸入 $x$ 的資訊，相當於注意力均勻分佈（$\alpha_i = 1/n$）。
@@ -139,14 +357,16 @@ $$
 **Nadaraya-Watson 核回歸**（1964）：
 
 $$
-f(x) = \sum_{i=1}^n \frac{K(x - x_i)}{\displaystyle\sum_{j=1}^n K(x - x_j)} \cdot y_i
+\hat{y}(x) = f(x) = \sum_{i=1}^n \frac{K(x - x_i)}{\displaystyle\sum_{j=1}^n K(x - x_j)} \cdot y_i
 $$
 
-其中 $K(\cdot)$ 是核函數（kernel function），常用的高斯核：
+其中 $K(x, x_i)$ 是核函數（kernel function），這是用來衡量 $ x $ 與 $ x_i $ 的相似度。一般來說常使用高斯核：
 
 $$
-K(u) = \frac{1}{\sqrt{2\pi}} \exp\!\left(-\frac{u^2}{2}\right)
+K(u) = K(x, x_i) = \exp\left(-\frac{(x - x_i)^2}{2\sigma^2}\right)
 $$
+
+- $\sigma$：控制平滑程度（帶寬, bandwidth）
 
 #### 改寫為注意力形式
 
