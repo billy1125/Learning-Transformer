@@ -378,6 +378,8 @@ $$K(x, x_i) = \exp\!\left(-\frac{(x - x_i)^2}{2\sigma^2}\right)$$
   - $\sigma$ 越大 → 曲線越平坦，遠處的點仍有一定影響力（**注意力分散**）
   - $\sigma$ 越小 → 曲線越尖銳，只有極近的點才有顯著影響（**注意力集中**）
 
+> 在核回歸中，$\sigma$ 不是類似於「標準差」在描述「資料的分布」，它的功能是「控制注意力的分散程度」，而不是描述資料本身的變異。
+
 #### 改寫為注意力形式
 
 代入高斯核（簡化令 $\sigma = 1$），令 $\alpha(x, x_i)$ 表示注意力權重：
@@ -409,7 +411,9 @@ $$a(x, x_i) = -\frac{(x - x_i)^2}{2}$$
 
 ### 10.2.4 帶參數的注意力匯聚
 
-非參數版本的 $\sigma$ 必須手動設定。若改為引入**可學習參數** $w$，模型便能從資料中自動調整關注範圍：
+非參數版本的 $\sigma$ 必須手動設定。
+
+若改為引入**可學習參數** $w$，模型便能從資料中自動調整關注範圍：
 
 $$\hat{y}(x) = \sum_{i=1}^n \text{softmax}\!\left(-\frac{1}{2}\bigl[(x - x_i)\,w\bigr]^2\right) \cdot y_i$$
 
@@ -449,9 +453,17 @@ $$\boxed{\hat{y}(x) = \sum_{i=1}^n \text{softmax}\bigl(a(x, x_i)\bigr) \cdot y_i
 
 ## 10.3 注意力評分函數
 
-評分函數 $a(q, k)$ 是注意力機制的核心設計選擇。本節推導三種主要形式。
+評分函數 $a(q, k)$ 是注意力機制的核心設計選擇。
+
+本節推導三種主要形式。
+
+1. 掩蔽 Softmax 操作（Masked Softmax）
+2. 加性注意力（Additive Attention）
+3. 縮放點積注意力（Scaled Dot-Product Attention）
 
 ### 10.3.1 掩蔽 Softmax 操作（Masked Softmax）
+
+在 softmax 前對不允許關注的位置加入負無限（或極小值），使其權重趨近於 0，以限制資訊流動範圍。先把「不該看的位置」直接遮掉，讓模型在計算注意力時完全忽略它們。
 
 在實際應用中，序列往往有**填充**（padding）或需要**因果遮蔽**（causal masking），需要讓某些位置的注意力權重強制為零。
 
@@ -508,11 +520,9 @@ def masked_softmax(X, valid_lens):
 
 ### 10.3.2 加性注意力（Additive Attention）
 
+透過一個可學習的前饋網路（通常含非線性）計算 query 與 key 的相似度。用一個小神經網路來判斷兩個詞有多相關，再決定要關注多少。當 Query 和 Key 的維度不同時（$q \in \mathbb{R}^{d_q}$，$k \in \mathbb{R}^{d_k}$），點積無法直接計算。需要一個能處理**不同維度**的評分函數。
+
 **出處**：Bahdanau et al. (2015)，最早的可學習注意力機制之一。
-
-#### 動機
-
-當 Query 和 Key 的維度不同時（$q \in \mathbb{R}^{d_q}$，$k \in \mathbb{R}^{d_k}$），點積無法直接計算。需要一個能處理**不同維度**的評分函數。
 
 #### 公式
 
@@ -580,6 +590,10 @@ $$
 ---
 
 ### 10.3.3 縮放點積注意力（Scaled Dot-Product Attention）
+
+> **比較重要**
+
+用向量內積快速算出兩個詞的相關程度，並做適當縮放後轉成權重。使用 Query 和 Key 的內積作為相似度，並除以 $\sqrt{d_k}$ 後再經 softmax 得到權重。
 
 **出處**：Vaswani et al., "Attention is All You Need" (2017)。
 
