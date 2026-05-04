@@ -182,3 +182,7 @@ cython_debug/
 
 .DS_Store
 Thumbs.db
+
+# 忽略所有 PyTorch 權重檔案
+*.pt
+*.pth
