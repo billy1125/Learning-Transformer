@@ -50,7 +50,7 @@ $$
 \text{Attention}(q, \mathcal{D}) = \sum_{i=1}^n \alpha(q, k_i) \cdot v_i
 $$
 
-其中 $\alpha(q, k_i)$ 是注意力權重，滿足：
+其中 $\alpha(q, k_i)$ 是注意力權重（Attention Weights），滿足：
 
 $$
 \alpha(q, k_i) \geq 0, \qquad \sum_{i=1}^n \alpha(q, k_i) = 1
@@ -75,7 +75,7 @@ $$
 
 這個內積代表 Query 和每個 Key 的相關程度。
 
-2. 第二步是縮放與正規化，為了避免數值過大，會除以 \(\sqrt{d_k}\)（\(d_k\) 是 Key 的維度），然後經過 Softmax：
+2. 第二步是縮放與正規化，為了避免數值過大，會除以 $\sqrt{d_k}$（$d_k$ 是 Key 的維度），然後經過 Softmax：
 
 $$
 \text{attention weights} = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)
