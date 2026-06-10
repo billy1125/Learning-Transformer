@@ -77,6 +77,8 @@ $$
 
 整個計算過程沒有任何可訓練參數（除了 embedding 本身），模型無法透過梯度學習「什麼是好的相似度」。
 
+三個限制有一個統一的解法：引入三組獨立的線性投影——下一節說明 QKV 如何分別解決這三個問題。
+
 ---
 
 ## 2. Query / Key / Value 的動機
@@ -173,6 +175,8 @@ $$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
 $$
 
+公式確定了，接下來追蹤每個矩陣在每一步的形狀，確認維度計算前後一致。
+
 ---
 
 ## 4. 矩陣形式與 Shape 分析
@@ -229,6 +233,8 @@ $$
 $$
 (T \times d) \;\to\; (T \times d_k),\, (T \times d_k),\, (T \times d_v) \;\to\; (T \times T) \;\to\; (T \times T) \;\to\; (T \times d_v)
 $$
+
+Shape 追蹤完了，但單頭 attention 每次只能學一種「注意力模式」——下一節說明多頭如何讓模型同時關注不同面向。
 
 ---
 
@@ -368,6 +374,8 @@ $$
 $$
 
 **關鍵觀察：** 兩個 head 分別處理輸入的不同子空間（前 2 維 vs 後 2 維），最後透過 $W_O$ 融合，輸出維度 $d=4$ 不變。
+
+Multi-Head Attention 是 Transformer Block 的第一個子模組——第 6 節把四個子模組（MHA → Residual → FFN → Residual）組裝成完整的 Block。
 
 ---
 

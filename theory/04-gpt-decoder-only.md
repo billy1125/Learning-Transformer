@@ -76,6 +76,8 @@ GPT：            只有 N 層 Causal Decoder Block
 | Decoder only | GPT, LLaMA | 文字生成、語言建模 |
 | Encoder-Decoder | T5, 原始 Transformer | 翻譯、摘要（seq2seq）|
 
+Decoder-Only 架構確定了，但還有一個問題：訓練時如果讓模型看到未來的詞，等於作弊——第 3 節說明如何用遮罩阻止這件事。
+
 ---
 
 ## 3. Causal Masking：只能看過去，不能偷看未來
@@ -178,6 +180,8 @@ loss = F.cross_entropy(logits.view(B*T, C), targets.view(B*T))
 ```
 
 有了 Causal Mask，位置 $i$ 的 logit 只用到了 $x_1, \ldots, x_i$ 的資訊，預測 $x_{i+1}$，**不會洩漏未來**。因此一個序列可以同時訓練 $T$ 個預測任務，訓練效率極高。
+
+訓練目標清楚了，第 5 節逐行解析 nanoGPT 如何把以上概念翻譯成不到 300 行的 Python 程式。
 
 ---
 
@@ -316,6 +320,8 @@ x = LayerNorm(x + Attn(x)) # x = x + Attn(LayerNorm(x))
 | 深層表現 | 容易梯度爆炸 | 梯度流更均勻 |
 | 代表模型 | 原始 Transformer | GPT-2、LLaMA、nanoGPT |
 
+架構設計清楚了，但模型怎麼讀取文字？第 7 節說明 nanoGPT 使用的字元級 tokenizer，以及與真實 BPE 的差異。
+
 ---
 
 ## 7. 字元級 Tokenizer
@@ -339,6 +345,8 @@ decode = lambda l: ''.join([itos[i] for i in l])
 **缺點：** 序列很長（一個詞需要 3–6 個 token），效率低
 
 真實的 GPT 模型使用 BPE（Byte-Pair Encoding），詞彙表大小約 5 萬～10 萬，同樣的文字只需要約 1/4 長度的 token 序列。
+
+訓練完成後，模型如何一個 token 一個 token 地生成新文字？第 8 節說明自迴歸生成的實作細節。
 
 ---
 

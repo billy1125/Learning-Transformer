@@ -105,6 +105,8 @@ $$
 
 以上每個數字都可以對照後面的符號推導逐步驗證。
 
+具體數字跑過一遍了，接下來用符號推導同樣的計算，得到對任意輸入都成立的一般公式。
+
 ---
 
 ## 1. Self-Attention 的反向傳播推導
@@ -261,6 +263,8 @@ $$
 \frac{\partial \mathcal{L}}{\partial V} = A^\top G^C
 $$
 
+Attention 本身的梯度推導完了，但 $Q, K, V$ 都是由輸入 $X$ 經投影矩陣得到的——梯度還需要繼續往 $W_Q, W_K, W_V$ 和 $X$ 傳。
+
 ---
 
 ## 2. Linear Projection 的反向傳播
@@ -298,6 +302,8 @@ $$
 (T \times d_k) \cdot (d_k \times d) = (T \times d) \checkmark
 $$
 
+投影矩陣的梯度推完了，多頭 attention 的各 head 梯度本質上是同樣的計算分別執行——第 3 節說明拼接與輸出投影 $W_O$ 的梯度如何處理。
+
 ---
 
 ## 3. Multi-Head Attention 的梯度
@@ -331,7 +337,7 @@ $$
 G^{C^{(h)}} = G^{\text{Cat}}[:, (h-1)d_v : h \cdot d_v]
 $$
 
-每個 head 再各自套用第 9 節的單頭反向傳播，互不干擾。
+每個 head 再各自套用第 1 節的單頭反向傳播，互不干擾。
 
 ---
 
@@ -360,6 +366,8 @@ $$
 - 梯度不因序列長度衰減
 - 長距離依賴（如 100 個 token 之外的指代關係）與短距離依賴一樣容易學習
 - 深層 Transformer 靠 **Residual Connection** 而非時間鏈傳遞梯度
+
+Attention 的梯度優勢說清楚了，Transformer Block 裡還有一個關鍵模組的梯度推導：LayerNorm 有三條互相耦合的路徑——第 5 節完整推導。
 
 ---
 
@@ -441,6 +449,25 @@ $$
 \quad \Rightarrow \quad
 \frac{\partial \sigma^2}{\partial x_j} = \frac{2\tilde{x}_j}{d}
 $$
+
+**三條梯度路徑示意圖：**
+
+```
+                         ┌─ 路徑1（直接）─────────────────── ŷ_j → L
+                         │                                        ↑
+x_j ─→ x̃_j=x_j-μ ──→ ÷r ──→ ŷ_j          g^ŷ_j（直接梯度 g^x̂/r）
+  │                      ↑
+  │                 r=√(σ²+ε)              路徑3（variance）
+  │                      ↑               g^σ² × (2x̃_j/d) 傳回
+  │               σ²=Σx̃²/d
+  │                      ↑
+  │         所有 j 的 (x_j-μ)² 累積
+  │
+  └──→ (1/d)→ μ ── 影響所有 x̃_k=x_k-μ    路徑2（mean）
+                                           g^μ × (-1/d) 傳給每個 j
+```
+
+三條路徑需**同時計算**，因為 $\mu$ 與 $\sigma^2$ 由同一個 hidden vector 的所有維度共同決定，無法逐元素獨立處理。
 
 ### 5.5 Variance 路徑的詳細推導
 
@@ -610,6 +637,42 @@ $$
 \frac{\partial \mathcal{L}}{\partial x}
 = \frac{1}{r}\!\left(g^{\hat{x}} - \text{mean}(g^{\hat{x}}) - \hat{x} \odot \text{mean}(g^{\hat{x}} \odot \hat{x})\right)
 $$
+
+---
+
+## 反向傳播完整梯度查閱表
+
+從損失 $\mathcal{L}$ 到所有葉節點（可訓練參數）的完整梯度公式：
+
+### Self-Attention（$C = \text{softmax}(QK^\top/\sqrt{d_k}) V$）
+
+| 梯度目標 | 公式 | 章節 |
+|---|---|---|
+| $G^V = \partial\mathcal{L}/\partial V$ | $A^\top G^C$ | §1.2 |
+| $G^A = \partial\mathcal{L}/\partial A$ | $G^C V^\top$ | §1.3 |
+| $G^E_{i,:}$（Softmax 反向）| $A_{i,:} \odot (G^A_{i,:} - \langle A_{i,:}, G^A_{i,:}\rangle)$ | §1.4 |
+| $\partial\mathcal{L}/\partial Q$ | $\dfrac{1}{\sqrt{d_k}} G^E K$ | §1.5 |
+| $\partial\mathcal{L}/\partial K$ | $\dfrac{1}{\sqrt{d_k}} (G^E)^\top Q$ | §1.5 |
+
+### Linear Projection（$Q=XW_Q$, $K=XW_K$, $V=XW_V$）
+
+| 梯度目標 | 公式 | 章節 |
+|---|---|---|
+| $\partial\mathcal{L}/\partial W_Q$ | $X^\top \cdot \partial\mathcal{L}/\partial Q$ | §2 |
+| $\partial\mathcal{L}/\partial W_K$ | $X^\top \cdot \partial\mathcal{L}/\partial K$ | §2 |
+| $\partial\mathcal{L}/\partial W_V$ | $X^\top \cdot \partial\mathcal{L}/\partial V$ | §2 |
+| $\partial\mathcal{L}/\partial X$ | $(\partial\mathcal{L}/\partial Q)W_Q^\top + (\partial\mathcal{L}/\partial K)W_K^\top + (\partial\mathcal{L}/\partial V)W_V^\top$ | §2 |
+
+### LayerNorm（$y_j = \gamma_j \hat{x}_j + \beta_j$）
+
+| 梯度目標 | 公式 | 章節 |
+|---|---|---|
+| $\partial\mathcal{L}/\partial \gamma$ | $g^y \odot \hat{x}$ | §5.2 |
+| $\partial\mathcal{L}/\partial \beta$ | $g^y$ | §5.2 |
+| $g^{\hat{x}}$（中間量）| $g^y \odot \gamma$ | §5.3 |
+| $\partial\mathcal{L}/\partial x$ | $\dfrac{1}{r}\!\left(g^{\hat{x}} - \text{mean}(g^{\hat{x}}) - \hat{x} \odot \text{mean}(g^{\hat{x}} \odot \hat{x})\right)$ | §5.7 |
+
+> **說明：** $r = \sqrt{\sigma^2 + \epsilon}$，$\hat{x} = (x-\mu)/r$，$\text{mean}(\cdot) = \tfrac{1}{d}\sum_j (\cdot)_j$。查閱表中所有公式皆有對應的符號推導章節與數值驗證。
 
 ---
 
