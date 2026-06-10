@@ -14,6 +14,99 @@
 
 ---
 
+## 數值驗證範例（T=2, d_k=2）
+
+> 先用具體數字跑一次完整的前向 + 反向傳播，再讀符號推導。
+
+### 設定
+
+$$
+Q = K = V = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix},\quad d_k = 2,\quad
+G^C = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}（假設上游梯度為單位矩陣）
+$$
+
+### 前向傳播
+
+**Step 1：注意力分數**
+
+$$
+E = \frac{QK^\top}{\sqrt{2}} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.707 & 0 \\ 0 & 0.707 \end{bmatrix}
+$$
+
+**Step 2：Softmax（逐行）**
+
+$$
+A = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
+\quad \left(\text{例如第一行：}\frac{e^{0.707}}{e^{0.707}+e^0} = \frac{2.028}{3.028} \approx 0.67\right)
+$$
+
+**Step 3：加權讀取**
+
+$$
+C = AV = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
+$$
+
+### 反向傳播
+
+**對 V 的梯度**
+
+$$
+G^V = A^\top G^C = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
+$$
+
+**對 A 的梯度**
+
+$$
+G^A = G^C V^\top = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
+$$
+
+**Softmax 反向（逐行）**
+
+以第一行為例，$A_{0,:} = [0.67, 0.33]$，$G^A_{0,:} = [1, 0]$：
+
+$$
+s_0 = \langle A_{0,:},\, G^A_{0,:} \rangle = 0.67 \times 1 + 0.33 \times 0 = 0.67
+$$
+
+$$
+G^E_{0,:} = A_{0,:} \odot (G^A_{0,:} - s_0) = [0.67, 0.33] \odot [0.33, -0.67] = [0.221, -0.221]
+$$
+
+完整矩陣：
+
+$$
+G^E = \begin{bmatrix} 0.221 & -0.221 \\ -0.221 & 0.221 \end{bmatrix}
+$$
+
+**對 Q 與 K 的梯度**
+
+$$
+G^Q = \frac{1}{\sqrt{2}}\, G^E K = \begin{bmatrix} 0.156 & -0.156 \\ -0.156 & 0.156 \end{bmatrix}
+$$
+
+$$
+G^K = \frac{1}{\sqrt{2}}\, (G^E)^\top Q = \begin{bmatrix} 0.156 & -0.156 \\ -0.156 & 0.156 \end{bmatrix}
+$$
+
+因為 $Q=K$ 且 $G^C$ 是對稱矩陣，所以 $G^Q = G^K$——這是對稱輸入的特性，一般情況下兩者不同。
+
+**完整梯度流一覽：**
+
+$$
+G^C \xrightarrow{A^\top \cdot} G^V = \begin{bmatrix}0.67&0.33\\0.33&0.67\end{bmatrix},\quad
+G^C \xrightarrow{\cdot V^\top} G^A = I,\quad
+G^A \xrightarrow{\text{softmax}^{-1}} G^E = \begin{bmatrix}0.221&{-0.221}\\{-0.221}&0.221\end{bmatrix}
+$$
+
+$$
+G^E \xrightarrow{\frac{1}{\sqrt{d_k}}\cdot K} G^Q = \begin{bmatrix}0.156&{-0.156}\\{-0.156}&0.156\end{bmatrix},\quad
+G^E \xrightarrow{\frac{1}{\sqrt{d_k}}(\cdot)^\top Q} G^K = \begin{bmatrix}0.156&{-0.156}\\{-0.156}&0.156\end{bmatrix}
+$$
+
+以上每個數字都可以對照後面的符號推導逐步驗證。
+
+---
+
 ## 9. Self-Attention 的反向傳播推導
 
 我們考慮單一 attention（不含 multi-head），前向傳播為：

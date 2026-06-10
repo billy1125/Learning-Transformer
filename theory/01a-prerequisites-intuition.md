@@ -470,7 +470,7 @@ $$
 把內積除以 $\sqrt{d}$，可以把標準差從 $\sqrt{d}$ 拉回到 1：
 
 $$
-e_{i，j} = \frac{x_i^\top x_j}{\sqrt{d}}
+e_{i,j} = \frac{x_i^\top x_j}{\sqrt{d}}
 $$
 
 **白話翻譯：** 先除一個剛好的數，把分數拉回正常範圍，softmax 就不會太極端，梯度也能正常流動，模型才學得起來。
@@ -503,7 +503,7 @@ $$
 所以這個式子**完整版**其實是:
 
 $$
-e_{i，j} = \frac{x_i^\top x_j - 0}{\sqrt{d}} = \frac{\text{內積} - \mu}{\sigma}
+e_{i,j} = \frac{x_i^\top x_j - 0}{\sqrt{d}} = \frac{\text{內積} - \mu}{\sigma}
 $$
 
 **這就是一個 z-score!** 只是因為平均剛好是 0，所以省略了減 $\mu$ 的步驟，看起來才像是「只有除以 $\sqrt{d}$」。
@@ -529,7 +529,7 @@ $$
 | z-score | $\dfrac{x - \mu}{\sigma}$ | 把資料標準化到 std = 1 |
 | 樣本平均的標準誤 | $SE = \dfrac{\sigma}{\sqrt{n}}$ | 平均 $n$ 個樣本後，標準差縮小 $\sqrt{n}$ 倍 |
 | Transformer | $\dfrac{QK^\top}{\sqrt{d_k}}$ | 把內積的標準差拉回 1 |
-| Xavier 初始化 | $W \sim \mathcal{N}\!\left(0， \dfrac{1}{n}\right)$ | 神經網路權重初始化，控制信號標準差 |
+| Xavier 初始化 | $W \sim \mathcal{N}\!\left(0, \dfrac{1}{n}\right)$ | 神經網路權重初始化，控制信號標準差 |
 | Layer Normalization | $\dfrac{x - \mu}{\sigma}$ | 神經網路每層做 z-score |
 
 **它們全部都源自同一個機率論事實:**

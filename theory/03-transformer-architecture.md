@@ -23,7 +23,8 @@
 > c_i = \sum_j \text{softmax}(x_i^\top x_j) \, x_j
 > $$
 >
-> 推廣為完整 Transformer 架構，並包含 Self-Attention 與 LayerNorm 的完整反向傳播推導。
+> 推廣為完整 Transformer 架構，涵蓋 Multi-Head Attention、Transformer Block、Positional Encoding。
+> 反向傳播推導請見 [`05-backpropagation.md`](05-backpropagation.md)。
 
 
 
@@ -39,11 +40,6 @@
 6. Transformer Block
 7. Positional Encoding
 8. 與 RNN 的結構差異
-9. Self-Attention 的反向傳播推導
-10. Linear Projection 的反向傳播
-11. Multi-Head Attention 的梯度
-12. 與 RNN Attention 的關鍵差異（反向傳播）
-13. LayerNorm 的反向傳播推導
 
 ---
 
@@ -309,6 +305,70 @@ $$
 = H \cdot 3d \cdot \frac{d}{H} + d^2 = 3d^2 + d^2 = 4d^2
 $$
 
+### 5.5 Multi-Head Attention 架構圖
+
+```
+          X  (T × d)
+         /        \
+        /           \
+  ┌─────────┐   ┌─────────┐   (H 個 head 並行，以 H=2 為例)
+  │  Head 1 │   │  Head 2 │
+  │  W_Q¹   │   │  W_Q²   │
+  │  W_K¹   │   │  W_K²   │
+  │  W_V¹   │   │  W_V²   │
+  │         │   │         │
+  │softmax  │   │softmax  │
+  │(QK⊤/√dk)│   │(QK⊤/√dk)│
+  └────┬────┘   └────┬────┘
+       │              │
+       C¹(T×dk)      C²(T×dk)
+        \            /
+         Concat → (T × d)
+              │
+             W_O
+              │
+          Output (T × d)
+```
+
+### 5.6 最小數值例子（H=2, d=4, d_k=2）
+
+設 T=2（2 個 token），d=4，H=2，d_k=d_v=2。
+
+**輸入：**
+
+$$
+X = \begin{bmatrix} 1 & 0 & 0 & 1 \\ 0 & 1 & 1 & 0 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
+$$
+
+**Head 1 的投影矩陣（取前 2 維）：**
+
+$$
+W_Q^{(1)} = W_K^{(1)} = W_V^{(1)} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0 & 0 \end{bmatrix}^{\!\top} \in \mathbb{R}^{4 \times 2}
+\quad \Rightarrow \quad
+Q^{(1)} = K^{(1)} = V^{(1)} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
+$$
+
+**Head 1 的 attention（與 §3 的 2-token 例子相同）：**
+
+$$
+E^{(1)} = \frac{Q^{(1)} (K^{(1)})^\top}{\sqrt{2}} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix},\quad
+A^{(1)} = \text{softmax}(E^{(1)}) = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
+$$
+
+$$
+C^{(1)} = A^{(1)} V^{(1)} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
+$$
+
+**Head 2 投影矩陣取後 2 維，得到 $C^{(2)}$（略，做法相同）。**
+
+**拼接與輸出：**
+
+$$
+\text{Concat}(C^{(1)}, C^{(2)}) \in \mathbb{R}^{2 \times 4} \xrightarrow{W_O} \text{Output} \in \mathbb{R}^{2 \times 4}
+$$
+
+**關鍵觀察：** 兩個 head 分別處理輸入的不同子空間（前 2 維 vs 後 2 維），最後透過 $W_O$ 融合，輸出維度 $d=4$ 不變。
+
 ---
 
 ## 6. Transformer Block
@@ -364,6 +424,34 @@ $$
 $$
 X \xrightarrow{+\text{MHA}} X + Z \xrightarrow{\text{LN}} Z' \xrightarrow{+\text{FFN}} Z' + F \xrightarrow{\text{LN}} Y
 $$
+
+```
+    輸入 X  (T × d)
+       │
+       ├──────────────────────┐  ← Residual shortcut
+       │                      │
+       ↓                      │
+  LayerNorm (Pre-LN)          │
+       │                      │
+  Multi-Head Attention        │
+       │                      │
+       └──────────── + ───────┘
+                     │
+                    Z'  (T × d)
+                     │
+       ┌─────────────┴──────────┐  ← Residual shortcut
+       │                        │
+       ↓                        │
+  LayerNorm (Pre-LN)            │
+       │                        │
+  Feed-Forward (d → 4d → d)     │
+       │                        │
+       └──────────── + ─────────┘
+                     │
+                 輸出 Y  (T × d)
+```
+
+Shape 全程不變（始終為 $T \times d$），使得 $N$ 個 Block 可以直接串疊。
 
 **參數量總覽（單一 Block）：**
 
