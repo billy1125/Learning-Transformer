@@ -487,8 +487,18 @@ $c_3$ 是三個向量的加權混合，偏向 $x_3$ 本身，並整合了 $x_1, 
 設 $x_i, x_j \in \mathbb{R}^d$，各分量 i.i.d. 來自 $\mathcal{N}(0, 1)$，則：
 
 $$
-\mathbb{E}[x_i^\top x_j] = 0
+\mathbb{E}[x_i^\top x_j] = \sum_{k=1}^d \mathbb{E}[(x_i)_k (x_j)_k] = \sum_{k=1}^d \underbrace{\mathbb{E}[(x_i)_k]}_0 \cdot \underbrace{\mathbb{E}[(x_j)_k]}_0 = 0
 $$
+
+每一項的變異數（利用獨立性與 $\mathbb{E}[z^2]=1$ for $z \sim \mathcal{N}(0,1)$）：
+
+$$
+\text{Var}[(x_i)_k (x_j)_k]
+= \mathbb{E}\!\left[((x_i)_k)^2 ((x_j)_k)^2\right] - \left(\mathbb{E}[(x_i)_k (x_j)_k]\right)^2
+= \underbrace{\mathbb{E}\!\left[((x_i)_k)^2\right]}_{=1} \cdot \underbrace{\mathbb{E}\!\left[((x_j)_k)^2\right]}_{=1} - 0 = 1
+$$
+
+因此 $d$ 個獨立項的變異數相加：
 
 $$
 \text{Var}[x_i^\top x_j] = \sum_{k=1}^d \text{Var}[(x_i)_k (x_j)_k] = d \cdot 1 = d
