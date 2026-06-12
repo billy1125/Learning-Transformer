@@ -82,5 +82,4 @@ environment/     ← Conda 環境設定檔
 - `improvement-plan.md` — 第一輪：修正錯誤、補數值範例與圖表、銜接語
 - `improvement-plan-01.md` — 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
 - `improvement-plan-02-writing.md` — 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
-
-下一輪（尚未規劃）：Notebook 逐 cell 檢視與執行驗證（improvement-plan-03）。
+- `improvement-plan-03-notebooks.md` — 第四輪：Notebook 逐 cell 執行驗證（NB3 梯度 bug 修復、NB4 首次執行、路徑隔離）

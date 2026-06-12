@@ -8,6 +8,8 @@
 
 ## 環境安裝
 
+### 方法一：Conda（建議）
+
 ```bash
 # macOS
 conda env create -f environment/cona-env-install-mac.yml
@@ -18,6 +20,23 @@ conda env create -f environment/cona-env-install-pc.yml
 conda activate transformer
 jupyter lab
 ```
+
+### 方法二：pip
+
+```bash
+pip install torch torchvision torchaudio numpy matplotlib jupyterlab pandas
+```
+
+### 核心套件
+
+| 套件 | 版本 | 用途 |
+|---|---|---|
+| `python` | 3.11 | 執行環境 |
+| `torch` | 2.11 | 神經網路、autograd（NB2、NB4） |
+| `numpy` | 2.x | 手刻矩陣運算（NB1、NB3） |
+| `matplotlib` | 3.x | 損失曲線、注意力熱圖（NB2、NB3、NB4） |
+| `jupyterlab` | 4.x | Notebook 執行環境 |
+| `pandas` | 2.x | 少量資料整理（NB3） |
 
 ---
 
@@ -125,3 +144,4 @@ jupyter lab
 | `improvement-plan.md` | 錯誤修正、數值範例、ASCII 圖表、章節銜接語 |
 | `improvement-plan-01.md` | 主線概念缺口（$W_O$、FFN、PE、Dropout、KV Cache、Embedding 梯度）、新增 `06` 當代架構文件 |
 | `improvement-plan-02-writing.md` | 數學推導逐步化（Softmax Jacobian、LayerNorm 合併代數等）、程式範例說明、失效引用修正 |
+| `improvement-plan-03-notebooks.md` | Notebook 執行驗證：NB3 梯度驗證 bug 修復、NB4 首次執行、路徑隔離與 .gitignore 補強 |
