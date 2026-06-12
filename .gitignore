@@ -186,3 +186,7 @@ Thumbs.db
 # 忽略所有 PyTorch 權重檔案
 *.pt
 *.pth
+# Notebook 執行產生的資料與輸出
+notebooks/data/
+input.txt
+training_loss.png
