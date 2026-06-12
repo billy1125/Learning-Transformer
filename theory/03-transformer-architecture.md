@@ -153,7 +153,7 @@ $$
 \text{若 } e_{i,j} \gg e_{i,k} \; \forall k \neq j, \quad \text{則 } \alpha_{i,j} \to 1, \quad \nabla_{E} \mathcal{L} \to 0
 $$
 
-梯度幾乎消失，訓練停滯。除以 $\sqrt{d_k}$ 後：
+梯度幾乎消失，訓練停滯。（為什麼飽和會讓梯度消失：softmax 的導數含 $\alpha(1-\alpha)$ 因子，$\alpha$ 趨近 0 或 1 時因子趨近 0——統計推導見 [`01b`](01b-prerequisites-math.md) §8，完整 Jacobian 見 [`05`](05-backpropagation.md) §1.4。）除以 $\sqrt{d_k}$ 後：
 
 $$
 \text{Var}\!\left(\frac{q_i^\top k_j}{\sqrt{d_k}}\right) = \frac{d_k}{d_k} = 1
@@ -356,34 +356,63 @@ $$
 X = \begin{bmatrix} 1 & 0 & 0 & 1 \\ 0 & 1 & 1 & 0 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
 $$
 
-**Head 1 的投影矩陣（取前 2 維）：**
+**Head 1 的投影矩陣（取輸入的前 2 維）：**
 
 $$
-W_Q^{(1)} = W_K^{(1)} = W_V^{(1)} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0 & 0 \end{bmatrix}^{\!\top} \in \mathbb{R}^{4 \times 2}
+W_Q^{(1)} = W_K^{(1)} = W_V^{(1)} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0 & 0 \end{bmatrix} \in \mathbb{R}^{4 \times 2}
 \quad \Rightarrow \quad
-Q^{(1)} = K^{(1)} = V^{(1)} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
+Q^{(1)} = K^{(1)} = V^{(1)} = X W^{(1)} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
 $$
 
-**Head 1 的 attention（與 §3 的 2-token 例子相同）：**
+（驗算第一列：$x_1 = [1, 0, 0, 1]$ 乘上 $W^{(1)}$ 只留下前 2 維 → $[1, 0]$ ✓）
+
+**Head 1 的 attention：**
 
 $$
 E^{(1)} = \frac{Q^{(1)} (K^{(1)})^\top}{\sqrt{2}} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix},\quad
 A^{(1)} = \text{softmax}(E^{(1)}) = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
 $$
 
+（softmax 計算：第一行為 $\frac{e^{0.707}}{e^{0.707} + e^0} = \frac{2.028}{3.028} \approx 0.67$；這組數字與 [`05-backpropagation.md`](05-backpropagation.md) 開頭的數值驗證範例相同，之後推梯度時可直接對照。）
+
 $$
-C^{(1)} = A^{(1)} V^{(1)} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
+C^{(1)} = A^{(1)} V^{(1)} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
 $$
 
-**Head 2 投影矩陣取後 2 維，得到 $C^{(2)}$（略，做法相同）。**
+**Head 2 的投影矩陣（取輸入的後 2 維）：**
+
+$$
+W_Q^{(2)} = W_K^{(2)} = W_V^{(2)} = \begin{bmatrix} 0 & 0 \\ 0 & 0 \\ 1 & 0 \\ 0 & 1 \end{bmatrix} \in \mathbb{R}^{4 \times 2}
+\quad \Rightarrow \quad
+Q^{(2)} = K^{(2)} = V^{(2)} = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+$$
+
+（$x_1 = [1, 0, 0, 1]$ 的後 2 維是 $[0, 1]$；$x_2 = [0, 1, 1, 0]$ 的後 2 維是 $[1, 0]$——注意順序與 Head 1 對調了。）
+
+**Head 2 的 attention：**
+
+$$
+E^{(2)} = \frac{Q^{(2)} (K^{(2)})^\top}{\sqrt{2}}
+= \frac{1}{\sqrt{2}}\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+= \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
+$$
+
+注意力分數矩陣與 Head 1 相同（每個 token 仍然與自己最像），所以 $A^{(2)} = A^{(1)}$。但 **Value 不同**，輸出就不同：
+
+$$
+C^{(2)} = A^{(2)} V^{(2)} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} = \begin{bmatrix} 0.33 & 0.67 \\ 0.67 & 0.33 \end{bmatrix}
+$$
 
 **拼接與輸出：**
 
 $$
-\text{Concat}(C^{(1)}, C^{(2)}) \in \mathbb{R}^{2 \times 4} \xrightarrow{W_O} \text{Output} \in \mathbb{R}^{2 \times 4}
+\text{Concat}(C^{(1)}, C^{(2)}) = \begin{bmatrix} 0.67 & 0.33 & 0.33 & 0.67 \\ 0.33 & 0.67 & 0.67 & 0.33 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
+\xrightarrow{W_O} \text{Output} \in \mathbb{R}^{2 \times 4}
 $$
 
-**關鍵觀察：** 兩個 head 分別處理輸入的不同子空間（前 2 維 vs 後 2 維），最後透過 $W_O$ 融合，輸出維度 $d=4$ 不變。
+（若取 $W_O = I$ 則輸出就是 Concat 本身；實際模型中 $W_O$ 是可學習參數，會把前 2 維（Head 1 的觀點）與後 2 維（Head 2 的觀點）混合重組——見 §5.7。）
+
+**關鍵觀察：** 兩個 head 分別處理輸入的不同子空間（前 2 維 vs 後 2 維）。本例中兩個 head 的注意力分佈恰好相同，但讀取的 Value 不同，輸出也就不同——多頭的價值正在於此：**同樣的「該看誰」，可以搭配不同的「看到什麼」**。最後透過 $W_O$ 融合，輸出維度 $d=4$ 不變。
 
 ### 5.7 $W_O$ 的角色：混合重組各 head 的資訊
 
@@ -543,7 +572,19 @@ $$
 - $k = 0$：波長 $= 2\pi$（最短，捕捉局部位置）
 - $k = d/2$：波長 $= 2\pi \cdot 10000$（最長，捕捉全局位置）
 
-**相對位置可計算性：** 對任意固定偏移 $\delta$，位置 $p_{i+\delta}$ 可以表達為 $p_i$ 的線性函數：
+**相對位置可計算性：** 對任意固定偏移 $\delta$，位置 $p_{i+\delta}$ 可以表達為 $p_i$ 的線性函數。
+
+為什麼？記 $\omega_k = 1 / 10000^{2k/d}$，則 $p_{i,2k} = \sin(\omega_k i)$、$p_{i,2k+1} = \cos(\omega_k i)$。由三角函數的**和角公式**：
+
+$$
+\sin(\omega_k (i + \delta)) = \sin(\omega_k i)\cos(\omega_k \delta) + \cos(\omega_k i)\sin(\omega_k \delta)
+$$
+
+$$
+\cos(\omega_k (i + \delta)) = \cos(\omega_k i)\cos(\omega_k \delta) - \sin(\omega_k i)\sin(\omega_k \delta)
+$$
+
+注意右邊只用到 $\sin(\omega_k i), \cos(\omega_k i)$（也就是 $p_{i, 2k}, p_{i, 2k+1}$）和**只與偏移 $\delta$ 有關的係數**。整理成矩陣形式：
 
 $$
 \begin{bmatrix} p_{i+\delta, 2k} \\ p_{i+\delta, 2k+1} \end{bmatrix}
@@ -552,7 +593,7 @@ $$
 \begin{bmatrix} p_{i, 2k} \\ p_{i, 2k+1} \end{bmatrix}
 $$
 
-其中 $\omega_k = 1 / 10000^{2k/d}$。這使得模型可以透過內積學習相對位置關係。
+這是一個**旋轉矩陣**：「位置往後移 $\delta$ 格」等於「在每個 2D 平面上旋轉固定角度 $\omega_k \delta$」。因為這個變換是線性的且只依賴 $\delta$，模型可以透過內積學習相對位置關係。（這個「位置 = 旋轉角度」的觀點，正是現代 RoPE 的前身——見 [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md) §3。）
 
 **外推能力：** 正弦函數定義在整個實數域，理論上可以處理訓練時未見過的序列長度。
 

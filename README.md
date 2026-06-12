@@ -113,3 +113,15 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 # 啟動互動式環境
 jupyter lab
 ```
+
+---
+
+## 文件品質改善紀錄
+
+本倉庫的理論文件經過多輪系統性檢視與補強，紀錄保存在根目錄的 `improvement-plan*.md`：
+
+| 計劃 | 重點 |
+|---|---|
+| `improvement-plan.md` | 錯誤修正、數值範例、ASCII 圖表、章節銜接語 |
+| `improvement-plan-01.md` | 主線概念缺口（$W_O$、FFN、PE、Dropout、KV Cache、Embedding 梯度）、新增 `06` 當代架構文件 |
+| `improvement-plan-02-writing.md` | 數學推導逐步化（Softmax Jacobian、LayerNorm 合併代數等）、程式範例說明、失效引用修正 |

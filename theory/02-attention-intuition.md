@@ -97,7 +97,7 @@ $$
 ### 為什麼要除以 $\sqrt{d_k}$
 當向量維度 $d_k$ 變大時，內積的數值會隨之膨脹（因為加總項變多）。如果不處理，這些大數值丟進 softmax 後會變得極端：某一項接近 1，其他全部接近 0，導致梯度幾乎為零，模型無法學習。
 
-除以 $\sqrt{d_k}$ 讓分數「冷靜下來」，保持梯度可訓練。
+除以 $\sqrt{d_k}$ 讓分數「冷靜下來」，保持梯度可訓練。（為什麼剛好是 $\sqrt{d_k}$ 這個數？直覺版說明見 [`01a`](01a-prerequisites-intuition.md) §8，完整統計推導見 [`01b`](01b-prerequisites-math.md) §8。）
 
 $$
 \text{Scaled Score} = \frac{QK^\top}{\sqrt{d_k}}
@@ -242,10 +242,18 @@ $$
 | $Q_{吃} \cdot K_{eat}$     | $0 \times 0 + 1 \times 1$  | **1** |
 | $Q_{吃} \cdot K_{fish}$    | $0 \times 1 + 1 \times 1$  | 1    |
 
-縮放後做 softmax：
+縮放後做 softmax（計算方式同 §5.4，數字恰好是同一組）：
 
 $$
-[0, 1, 1] \div \sqrt{2} \approx [0,\ 0.707,\ 0.707] \quad\Rightarrow\quad A_{\text{吃}} \approx [0.20,\ 0.40,\ 0.40]
+[0, 1, 1] \div \sqrt{2} \approx [0,\ 0.707,\ 0.707]
+$$
+
+$$
+e^{0} = 1.000,\quad e^{0.707} \approx 2.028,\quad e^{0.707} \approx 2.028 \quad\Rightarrow\quad \text{總和} = 5.056
+$$
+
+$$
+A_{\text{吃}} = \left[\frac{1.000}{5.056},\ \frac{2.028}{5.056},\ \frac{2.028}{5.056}\right] \approx [0.20,\ 0.40,\ 0.40]
 $$
 
 加權整合：

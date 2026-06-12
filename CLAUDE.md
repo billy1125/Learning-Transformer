@@ -67,3 +67,20 @@ environment/     ← Conda 環境設定檔
 - 理論文件與 Notebook 相互對應，每份理論文件的開頭都標示對應的 Notebook
 - `archive/` 保存所有舊版原始文件，不應修改；新版本在 `theory/` 和 `notebooks/`
 - `04-gpt-decoder-only.md` 是關鍵橋接文件，連接理論與 nanoGPT 實作
+
+## 行文品質原則（編修理論文件時遵守）
+
+- **推導不跳步**：每個等號的成立理由要能在上下文找到；「整理後得到」「略」「同理可得」不可隱藏非顯然的代數
+- **關鍵公式不憑空出現**：當場推導，或明確標注「推導見某文件某節」；斷言（如「梯度趨近於零」）必須附最短可行的數學理由
+- **程式碼行行有著落**：教學程式片段每行對應理論公式或有註解，但不加無關的工程細節
+- **引用必須有效**：指向的章節、文件必須真實存在；文件內容必須與 Notebook 實際程式碼一致（如本倉庫 NB4 無 Weight Tying、dropout 在三處）
+
+## 改善計劃文件
+
+`improvement-plan*.md` 為歷次品質改善的規劃與執行紀錄（均已完成，狀態標記在各檔的優先順序表中）：
+
+- `improvement-plan.md` — 第一輪：修正錯誤、補數值範例與圖表、銜接語
+- `improvement-plan-01.md` — 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
+- `improvement-plan-02-writing.md` — 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
+
+下一輪（尚未規劃）：Notebook 逐 cell 檢視與執行驗證（improvement-plan-03）。

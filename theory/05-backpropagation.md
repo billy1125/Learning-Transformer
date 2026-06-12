@@ -81,12 +81,14 @@ $$
 
 **對 Q 與 K 的梯度**
 
+本例中 $K = Q = I$（單位矩陣），所以「乘以 $K$」「乘以 $Q$」都不改變數值，只剩下乘以 $\frac{1}{\sqrt{2}} \approx 0.707$ 的縮放（$0.221 \times 0.707 \approx 0.156$）：
+
 $$
-G^Q = \frac{1}{\sqrt{2}}\, G^E K = \begin{bmatrix} 0.156 & -0.156 \\ -0.156 & 0.156 \end{bmatrix}
+G^Q = \frac{1}{\sqrt{2}}\, G^E K = \frac{1}{\sqrt{2}}\, G^E = \begin{bmatrix} 0.156 & -0.156 \\ -0.156 & 0.156 \end{bmatrix}
 $$
 
 $$
-G^K = \frac{1}{\sqrt{2}}\, (G^E)^\top Q = \begin{bmatrix} 0.156 & -0.156 \\ -0.156 & 0.156 \end{bmatrix}
+G^K = \frac{1}{\sqrt{2}}\, (G^E)^\top Q = \frac{1}{\sqrt{2}}\, (G^E)^\top = \begin{bmatrix} 0.156 & -0.156 \\ -0.156 & 0.156 \end{bmatrix}
 $$
 
 因為 $Q=K$ 且 $G^C$ 是對稱矩陣，所以 $G^Q = G^K$——這是對稱輸入的特性，一般情況下兩者不同。
@@ -165,11 +167,49 @@ Shape 驗證：$(T \times d_v) \cdot (d_v \times T) = (T \times T) \checkmark$
 
 ### 1.4 Softmax 的反向傳播
 
-對每一行 $i$，$A_{i,:} = \text{softmax}(E_{i,:})$，其 Jacobian 為：
+#### 1.4.1 先推導 Softmax 的 Jacobian
+
+對每一行 $i$，$A_{i,:} = \text{softmax}(E_{i,:})$。為簡化記號，本小節固定行 $i$，記 $a_j = A_{i,j}$、$e_j = E_{i,j}$，即：
 
 $$
-\frac{\partial A_{i,j}}{\partial E_{i,l}} = A_{i,j}(\delta_{jl} - A_{i,l})
+a_j = \frac{\exp(e_j)}{S}, \qquad S = \sum_{k=1}^T \exp(e_k)
 $$
+
+要求 $\dfrac{\partial a_j}{\partial e_l}$，需分兩種情況（因為 $e_l$ 可能出現在分子，也一定出現在分母 $S$ 中）：
+
+**情況一：$l = j$（分子分母都含 $e_j$）**
+
+由商法則，$\frac{\partial}{\partial e_j}\exp(e_j) = \exp(e_j)$、$\frac{\partial S}{\partial e_j} = \exp(e_j)$：
+
+$$
+\frac{\partial a_j}{\partial e_j}
+= \frac{\exp(e_j) \cdot S - \exp(e_j) \cdot \exp(e_j)}{S^2}
+= \frac{\exp(e_j)}{S} \cdot \frac{S - \exp(e_j)}{S}
+= a_j (1 - a_j)
+$$
+
+**情況二：$l \neq j$（只有分母含 $e_l$）**
+
+分子 $\exp(e_j)$ 與 $e_l$ 無關，只需對分母求導（$\frac{\partial S}{\partial e_l} = \exp(e_l)$）：
+
+$$
+\frac{\partial a_j}{\partial e_l}
+= \exp(e_j) \cdot \left(-\frac{1}{S^2}\right) \cdot \exp(e_l)
+= -\frac{\exp(e_j)}{S} \cdot \frac{\exp(e_l)}{S}
+= -a_j \, a_l
+$$
+
+**合併兩種情況**（用 Kronecker delta $\delta_{jl}$，$j = l$ 時為 1、否則為 0）：
+
+$$
+\boxed{\frac{\partial A_{i,j}}{\partial E_{i,l}} = A_{i,j}(\delta_{jl} - A_{i,l})}
+$$
+
+驗證：$l = j$ 時得 $a_j(1 - a_j)$ ✓；$l \neq j$ 時得 $-a_j a_l$ ✓。
+
+> **附帶收穫——飽和為什麼導致梯度消失：** 對角項 $a_j(1 - a_j)$ 在 $a_j \to 0$ 或 $a_j \to 1$ 時都趨近 0，非對角項 $-a_j a_l$ 也是。也就是說，softmax 一旦輸出接近 one-hot（飽和），**整個 Jacobian 趨近零矩陣**，任何上游梯度乘上它都會消失——這正是 `03` §3.2 說「不除以 $\sqrt{d_k}$ 會讓訓練停滯」的數學原因。
+
+#### 1.4.2 套用鏈式法則
 
 對第 $i$ 行施加鏈式法則：
 
@@ -179,7 +219,15 @@ $$
 = \sum_j G^A_{i,j} \cdot A_{i,j}(\delta_{jl} - A_{i,l})
 $$
 
-整理：
+把括號拆開、分成兩個求和：
+
+$$
+= \underbrace{\sum_j G^A_{i,j} A_{i,j} \delta_{jl}}_{\text{只有 } j=l \text{ 的項留下}}
+\;-\; \underbrace{\sum_j G^A_{i,j} A_{i,j} A_{i,l}}_{A_{i,l} \text{ 與 } j \text{ 無關，可提出}}
+= G^A_{i,l} A_{i,l} - A_{i,l} \sum_j A_{i,j} G^A_{i,j}
+$$
+
+提出公因子 $A_{i,l}$，整理得：
 
 $$
 \frac{\partial \mathcal{L}}{\partial E_{i,l}}
@@ -524,7 +572,29 @@ $$
 
 ### 5.7 最終閉式公式
 
-代入 $g^{\tilde{x}}$ 整理，最終得到：
+現在把 §5.6 的兩條式子合併。先準備一個關鍵的小引理：
+
+**引理：歸一化後的向量均值為零，即 $\sum_{k=1}^d \hat{x}_k = 0$。**
+
+證明：$\hat{x}_k = (x_k - \mu)/r$，而 $\sum_k (x_k - \mu) = \sum_k x_k - d\mu = d\mu - d\mu = 0$，除以常數 $r$ 後仍為 0。∎
+
+接著計算 mean 路徑需要的 $\frac{1}{d}\sum_k g^{\tilde{x}}_k$。把 §5.6 的 $g^{\tilde{x}}_k$ 代入：
+
+$$
+\frac{1}{d}\sum_{k=1}^d g^{\tilde{x}}_k
+= \frac{1}{d}\sum_{k=1}^d \frac{1}{r}\left(g^{\hat{x}}_k - \frac{\hat{x}_k}{d}\sum_{m=1}^d g^{\hat{x}}_m \hat{x}_m\right)
+= \frac{1}{r}\left(\frac{1}{d}\sum_k g^{\hat{x}}_k - \underbrace{\frac{1}{d}\sum_k \hat{x}_k}_{=\,0\text{（引理）}} \cdot \frac{1}{d}\sum_m g^{\hat{x}}_m \hat{x}_m\right)
+= \frac{1}{r} \cdot \frac{1}{d}\sum_k g^{\hat{x}}_k
+$$
+
+第二項因為引理整個消失——這就是最終公式比想像中乾淨的原因。代回 $\dfrac{\partial \mathcal{L}}{\partial x_j} = g^{\tilde{x}}_j - \dfrac{1}{d}\sum_k g^{\tilde{x}}_k$：
+
+$$
+\frac{\partial \mathcal{L}}{\partial x_j}
+= \frac{1}{r}\left(g^{\hat{x}}_j - \frac{\hat{x}_j}{d}\sum_{k=1}^d g^{\hat{x}}_k \hat{x}_k\right) - \frac{1}{r}\cdot\frac{1}{d}\sum_{k=1}^d g^{\hat{x}}_k
+$$
+
+合併同類項，最終得到：
 
 $$
 \boxed{
@@ -577,7 +647,7 @@ $$
 Z' = \text{LayerNorm}(X + Z), \quad U = X + Z
 $$
 
-**Step 1：** 從 $G^{Z'}$ 經 LayerNorm 反傳得 $G^U$（套用 13.7 的公式）
+**Step 1：** 從 $G^{Z'}$ 經 LayerNorm 反傳得 $G^U$（套用 §5.7 的公式）
 
 **Step 2：** 由 Residual Connection $U = X + Z$：
 
@@ -808,5 +878,3 @@ $$
 你已經能從頭推導 Self-Attention 和 LayerNorm 的完整梯度。
 
 **接下來：** [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb) — 用 NumPy 實作本文推導的每一條梯度公式，並以數值梯度驗證正確性。
-
-*本文件為 Transformer 數學基礎系列的第二篇，承接 Pre-Knowledge.md 的 Self-Attention 數學前置，後續將介紹完整 Encoder-Decoder 架構、Masked Attention 與 Cross-Attention 的推導。*

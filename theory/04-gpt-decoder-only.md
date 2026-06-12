@@ -138,6 +138,8 @@ E_masked：
 | 1 | `[1.0, 2.0]` | `[0.269, 0.731, 0.000]` |
 | 2 | `[0.0, 1.0, 2.0]` | `[0.090, 0.245, 0.665]` |
 
+以位置 1 為例驗算：$e^{1.0} \approx 2.718$、$e^{2.0} \approx 7.389$，總和 $= 10.107$，故 $2.718 / 10.107 \approx 0.269$、$7.389 / 10.107 \approx 0.731$；被遮罩的位置因為 $e^{-\infty} = 0$，權重恰為 0。
+
 **結果解讀：**
 - 位置 0：100% 關注自己（沒有其他可看）
 - 位置 1：73.1% 關注位置 1，26.9% 關注位置 0
@@ -277,11 +279,19 @@ class MultiHeadAttention(nn.Module):
     def __init__(self, num_heads, head_size):
         self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
         self.proj  = nn.Linear(n_embd, n_embd)  # W_O，輸出投影
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        out = torch.cat([h(x) for h in self.heads], dim=-1)  # Concat(C¹, ..., C^H)
+        return self.dropout(self.proj(out))                  # 乘 W_O 再 dropout
 ```
 
-- `num_heads` 個 `Head` 並行執行
-- 輸出 concat 後乘以 $W_O$ 投影回 `n_embd`
-- 等價於理論中的 $\text{Concat}(C^{(1)}, \ldots, C^{(H)}) W_O$
+forward 的兩行與理論公式 $\text{Concat}(C^{(1)}, \ldots, C^{(H)}) \, W_O$ 逐一對應：
+
+- `[h(x) for h in self.heads]`：`num_heads` 個 `Head` 並行執行，各得 `(B, T, head_size)`
+- `torch.cat(..., dim=-1)`：沿最後一維拼接 → `(B, T, n_embd)`（因為 `num_heads × head_size = n_embd`）
+- `self.proj(out)`：乘以 $W_O$，把各 head 的資訊混合重組（動機見 03 §5.7）
+- `self.dropout(...)`：殘差路徑前的 dropout（見 §5.3 的 Dropout 說明）
 
 在 nanoGPT 中：`n_embd=384, n_head=6` → 每個 head 的 `head_size = 384/6 = 64`
 
@@ -418,6 +428,8 @@ x = LayerNorm(x + Attn(x)) # x = x + Attn(LayerNorm(x))
 | 訓練穩定性 | 需要 warm-up | 更穩定，學習率更寬容 |
 | 深層表現 | 容易梯度爆炸 | 梯度流更均勻 |
 | 代表模型 | 原始 Transformer | GPT-2、LLaMA、nanoGPT |
+
+**為什麼 Pre-LN 比較穩定？** 看梯度走的路：Pre-LN 的殘差主幹是 $x + f(\text{LN}(x))$，從輸出到輸入存在一條**完全不經過 LayerNorm 的直通路徑**（梯度恆等流過，見 05 §5.10）；Post-LN 則是 $\text{LN}(x + f(x))$，梯度每穿過一層都要經過一次 LayerNorm 的耦合運算（05 §5.9），層數深了之後梯度尺度容易失控，所以需要 learning rate warm-up 來「小心起步」。
 
 架構設計清楚了，但模型怎麼讀取文字？第 7 節說明 nanoGPT 使用的字元級 tokenizer，以及與真實 BPE 的差異。
 
