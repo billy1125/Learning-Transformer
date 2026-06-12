@@ -61,7 +61,12 @@ jupyter lab
         ↓
 
 05 反向傳播推導               ──────▶  NB3 每個 .backward()
-  (QKV 梯度、LayerNorm 梯度)
+  (QKV / LayerNorm / Embedding 梯度)
+
+        ↓
+
+06 當代 Transformer 架構      ──────▶  LLaMA 等開源模型原始碼
+  (RMSNorm、SwiGLU、RoPE、GQA)         （主線出口，選讀）
 ```
 
 ---
@@ -77,7 +82,8 @@ jupyter lab
 | [`02-attention-intuition.md`](theory/02-attention-intuition.md) | QKV 直覺、翻譯範例逐步計算 |
 | [`03-transformer-architecture.md`](theory/03-transformer-architecture.md) | Multi-Head Attention、Transformer Block、Positional Encoding |
 | [`04-gpt-decoder-only.md`](theory/04-gpt-decoder-only.md) | Causal Masking、語言模型訓練目標、nanoGPT 架構解析 |
-| [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention 與 LayerNorm 的完整梯度推導 |
+| [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
+| [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀） |
 
 #### 實作主線 (`notebooks/`)
 

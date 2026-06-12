@@ -161,6 +161,16 @@ $$
 
 方差回到 $O(1)$，softmax 分佈保持平滑。
 
+> **實作注意：Softmax 數值穩定性**
+>
+> 縮放可以控制分數的整體尺度，但不保證不 overflow（直接算 $e^{x_i}$ 在 $x_i$ 很大時會溢位）。標準做法是在做 exp 前減去每行的最大值：
+>
+> $$\text{softmax}(e_i) = \frac{\exp(e_i - \max_k e_k)}{\sum_j \exp(e_j - \max_k e_k)}$$
+>
+> 數學上等價（分子分母同除 $\exp(\max)$），但 exp 的輸入變成 $\leq 0$，不會 overflow。
+> PyTorch 的 `F.softmax` 內部已做這個處理，手寫 NumPy 版（NB1、NB3）時需要自己加。
+> 數值對比實驗見 [`01b-prerequisites-math.md`](01b-prerequisites-math.md) §4.3。
+
 ### 3.3 完整公式
 
 **逐元素形式：**
@@ -375,6 +385,18 @@ $$
 
 **關鍵觀察：** 兩個 head 分別處理輸入的不同子空間（前 2 維 vs 後 2 維），最後透過 $W_O$ 融合，輸出維度 $d=4$ 不變。
 
+### 5.7 $W_O$ 的角色：混合重組各 head 的資訊
+
+$W_O \in \mathbb{R}^{d \times d}$，作用是**把 $H$ 個 head 獨立學到的特徵「混合重組」**。
+
+如果沒有 $W_O$，每個 head 的資訊只是被拼在一起，彼此之間沒有互動——Concat 後輸出的前 $d_v$ 維永遠只來自 head 1、後 $d_v$ 維永遠只來自 head 2。加了 $W_O$ 之後，位置 $i$ 的輸出是 $H$ 個 head 的線性組合，模型可以學習「哪個 head 的資訊在這個情境下更重要」。
+
+Shape：
+
+$$
+[T \times d] \cdot [d \times d] = [T \times d] \quad \text{（維度不變，可直接接 Residual）}
+$$
+
 Multi-Head Attention 是 Transformer Block 的第一個子模組——第 6 節把四個子模組（MHA → Residual → FFN → Residual）組裝成完整的 Block。
 
 ---
@@ -421,7 +443,12 @@ $$
 - 通常 $d_{ff} = 4d$（例如 $d = 512, d_{ff} = 2048$）
 - 對每個位置**獨立且相同地**施加（position-wise），不跨位置互動
 
-FFN 的作用：在 attention 捕捉全局關聯後，對每個 token 的表示做非線性變換，增加模型的非線性表達能力。
+**FFN 的角色——為什麼這層要存在？**
+
+Attention 負責「整合序列中不同位置的資訊」，FFN 負責「對每個位置獨立地做非線性轉換」——兩者分工不同，缺一不可。可以把 FFN 想成一個「查閱表」：把 Attention 輸出的向量映射到一個更豐富的表示，再壓回原始維度。
+
+- **為什麼是 4x expansion（$d \to 4d \to d$）？** 這是 Vaswani 2017 的經驗設計，給中間層足夠的「展開空間」來學習複雜的映射。
+- **為什麼需要非線性（ReLU/GELU）？** 如果沒有啟動函數，$W_1 W_2$ 等價於單一線性投影，4x expansion 毫無意義；非線性讓 FFN 能表達線性投影無法學到的函數。
 
 ### 6.4 第二個 Residual Connection + Layer Normalization
 

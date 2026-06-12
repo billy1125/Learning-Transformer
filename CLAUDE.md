@@ -33,7 +33,7 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 ## 資料夾結構
 
 ```
-theory/          ← 理論主線（6 份文件，依序閱讀）
+theory/          ← 理論主線（7 份文件，依序閱讀；06 為選讀出口）
 notebooks/       ← 實作主線（4 個 Notebook，依序執行）
 advanced/        ← 進階補充（選讀，非主線）
 archive/         ← 所有舊版文件備份（不會動到）
@@ -49,7 +49,8 @@ environment/     ← Conda 環境設定檔
 | `02-attention-intuition.md` | QKV 直覺、翻譯範例逐步計算（I eat fish → 我吃魚）|
 | `03-transformer-architecture.md` | Multi-Head Attention、Transformer Block、Positional Encoding |
 | `04-gpt-decoder-only.md` | Causal Masking、GPT Decoder-Only 架構、nanoGPT 逐行解析 |
-| `05-backpropagation.md` | Self-Attention 與 LayerNorm 的完整梯度推導 |
+| `05-backpropagation.md` | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
+| `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀）|
 
 ## Notebook（`notebooks/`）
 

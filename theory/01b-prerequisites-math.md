@@ -112,6 +112,26 @@ $$
 2. 神經網路可以對其進行梯度更新
 3. 語意相近的符號在向量空間中彼此靠近
 
+### 形式化：Embedding 作為查表（Lookup Table）
+
+上面說 $x_i \in \mathbb{R}^d$，但這個向量是怎麼產生的？
+
+設詞彙表大小為 $V$，令 $E \in \mathbb{R}^{V \times d}$ 為 Embedding 矩陣（可訓練參數）。對 Token ID 為 $t_i \in \{0, 1, \ldots, V-1\}$ 的 token，其 embedding 為：
+
+$$
+x_i = E[t_i] \in \mathbb{R}^d \quad \text{（取出 } E \text{ 的第 } t_i \text{ 列）}
+$$
+
+等價地，令 $\delta_{t_i} \in \mathbb{R}^V$ 為第 $t_i$ 個 one-hot 向量，則：
+
+$$
+x_i = \delta_{t_i}^\top E
+$$
+
+也就是說，「查表」在數學上等價於「one-hot 向量乘以矩陣」——但實作上直接索引取列（$O(1)$），不做矩陣乘法。
+
+**梯度特性：** 反向傳播時，梯度 $\frac{\partial \mathcal{L}}{\partial E}$ 只有第 $t_i$ 列非零——未被本 batch 選中的 token，其 embedding 本步不更新。這意味著稀有詞需要更多訓練樣本才能讓 embedding 收斂。（完整推導見 [`05-backpropagation.md`](05-backpropagation.md) §6）
+
 ---
 
 ## 3. 相似度作為匹配函數

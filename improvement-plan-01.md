@@ -548,30 +548,30 @@ Flash Attention（Dao et al., 2022）把 Attention 的 GPU 記憶體複雜度從
 
 | 優先 | 編號 | 文件 | 說明 | 難度 | 狀態 |
 |---|---|---|---|---|---|
-| **P1** | A1 | 03 | 補 $W_O$ 設計動機與 shape | 低 | 待執行 |
-| **P1** | A2 | 03 | 補 FFN 4x expansion 直覺 | 低 | 待執行 |
-| **P1** | A3 | 04 | 補 Learned PE vs Sinusoidal PE 對比表 | 低 | 待執行 |
-| **P1** | A4 | 04 | 補 Dropout 說明（首次出現處）| 低 | 待執行 |
-| **P1** | A12 | 04 | 新增 §4.1：Embedding 訓練完整路徑（forward → loss → backward → sparse update）| 低 | 待執行 |
-| **P2** | A5 | 04 | 補 Weight Tying 說明 | 低 | 待執行 |
-| **P2** | A6 | 04 | 新增 §8.1 KV Cache ASCII 示意 | 中 | 待執行 |
-| **P2** | A7 | 03 | 補 Softmax 數值穩定性說明 | 低 | 待執行 |
-| **P2** | A8 | 02 | 補「8 項限制」→「解法所在」欄 | 低 | 待執行 |
-| **P2** | A9 | 01b | 補 Embedding Lookup Table 形式化 + 稀疏梯度說明 | 低 | 待執行 |
-| **P2** | A10 | 04 | 補 `nn.Embedding` Lookup Table 機制說明 | 低 | 待執行 |
-| **P1** | A11 | 05 | 新增 §6 Embedding 完整梯度推導（6 步驟，含稀疏 vs 稠密分析）| 中 | 待執行 |
+| **P1** | A1 | 03 | 補 $W_O$ 設計動機與 shape | 低 | ✅ 完成（新增 §5.7）|
+| **P1** | A2 | 03 | 補 FFN 4x expansion 直覺 | 低 | ✅ 完成（§6.3）|
+| **P1** | A3 | 04 | 補 Learned PE vs Sinusoidal PE 對比表 | 低 | ✅ 完成（§5.5）|
+| **P1** | A4 | 04 | 補 Dropout 說明（首次出現處）| 低 | ✅ 完成（§5.3，含三處 dropout 位置表）|
+| **P1** | A12 | 04 | 新增 §4.1：Embedding 訓練完整路徑（forward → loss → backward → sparse update）| 低 | ✅ 完成（依本倉庫 NB4 無 Weight Tying 調整，加註說明）|
+| **P2** | A5 | 04 | 補 Weight Tying 說明 | 低 | ✅ 完成（§5.5，註明本倉庫 NB4 未採用）|
+| **P2** | A6 | 04 | 新增 §8.1 KV Cache ASCII 示意 | 中 | ✅ 完成 |
+| **P2** | A7 | 03 | 補 Softmax 數值穩定性說明 | 低 | ✅ 完成（§3.2 後，交叉引用 01b §4.3）|
+| **P2** | A8 | 02 | 補「8 項限制」→「解法所在」欄 | 低 | ✅ 完成（§6.9 速查表）|
+| **P2** | A9 | 01b | 補 Embedding Lookup Table 形式化 + 稀疏梯度說明 | 低 | ✅ 完成（§2）|
+| **P2** | A10 | 04 | 補 `nn.Embedding` Lookup Table 機制說明 | 低 | ✅ 完成（§5.5，與 A5 合併）|
+| **P1** | A11 | 05 | 新增 §6 Embedding 完整梯度推導（6 步驟，含稀疏 vs 稠密分析）| 中 | ✅ 完成（修正原計劃 Step 2 重複 $1/T$ 的問題；同步擴充梯度查閱表）|
 
 ---
 
 ### B 類（新文件 `06-modern-transformer-variants.md`）
 
-| 優先 | 編號 | 主題 | 建議篇幅 |
-|---|---|---|---|
-| **P1** | B1 | RoPE | ≈ 500 字 + 公式推導 |
-| **P1** | B2 | RMSNorm | ≈ 300 字 + 梯度對比 |
-| **P2** | B3 | SwiGLU / GELU | ≈ 400 字 + shape 追蹤 |
-| **P3** | B4 | GQA | ≈ 400 字 + ASCII 對比圖 |
-| **P3** | B5 | Flash Attention | ≈ 500 字（直覺為主）|
+| 優先 | 編號 | 主題 | 建議篇幅 | 狀態 |
+|---|---|---|---|---|
+| **P1** | B1 | RoPE | ≈ 500 字 + 公式推導 | ✅ 完成（`06` §3，含 ALiBi 對比）|
+| **P1** | B2 | RMSNorm | ≈ 300 字 + 梯度對比 | ✅ 完成（`06` §1，與 `05` §5 梯度對照）|
+| **P2** | B3 | SwiGLU / GELU | ≈ 400 字 + shape 追蹤 | ✅ 完成（`06` §2）|
+| **P3** | B4 | GQA | ≈ 400 字 + ASCII 對比圖 | ✅ 完成（`06` §4）|
+| **P3** | B5 | Flash Attention | ≈ 500 字（直覺為主）| ✅ 完成（`06` §5）|
 
 建議文件結構：
 ```

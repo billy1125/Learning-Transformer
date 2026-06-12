@@ -181,6 +181,61 @@ loss = F.cross_entropy(logits.view(B*T, C), targets.view(B*T))
 
 有了 Causal Mask，位置 $i$ 的 logit 只用到了 $x_1, \ldots, x_i$ 的資訊，預測 $x_{i+1}$，**不會洩漏未來**。因此一個序列可以同時訓練 $T$ 個預測任務，訓練效率極高。
 
+### 4.1 Embedding 如何在一次訓練步驟中被更新
+
+訓練程式碼只有三行：
+
+```python
+loss = F.cross_entropy(logits.view(B*T, C), targets.view(B*T))
+loss.backward()
+optimizer.step()
+```
+
+但每次 `loss.backward()` 都完整走一遍以下路徑，梯度從 loss 一路流回 `token_embedding.weight`（即 Embedding 矩陣 $E$）。括號內為關鍵公式，完整推導見 [`05-backpropagation.md`](05-backpropagation.md) §6：
+
+```
+前向傳播（forward pass）
+─────────────────────────────────────────────────────────
+token_id (B, T)
+  ↓  x_i = E[t_i]          ← Lookup：取出 E 的第 t_i 列
+x_embed (B, T, d)
+  ↓  h_0 = x_embed + p_embed
+  ↓  Block_1 → ... → Block_L
+h_L (B, T, d)
+  ↓  LayerNorm → lm_head: z_i = LN(h_L_i) · W_lm^T
+logits (B, T, V)
+  ↓  p^(i)_k = softmax(z_i)_k
+  ↓  L = −(1/T) Σ log p^(i)_{y_i}
+loss（純量）
+
+反向傳播（backward pass）
+─────────────────────────────────────────────────────────
+Step 1｜Cross-Entropy + Softmax：
+  δ_i = ∂L/∂z_i，其中 δ_i^(k) = (1/T)(p^(i)_k − 1[k = y_i])
+  → 在正確 token 的位置減 1/T，其餘位置加 softmax 機率/T
+
+Step 2｜lm_head 反向（z_i = LN(h)_i · W_lm^T）：
+  ∂L/∂LN(h_i) = δ_i · W_lm      ← 梯度流向上一層（d 維）
+  ∂L/∂W_lm = Σ_i δ_i^T · LN(h_i)^T  ← lm_head 的參數梯度（稠密，V×d；1/T 已含在 δ_i 中）
+
+Step 3｜穿越 LayerNorm、Residual、FFN、Attention：
+  → 最終到達 x_embed 的梯度記為 g_i ∈ R^d
+
+Step 4｜Lookup 反向（x_i = E[t_i]）：
+  ∂L/∂E[k] = Σ_{i: t_i = k} g_i   ← E 的梯度（稀疏：只有出現過的列非零）
+
+Step 5｜Optimizer 更新：
+  E[k] ← E[k] − η · ∂L/∂E[k]
+```
+
+> **註（Weight Tying）：** Karpathy 的原版 nanoGPT 讓 `lm_head.weight` 與 `token_embedding.weight` 共用同一份矩陣（$W_{lm} = E$），此時 Step 2 的稠密梯度與 Step 4 的稀疏梯度會**累加**到同一個 $E$ 上。完整的雙通道梯度推導見 [`05-backpropagation.md`](05-backpropagation.md) §6。
+
+**三個關鍵特性：**
+
+1. **稀疏更新**：Lookup 反向（Step 4）只更新本 batch 出現過的 token 列，沒出現的 token 其 embedding 本步完全不動。
+2. **同 token 累加**：token $k$ 在同一序列出現 $m$ 次，Step 4 的梯度是 $m$ 個 $g_i$ 的加總。
+3. **直覺含義**：出現頻繁的 token 每步都被更新，embedding 收斂快；稀有 token 需要大量訓練步驟才被充分觸及。
+
 訓練目標清楚了，第 5 節逐行解析 nanoGPT 如何把以上概念翻譯成不到 300 行的 Python 程式。
 
 ---
@@ -245,6 +300,20 @@ self.net = nn.Sequential(
 
 與理論的 $\text{ReLU}(Z'W_1 + b_1)W_2 + b_2$ 完全對應，`d_ff = 4 * n_embd`。
 
+**Dropout 是什麼？**（這是 dropout 在本文第一次出現）
+
+訓練時隨機把 $p\%$ 的神經元輸出設為 0，迫使模型不能依賴任何單一路徑。直覺上類似「考試時遮住幾個數字，強迫你記住整張表而不是死背某幾格」。
+
+nanoGPT 在三個地方使用 dropout：
+
+| 位置 | 作用 |
+|---|---|
+| Attention 權重上（`Head` 中 softmax 之後）| 讓每個 token 不過度依賴某個固定的注意力模式 |
+| MultiHead 輸出投影之後 | 防止殘差路徑直接記住 attention 的固定輸出 |
+| FFN 輸出之後（上方程式碼）| 防止 FFN 過擬合訓練資料 |
+
+**推理時**（`model.eval()`）dropout 自動關閉，所有連接都恢復。這就是為什麼生成文字前要呼叫 `model.eval()`。
+
 ### 5.4 `Block`：完整 Transformer Block
 
 對應理論：§6，但注意是 **Pre-LN**（見第 6 節）
@@ -268,6 +337,36 @@ class GPT(nn.Module):
         self.ln_f    = nn.LayerNorm(n_embd)          # 最後一層 LayerNorm
         self.lm_head = nn.Linear(n_embd, vocab_size) # 輸出層：映射到詞彙表
 ```
+
+**`nn.Embedding` 在做什麼？**
+
+`nn.Embedding(V, d)` 內部就是一個 $V \times d$ 的矩陣。forward 時輸入 token ID（整數），直接返回對應的列——這就是「查表（Lookup）」，是 $O(1)$ 的索引操作，不是矩陣乘法。（數學形式化見 [`01b`](01b-prerequisites-math.md) §2；它如何被訓練見 §4.1 與 [`05`](05-backpropagation.md) §6）
+
+**Weight Tying（權重共享）——一個值得知道的設計**
+
+注意 `lm_head = nn.Linear(n_embd, vocab_size)` 的 weight shape 是 $V \times d$，與 `token_embedding.weight` **完全相同**。輸入側把 token ID 查表得到向量，輸出側把向量映射回詞彙表——兩個矩陣的形狀互為轉置關係。
+
+Karpathy 的原版 nanoGPT 因此讓兩者共用同一份參數：
+
+```python
+self.lm_head.weight = self.transformer.wte.weight   # Weight Tying
+```
+
+共用的邏輯：「意義接近的詞，embedding 向量接近；接近的向量，預測時也應該分配相近的機率。」實作上共用同一份矩陣，embedding 訓練得更好，同時參數量減少 `vocab_size × n_embd`（GPT-2 規模約 38M 參數；本倉庫的字元級模型約 2.5 萬）。本倉庫的 NB4 為求簡單，未做 Weight Tying，兩個矩陣獨立訓練。
+
+**等一下——這個 `position_embedding` 和 03 講的 PE 是同一件事嗎？**
+
+是同一個目的（注入位置資訊），但做法不同。03 §7.2 推導的是 Sinusoidal PE（固定公式），nanoGPT 用的是 `nn.Embedding` 實作的 **Learned PE**（03 §7.4）——每個位置一個可訓練向量：
+
+| | Sinusoidal PE（03 §7.2 所介紹）| Learned PE（nanoGPT 所用）|
+|---|---|---|
+| 參數量 | 無（固定公式）| $T_{\max} \times d$（可訓練）|
+| 泛化超出訓練長度 | 理論上可以 | 不能（沒看過的位置沒有 embedding）|
+| 表達能力 | 固定模式 | 更靈活，由資料決定 |
+| 現代模型 | 幾乎不再使用 | 早期 GPT-2；現代多用 RoPE（見 [`06`](06-modern-transformer-variants.md)）|
+
+> **結論**：nanoGPT 用 Learned PE 是因為簡單，也因為訓練語料長度固定（`block_size=256`）。
+> 生產模型需要處理任意長度時，才需要 RoPE 等設計（見 [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md)）。
 
 **資料流：**
 
@@ -372,6 +471,30 @@ def generate(self, idx, max_new_tokens):
 - `logits[:, -1, :]`：只看最後一個時間步的輸出（它包含了前面所有 token 的資訊）
 - `torch.multinomial`：依機率採樣，而非直接取最大值 → 輸出有多樣性
 
+### 8.1 推理效率：KV Cache
+
+仔細看上面的 `generate`：每生成一個新 token，都把**整個** `idx` 重新 forward 一遍。這意味著前面所有位置的 K 和 V 每一步都被重新計算——但它們根本沒變。
+
+```
+沒有 KV Cache（nanoGPT 的做法）：
+  step t：  計算位置 0..t 的全部 K, V → 輸出位置 t+1
+  step t+1：重新計算位置 0..t+1 的全部 K, V → 輸出位置 t+2
+  → 每步的計算量 O(t)，生成 T 個 token 總計算量 O(T²)
+
+有 KV Cache（vLLM、TensorRT-LLM 等推理引擎的做法）：
+  step t：  只計算位置 t 的 K_t, V_t，存入 cache
+  step t+1：只計算位置 t+1 的 Q_{t+1}，與 cache 中的 K₀..K_t 做 attention
+  → 每步的計算量 O(1)，總計算量 O(T)
+  → 代價：VRAM 需要多存 2 × n_layer × n_head × T × d_k 個值
+```
+
+兩個值得記住的推論：
+
+1. **為什麼可以 cache？** Causal Mask 保證位置 $t$ 的 K、V 不受未來 token 影響——一旦算出來就永遠不變，可以安心重用。
+2. **為什麼 context 越長推理越貴？** KV Cache 的大小隨 $T$ 線性成長，長 context 模型（128K tokens）的推理瓶頸往往不是計算而是 VRAM。這也是 GQA 等技術出現的動機（見 [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md) §4）。
+
+nanoGPT 為了教學簡潔沒有實作 KV Cache，但讀懂它之後，看任何推理引擎的原始碼都會先遇到這個概念。
+
 ---
 
 ## 9. 打開 nanoGPT 之前的速查清單
@@ -399,3 +522,6 @@ def generate(self, idx, max_new_tokens):
 **完成 nanoGPT 後，若想深入理解訓練背後的數學：**
 → [`05-backpropagation.md`](05-backpropagation.md) — Self-Attention 與 LayerNorm 的完整梯度推導
 → [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb) — NumPy 手刻反向傳播
+
+**完成 nanoGPT 後，若想銜接 LLaMA 等當代模型：**
+→ [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md) — RMSNorm、RoPE 等 nanoGPT → LLaMA 之間的架構演化

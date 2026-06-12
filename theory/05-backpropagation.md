@@ -7,6 +7,7 @@
 > - 推導 Softmax 的 Jacobian 及其在 attention 中的應用
 > - 推導 LayerNorm 的三條梯度路徑（直接路徑 / mean 路徑 / variance 路徑）
 > - 解釋為什麼 Residual Connection 能讓梯度直接流過而不衰減
+> - 推導 Embedding 矩陣的完整梯度（含 Weight Tying 的稀疏／稠密雙通道）
 >
 > **前置文件：** [`03-transformer-architecture.md`](03-transformer-architecture.md)，以及 NB1 或 NB2 中的前向傳播實作
 >
@@ -605,6 +606,122 @@ g^{\hat{x}} - \text{mean}(g^{\hat{x}}) - \hat{x} \odot \text{mean}(g^{\hat{x}} \
 \right), \quad r = \sqrt{\sigma^2 + \epsilon}
 $$
 
+Self-Attention 與 LayerNorm 都推完了，但梯度還有最後一站：Embedding 矩陣是整個計算圖的**起點**，梯度如何流到它、哪些列會被更新——第 6 節補上完整反向傳播的最後一塊拼圖。
+
+---
+
+## 6. Embedding 矩陣的完整梯度推導
+
+Embedding 矩陣 $E$ 在 GPT 中扮演兩個角色：輸入側把 token ID 查表成向量（Lookup）；若使用 Weight Tying（如 Karpathy 原版 nanoGPT），輸出側的 lm_head 也共用同一份 $E$。本節推導兩條路徑的梯度，並說明它們的稀疏／稠密差異。
+
+### 6.1 符號定義
+
+| 符號 | 意義 | 維度 |
+|---|---|---|
+| $V$ | 詞彙表大小 | — |
+| $E \in \mathbb{R}^{V \times d}$ | Embedding 矩陣（含 Weight Tying） | $V \times d$ |
+| $t_i \in \{0,\ldots,V-1\}$ | 位置 $i$ 的 Token ID | — |
+| $x_i = E[t_i]$ | 位置 $i$ 的 embedding | $d$ |
+| $\delta_{t_i} \in \mathbb{R}^V$ | 第 $t_i$ 個 one-hot 向量 | $V$ |
+| $\hat{h}_i$ | lm_head 輸入（LN 後的 hidden state） | $d$ |
+| $z_i = \hat{h}_i E^\top$ | lm_head 輸出（logits） | $V$ |
+| $p^{(i)}_k$ | 位置 $i$ 預測 token $k$ 的機率 | — |
+| $y_i$ | 位置 $i$ 的目標 Token ID | — |
+
+### 6.2 前向傳播（關鍵步驟）
+
+$$
+x_i = \delta_{t_i}^\top E \quad \text{（Lookup = one-hot 乘以 } E\text{）}
+$$
+
+$$
+z_i = \hat{h}_i E^\top \quad \text{（lm\_head，Weight Tying 共用 } E\text{）}
+$$
+
+$$
+p^{(i)}_k = \frac{\exp(z_i^{(k)})}{\sum_{j=1}^{V} \exp(z_i^{(j)})}
+$$
+
+$$
+\mathcal{L} = -\frac{1}{T}\sum_{i=1}^{T} \log p^{(i)}_{y_i}
+$$
+
+### 6.3 反向傳播逐步推導
+
+**Step 1：Cross-Entropy + Softmax 合併梯度**
+
+對 Cross-Entropy $\mathcal{L} = -\frac{1}{T}\log p^{(i)}_{y_i}$ 與 Softmax 合併求導（標準結果）：
+
+$$
+\frac{\partial \mathcal{L}}{\partial z_i^{(k)}} = \frac{1}{T}\left(p^{(i)}_k - \mathbf{1}[k = y_i]\right)
+$$
+
+記 $\delta_i = \frac{\partial \mathcal{L}}{\partial z_i} \in \mathbb{R}^V$。白話：在正確 token 的位置值為 $\frac{p_{y_i}-1}{T}$（負值，梯度要把這個 logit 推高），其餘位置值為 $\frac{p_k}{T}$（正值，把其他 logit 往下壓）。
+
+**Step 2：lm_head 反向**（$z_i = \hat{h}_i E^\top$）
+
+對輸入 $\hat{h}_i$（梯度往上傳）：
+
+$$
+\frac{\partial \mathcal{L}}{\partial \hat{h}_i} = \delta_i E \in \mathbb{R}^d
+$$
+
+對參數 $E$（Weight Tying，輸出側梯度）：
+
+$$
+\frac{\partial \mathcal{L}}{\partial E}\bigg|_{\text{output}} = \sum_{i=1}^{T} \delta_i^\top \hat{h}_i^\top \in \mathbb{R}^{V \times d}
+$$
+
+取第 $k$ 列：$\displaystyle\frac{\partial \mathcal{L}}{\partial E[k]}\bigg|_{\text{output}} = \sum_{i=1}^{T} \delta_i^{(k)} \cdot \hat{h}_i$
+
+**Step 3：穿越 LayerNorm 和各 Block**
+
+此段梯度路徑在 §1–§5 已詳細推導。設最終到達 $x_i = E[t_i]$ 的梯度為：
+
+$$
+g_i = \frac{\partial \mathcal{L}}{\partial x_i} \in \mathbb{R}^d
+$$
+
+**Step 4：Lookup 反向**（$x_i = \delta_{t_i}^\top E$）
+
+由鏈式法則：
+
+$$
+\frac{\partial \mathcal{L}}{\partial E} = \sum_{i=1}^{T} \frac{\partial \mathcal{L}}{\partial x_i} \cdot \frac{\partial x_i}{\partial E} = \sum_{i=1}^{T} \delta_{t_i} g_i^\top
+$$
+
+取第 $k$ 列（僅 $t_i = k$ 的項非零，因為 $\delta_{t_i}^{(k)} = \mathbf{1}[t_i = k]$）：
+
+$$
+\frac{\partial \mathcal{L}}{\partial E[k]}\bigg|_{\text{input}} = \sum_{\{i\,:\,t_i = k\}} g_i
+$$
+
+**Step 5：Weight Tying 下的總梯度**
+
+$E$ 同時作為輸入 Embedding 和輸出 lm_head，梯度來自兩條路徑：
+
+$$
+\boxed{\frac{\partial \mathcal{L}}{\partial E[k]} = \underbrace{\sum_{\{i\,:\,t_i = k\}} g_i}_{\text{輸入側（稀疏）}} + \underbrace{\sum_{i=1}^{T} \delta_i^{(k)} \hat{h}_i}_{\text{輸出側（稠密）}}}
+$$
+
+> **註：** 若 lm_head 與 token embedding 是**獨立參數**（如本倉庫 NB4 的寫法），則輸入側梯度屬於 `token_embedding.weight`、輸出側梯度屬於 `lm_head.weight`，兩者各自更新、不累加。Weight Tying 時才合併到同一份 $E$。
+
+**Step 6：Optimizer 更新**
+
+$$
+E[k] \leftarrow E[k] - \eta \cdot \frac{\partial \mathcal{L}}{\partial E[k]}
+$$
+
+### 6.4 三個重要特性
+
+| 特性 | 輸入側 | 輸出側 |
+|---|---|---|
+| **稀疏性** | 只有出現過的 token 列有梯度 | 所有 $V$ 列都有梯度（稠密）|
+| **梯度來源** | 語言模型「讀入」時的表示學習 | 語言模型「預測」時的對比信號 |
+| **Weight Tying 的收益** | — | 稀有 token 即使沒被選為輸入，也能從輸出側持續收到梯度 |
+
+**實作注意：** PyTorch `nn.Embedding(sparse=True)` 只傳輸有梯度的列，在詞彙量 $V > 10^5$ 時顯著節省反向傳播的記憶體與頻寬。
+
 ---
 
 ## 核心總結
@@ -671,6 +788,16 @@ $$
 | $\partial\mathcal{L}/\partial \beta$ | $g^y$ | §5.2 |
 | $g^{\hat{x}}$（中間量）| $g^y \odot \gamma$ | §5.3 |
 | $\partial\mathcal{L}/\partial x$ | $\dfrac{1}{r}\!\left(g^{\hat{x}} - \text{mean}(g^{\hat{x}}) - \hat{x} \odot \text{mean}(g^{\hat{x}} \odot \hat{x})\right)$ | §5.7 |
+
+### Embedding（$x_i = E[t_i]$，lm_head $z_i = \hat{h}_i E^\top$）
+
+| 梯度目標 | 公式 | 章節 |
+|---|---|---|
+| $\delta_i = \partial\mathcal{L}/\partial z_i$（CE + Softmax）| $\delta_i^{(k)} = \tfrac{1}{T}(p^{(i)}_k - \mathbf{1}[k=y_i])$ | §6.3 Step 1 |
+| $\partial\mathcal{L}/\partial \hat{h}_i$ | $\delta_i E$ | §6.3 Step 2 |
+| $\partial\mathcal{L}/\partial E[k]$（輸出側，稠密）| $\sum_i \delta_i^{(k)} \hat{h}_i$ | §6.3 Step 2 |
+| $\partial\mathcal{L}/\partial E[k]$（輸入側，稀疏）| $\sum_{\{i:\,t_i=k\}} g_i$ | §6.3 Step 4 |
+| $\partial\mathcal{L}/\partial E[k]$（Weight Tying 總梯度）| 輸入側 + 輸出側 | §6.3 Step 5 |
 
 > **說明：** $r = \sqrt{\sigma^2 + \epsilon}$，$\hat{x} = (x-\mu)/r$，$\text{mean}(\cdot) = \tfrac{1}{d}\sum_j (\cdot)_j$。查閱表中所有公式皆有對應的符號推導章節與數值驗證。
 
