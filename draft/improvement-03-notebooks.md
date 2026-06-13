@@ -1,7 +1,7 @@
 # 學習路徑改善計劃 03：Notebook 逐 Cell 檢視與執行驗證
 
 > 撰寫日期：2026-06-12
-> 前提：`improvement-plan.md`（P1–P4）、`improvement-plan-01.md`（A1–A12、B1–B5）、`improvement-plan-02-writing.md`（W1–W16）全部完成。
+> 前提：`improvement-00-fixes.md`（P1–P4）、`improvement-01-mainline-gaps.md`（A1–A12、B1–B5）、`improvement-02-writing.md`（W1–W16）全部完成。
 > 本計劃聚焦：**四個 Notebook 的逐 cell 正確性與可執行性**，目標是讀者能從頭到尾執行每個 notebook 不遇到錯誤，且輸出數字與理論文件一致。
 
 ---

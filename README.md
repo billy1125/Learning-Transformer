@@ -152,11 +152,12 @@ jupyter lab
 
 ## 文件品質改善紀錄
 
-本倉庫的理論文件經過多輪系統性檢視與補強，紀錄保存在根目錄的 `improvement-plan*.md`：
+本倉庫的理論文件經過多輪系統性檢視與補強，規劃與執行紀錄保存在 `draft/` 資料夾（僅供維護參考，不在主線閱讀路徑上）：
 
 | 計劃 | 重點 |
 |---|---|
-| `improvement-plan.md` | 錯誤修正、數值範例、ASCII 圖表、章節銜接語 |
-| `improvement-plan-01.md` | 主線概念缺口（$W_O$、FFN、PE、Dropout、KV Cache、Embedding 梯度）、新增 `06` 當代架構文件 |
-| `improvement-plan-02-writing.md` | 數學推導逐步化（Softmax Jacobian、LayerNorm 合併代數等）、程式範例說明、失效引用修正 |
-| `improvement-plan-03-notebooks.md` | Notebook 執行驗證：NB3 梯度驗證 bug 修復、NB4 首次執行、路徑隔離與 .gitignore 補強 |
+| `draft/improvement-00-fixes.md` | 錯誤修正、數值範例、ASCII 圖表、章節銜接語 |
+| `draft/improvement-01-mainline-gaps.md` | 主線概念缺口（$W_O$、FFN、PE、Dropout、KV Cache、Embedding 梯度）、新增 `06` 當代架構文件 |
+| `draft/improvement-02-writing.md` | 數學推導逐步化（Softmax Jacobian、LayerNorm 合併代數等）、程式範例說明、失效引用修正 |
+| `draft/improvement-03-notebooks.md` | Notebook 執行驗證：NB3 梯度驗證 bug 修復、NB4 首次執行、路徑隔離與 .gitignore 補強 |
+| `draft/improvement-04-llama.md` | （規劃中）把 `06` 文末「下一步」做成可執行出口：新增 NB5 改造實作、`theory/07` 官方碼對照 |
