@@ -36,7 +36,7 @@
 5. 加權平均：資訊讀取
 6. 矩陣化表示
 7. 最小例子（3 tokens）
-8. 數值穩定性：Temperature Scaling
+8. 數值穩定性：Temperature Scaling 與維度縮放
 9. 核心總結公式
 10. 從 Naive Self-Attention 到 QKV 的動機
 
@@ -112,25 +112,7 @@ $$
 2. 神經網路可以對其進行梯度更新
 3. 語意相近的符號在向量空間中彼此靠近
 
-### 形式化：Embedding 作為查表（Lookup Table）
-
-上面說 $x_i \in \mathbb{R}^d$，但這個向量是怎麼產生的？
-
-設詞彙表大小為 $V$，令 $E \in \mathbb{R}^{V \times d}$ 為 Embedding 矩陣（可訓練參數）。對 Token ID 為 $t_i \in \{0, 1, \ldots, V-1\}$ 的 token，其 embedding 為：
-
-$$
-x_i = E[t_i] \in \mathbb{R}^d \quad \text{（取出 } E \text{ 的第 } t_i \text{ 列）}
-$$
-
-等價地，令 $\delta_{t_i} \in \mathbb{R}^V$ 為第 $t_i$ 個 one-hot 向量，則：
-
-$$
-x_i = \delta_{t_i}^\top E
-$$
-
-也就是說，「查表」在數學上等價於「one-hot 向量乘以矩陣」——但實作上直接索引取列（$O(1)$），不做矩陣乘法。
-
-**梯度特性：** 反向傳播時，梯度 $\frac{\partial \mathcal{L}}{\partial E}$ 只有第 $t_i$ 列非零——未被本 batch 選中的 token，其 embedding 本步不更新。這意味著稀有詞需要更多訓練樣本才能讓 embedding 收斂。（完整推導見 [`05-backpropagation.md`](05-backpropagation.md) §6）
+Embedding 在實作上是一張可訓練的查找表，數學細節見附錄 D。
 
 ---
 
@@ -229,6 +211,8 @@ Softmax 提供：
 | 單調性 | $e_{i,j} > e_{i,k} \Rightarrow \alpha_{i,j} > \alpha_{i,k}$ |
 | 平滑選擇（soft selection）| 非 hard argmax，梯度可流動 |
 
+關於 softmax 相較於直接線性歸一化的直覺優勢，見 [`01a-prerequisites-intuition.md`](01a-prerequisites-intuition.md) §4。
+
 ### 4.2 Softmax 的溫度效應
 
 引入溫度參數 $\tau > 0$：
@@ -265,76 +249,7 @@ $$
 
 結果與原始公式等價，但數值安全。
 
-### 4.4 數值對比（模擬實驗）
-
-假設模型輸出的原始分數（Logits）為：
-
-$$
-e_1 = 2.0, \quad e_2 = 1.0, \quad e_3 = -2.0
-$$
-
-#### 直接將數值相加做比例
-
-- 總和：
-$$
-2.0 + 1.0 + (-2.0) = 1.0
-$$
-
-- 結果：
-  - 選項 1：
-$$
-2.0 / 1.0 = \mathbf{200\%}
-$$
-（機率竟然大於 1）
-
-  - 選項 3：
-$$
--2.0 / 1.0 = \mathbf{-200\%}
-$$
-（出現負機率）
-
-- 結論：
-  - 計算失敗  
-  - 含有負數時，數學邏輯會崩潰  
-
-#### Softmax 歸一化（標準做法）
-
-先取指數 $e^x$，再計算比例：
-
-- 取指數：
-$$
-e^{2.0} = exp(2.0) \approx 7.39
-$$
-$$
-e^{1.0} = exp(1.0) \approx 2.72
-$$
-$$
-e^{-2.0} = exp(-2.0) \approx 0.14
-$$
-
-- 總和：
-$$
-7.39 + 2.72 + 0.14 = 10.25
-$$
-
-- 最終權重（$\alpha$）：
-$$
-\alpha_1 = 7.39 / 10.25 \approx \mathbf{72.1\%}
-$$
-$$
-\alpha_2 = 2.72 / 10.25 \approx \mathbf{26.5\%}
-$$
-$$
-\alpha_3 = 0.14 / 10.25 \approx \mathbf{1.4\%}
-$$
-
-## 差異總結表
-
-| 特性       | 直接歸一化              | Softmax（$e^x$）              |
-|------------|-------------------------|-------------------------------|
-| 負數處理   | 會導致負機率，數學報錯  | 自動轉為極小正數，邏輯穩定    |
-| 對比度     | 線性比例，區分度低      | 指數級放大，強弱差異明顯      |
-| 微分特性   | 不連續，不利於 AI 訓練  | 全程可微，適合梯度下降        |
+---
 
 ## 5. 加權平均：資訊讀取
 
@@ -520,9 +435,22 @@ $$
 
 ## 8. 數值穩定性：Temperature Scaling 與維度縮放
 
+第 7 節示範了用內積計算相似度、再套 softmax 得到注意力權重的完整流程。softmax 的歸一化確保每一行的權重加總等於 1，讓 $c_i$ 成為名副其實的加權平均。但歸一化本身帶來一個隱憂：**softmax 的歸一化是「你多我必少」的零和競爭**——只要有一個分數特別大，$e^{\text{大數}}$ 在分母中佔壓倒性比例，其他 token 的權重就被擠壓到幾乎為零。換言之，權重分配從「多個 token 各貢獻一點」退化成「某一個 token 獨佔幾乎全部注意力」。這在第 7 節的低維小範例裡不成問題，因為分數的數值差距小；問題出在高維：**維度越高，內積的典型幅度越大，這種傾斜就越嚴重**。
+
 ### 問題：高維時內積爆炸
 
-設 $x_i, x_j \in \mathbb{R}^d$，各分量 i.i.d. 來自 $\mathcal{N}(0, 1)$，則：
+**先用數字感受現象。** 假設向量各分量的典型大小約為 $O(1)$（例如初始化後的 embedding 向量）。在一維時（$d=1$），兩個分量相乘大約是 $O(1)$。但在 $d=64$ 維時，內積是 64 個這樣的乘積之和——哪怕每一項都很小，加總後的典型幅度已是 $O(\sqrt{64})=8$；到了 $d=512$，典型幅度變成 $O(\sqrt{512})\approx 22$。
+
+內積變大本身不是問題，問題在於 **softmax 對輸入差距極其敏感**。當分數幅度從個位數放大到幾十，softmax 的輸出從分散分佈急速走向近似 argmax：
+
+| 注意力分數向量 | softmax 輸出 |
+|---|---|
+| $[1,\ 2,\ 3]$ | $[0.09,\ 0.24,\ 0.67]$ |
+| $[10,\ 20,\ 30]$ | $[\approx 0,\ \approx 0,\ \approx 1]$ |
+
+前者三個 token 都有機會貢獻；後者幾乎只有第三個 token 有效，其餘兩個的權重已接近零。兩組分數的**相對差距比例完全相同**（1:2:3），造成結果天差地遠的唯一原因是絕對幅度。**低維時分數差距小，接近第一行；高維時分數差距大，接近第二行。** 這就是「內積爆炸」的本質：**維度越高，內積典型幅度越大，softmax 越容易飽和**。
+
+**正式推導其幅度。** 設 $x_i, x_j \in \mathbb{R}^d$，各分量 i.i.d. 來自 $\mathcal{N}(0, 1)$，則：
 
 $$
 \mathbb{E}[x_i^\top x_j] = \sum_{k=1}^d \mathbb{E}[(x_i)_k (x_j)_k] = \sum_{k=1}^d \underbrace{\mathbb{E}[(x_i)_k]}_0 \cdot \underbrace{\mathbb{E}[(x_j)_k]}_0 = 0
@@ -550,23 +478,25 @@ $$
 
 此時 softmax 飽和，梯度幾乎為 $0$，訓練停滯。
 
-**為什麼飽和會讓梯度為零？** softmax 的導數為 $\frac{\partial \alpha_j}{\partial e_l} = \alpha_j(\delta_{jl} - \alpha_l)$（完整推導見 [`05-backpropagation.md`](05-backpropagation.md) §1.4）。觀察對角項 $\alpha_j(1 - \alpha_j)$：當 $\alpha_j \to 1$ 或 $\alpha_j \to 0$ 時，這個乘積都趨近 $0$；非對角項 $-\alpha_j \alpha_l$ 同樣趨近 $0$。也就是說，**飽和時 softmax 的整個導數矩陣趨近零**，任何想穿過 softmax 往回傳的梯度都會被乘上接近零的數——上游參數收不到更新訊號。
+**為什麼飽和會讓梯度為零？** 先用 sigmoid 類比建立直覺：sigmoid 的輸出接近 0 或 1 時，函數曲線幾乎水平，輸入改變一點點對輸出幾乎沒有影響，梯度因此接近零。softmax 是同樣的情況——輸出分布越尖銳，各個輸出對輸入的敏感度越低。正式地，softmax 的導數為 $\frac{\partial \alpha_j}{\partial e_l} = \alpha_j(\delta_{jl} - \alpha_l)$（完整推導見 [`05-backpropagation.md`](05-backpropagation.md) §1.4）。觀察對角項 $\alpha_j(1 - \alpha_j)$：當 $\alpha_j \to 1$ 或 $\alpha_j \to 0$ 時，這個乘積都趨近 $0$；非對角項 $-\alpha_j \alpha_l$ 同樣趨近 $0$。也就是說，**飽和時 softmax 的整個導數矩陣趨近零**，loss 傳回 attention score 的調整訊號變得極弱——模型知道自己錯了，卻很難有效修正 query、key 的參數。
 
-### 解法：縮放內積
+### 解法：除以 $\sqrt{d}$ 把標準差壓回 $O(1)$
 
-在 Transformer 中使用縮放後的內積：
+上面推導出內積的標準差是 $\sqrt{d}$，因此最自然的修正就是除以這個量，讓縮放後的分數標準差恰好等於 1：
 
 $$
 e_{i,j} = \frac{x_i^\top x_j}{\sqrt{d}}
 $$
 
-縮放後：
+驗證：對常數 $c$，$\text{Var}[cX] = c^2\,\text{Var}[X]$，取 $c = 1/\sqrt{d}$：
 
 $$
-\text{Var}\left[\frac{x_i^\top x_j}{\sqrt{d}}\right] = \frac{d}{d} = 1
+\text{Var}\left[\frac{x_i^\top x_j}{\sqrt{d}}\right] = \frac{1}{d}\cdot\text{Var}[x_i^\top x_j] = \frac{d}{d} = 1
 $$
 
-方差回到 $O(1)$，softmax 分佈不會過度集中，梯度正常流動。
+縮放後分數的典型幅度回到 $O(1)$，softmax 不再飽和，梯度正常流動。
+
+> **一句話總結：** 高維向量的內積隨維度增大而放大（標準差 $\sqrt{d}$），直接送進 softmax 會讓分布過度尖銳、梯度趨近於零；除以 $\sqrt{d}$ 把標準差壓回 1，讓 attention 權重保持分散、訓練訊號能有效傳遞。
 
 數值穩定問題解決了，接下來把整個推導整合成一個乾淨的公式，並點出它的根本限制。
 
@@ -598,7 +528,7 @@ $$
 
 ---
 
-## 10. 從 Naive Self-Attention 到 QKV 的動機
+## 10. 從 Naive Self-Attention 到 QKV
 
 Naive self-attention 的核心限制可以用一個直覺類比說明：
 
@@ -709,6 +639,26 @@ $$
 $$
 x^\top y = \text{tr}(xy^\top) = \sum_k x_k y_k
 $$
+
+### D. Embedding 作為查找表
+
+上面說 $x_i \in \mathbb{R}^d$，但這個向量是怎麼產生的？
+
+設詞彙表大小為 $V$，令 $E \in \mathbb{R}^{V \times d}$ 為 Embedding 矩陣（可訓練參數）。對 Token ID 為 $t_i \in \{0, 1, \ldots, V-1\}$ 的 token，其 embedding 為：
+
+$$
+x_i = E[t_i] \in \mathbb{R}^d \quad \text{（取出 } E \text{ 的第 } t_i \text{ 列）}
+$$
+
+等價地，令 $\delta_{t_i} \in \mathbb{R}^V$ 為第 $t_i$ 個 one-hot 向量，則：
+
+$$
+x_i = \delta_{t_i}^\top E
+$$
+
+也就是說，「查表」在數學上等價於「one-hot 向量乘以矩陣」——但實作上直接索引取列（$O(1)$），不做矩陣乘法。
+
+**梯度特性：** 反向傳播時，梯度 $\frac{\partial \mathcal{L}}{\partial E}$ 只有第 $t_i$ 列非零——未被本 batch 選中的 token，其 embedding 本步不更新。這意味著稀有詞需要更多訓練樣本才能讓 embedding 收斂。（完整推導見 [`05-backpropagation.md`](05-backpropagation.md) §6）
 
 ---
 
