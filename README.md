@@ -10,21 +10,36 @@
 
 ### 方法一：Conda（建議）
 
+使用 Conda 可以隔離 Python 版本與套件，避免與系統環境衝突。
+
 ```bash
-# macOS
-conda env create -f environment/cona-env-install-mac.yml
+# 建立獨立環境（Python 3.11）
+conda create -n transformer python=3.11 -y
 
-# Windows
-conda env create -f environment/cona-env-install-pc.yml
-
+# 啟動環境
 conda activate transformer
+
+# 安裝 PyTorch（含 CUDA 支援；純 CPU 可移除 pytorch-cuda=12.1）
+conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia -y
+
+# 安裝其他套件
+pip install numpy matplotlib jupyterlab pandas
+
+# 啟動 JupyterLab
 jupyter lab
 ```
+
+> **純 CPU 環境**（無 GPU）將最後兩行替換為：
+> ```bash
+> conda install pytorch torchvision torchaudio cpuonly -c pytorch -y
+> pip install numpy matplotlib jupyterlab pandas
+> ```
 
 ### 方法二：pip
 
 ```bash
 pip install torch torchvision torchaudio numpy matplotlib jupyterlab pandas
+jupyter lab
 ```
 
 ### 核心套件
