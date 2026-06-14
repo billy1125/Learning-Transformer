@@ -152,6 +152,114 @@ $$
 - 讀取的值 $v_j$ 可與匹配用的 $k_j$ 完全不同
 - $W_Q, W_K, W_V$ 均為可學習參數
 
+### 2.3 最小數值例子：同一 token 的三種角色
+
+上面的語意分離表是抽象的，這裡用一個最小例子把它算出來：看同一個 token 向量，經過三組投影後如何變成三個不同的向量。
+
+**輸入（3 個 token，每個原本 2 維）：**
+
+$$
+X=
+\begin{bmatrix}
+1 & 0 \\
+0 & 1 \\
+1 & 1
+\end{bmatrix}
+\quad\Rightarrow\quad
+x_1=[1,0],\; x_2=[0,1],\; x_3=[1,1]
+$$
+
+**三個刻意取簡單的投影矩陣（$d=d_k=d_v=2$）：**
+
+$$
+W_Q=
+\begin{bmatrix}
+1 & 0 \\
+0 & 1
+\end{bmatrix}
+,\quad
+W_K=
+\begin{bmatrix}
+1 & 1 \\
+0 & 1
+\end{bmatrix}
+,\quad
+W_V=
+\begin{bmatrix}
+2 & 0 \\
+0 & 1
+\end{bmatrix}
+$$
+
+代入 §4 的矩陣式 $Q=XW_Q$、$K=XW_K$、$V=XW_V$（以下 $q_i,k_j,v_j$ 為 $X$、$Q$、$K$、$V$ 各列，即 §2.1 定義的逐列展開）：
+
+$$
+Q=
+\begin{bmatrix}
+1 & 0 \\
+0 & 1 \\
+1 & 1
+\end{bmatrix}
+,\quad
+K=
+\begin{bmatrix}
+1 & 1 \\
+0 & 1 \\
+1 & 2
+\end{bmatrix}
+,\quad
+V=
+\begin{bmatrix}
+2 & 0 \\
+0 & 1 \\
+2 & 1
+\end{bmatrix}
+$$
+
+**關鍵觀察：同一個 token 的三種角色。** 以第 1 個 token 為例，它原本是 $x_1=[1,0]$，但經過三組投影後變成：
+
+$$
+q_1=[1,0]\;(\text{查詢別人時的樣子}),\quad
+k_1=[1,1]\;(\text{被別人匹配時的樣子}),\quad
+v_1=[2,0]\;(\text{實際提供出去的內容})
+$$
+
+這正是 §2.2 那張表的數值化：同一個輸入，被拆成「我要找什麼」「我能如何被找到」「我實際提供什麼」三個獨立向量。
+
+**算出注意力分數 $S=QK^\top$**（此即 §3.1 的逐元素分數，符號表中的未縮放分數矩陣 $S$）：
+
+$$
+K^\top=
+\begin{bmatrix}
+1 & 0 & 1 \\
+1 & 1 & 2
+\end{bmatrix}
+\quad\Rightarrow\quad
+S=QK^\top=
+\begin{bmatrix}
+1 & 0 & 1 \\
+1 & 1 & 2 \\
+2 & 1 & 3
+\end{bmatrix}
+,\qquad S_{ij}=q_i^\top k_j
+$$
+
+看第一列 $S_{1,:}=[1,0,1]$：token 1 查詢時，$q_1\cdot k_1=1$、$q_1\cdot k_2=0$、$q_1\cdot k_3=1$，也就是它對 token 1 與 token 3 較有興趣、對 token 2 較沒興趣。
+
+**從分數變成 context。** 此處 $d_k=2$ 很小，為突顯動機**暫略 $\sqrt{d_k}$ 縮放**（縮放的必要性見 §3.2），直接對第一列做 softmax：
+
+$$
+\text{softmax}([1,0,1])\approx[0.422,\,0.155,\,0.422]
+$$
+
+$$
+c_1=0.422\,v_1+0.155\,v_2+0.422\,v_3
+=0.422[2,0]+0.155[0,1]+0.422[2,1]
+=[1.688,\,0.577]
+$$
+
+也就是說，token 1 依 Query–Key 的匹配結果，主要讀取 token 1 與 token 3 的 Value，少量讀取 token 2 的 Value。這條「$Q$ 決定看誰、$V$ 決定讀到什麼」的流程，下一節補上 $\sqrt{d_k}$ 縮放後就是完整的 Scaled Dot-Product Attention。
+
 ---
 
 ## 3. Scaled Dot-Product Attention
@@ -212,11 +320,84 @@ $$
 \text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
 $$
 
-公式確定了，接下來追蹤每個矩陣在每一步的形狀，確認維度計算前後一致。
+公式確定了，先把它套到 §2.3 的數字上完整算一遍。
+
+### 3.4 數值範例：四步驟走一遍
+
+**沿用 §2.3 算出的 Q/K/V**（不再重新投影）：
+
+$$
+Q=\begin{bmatrix}1&0\\0&1\\1&1\end{bmatrix},\qquad
+K=\begin{bmatrix}1&1\\0&1\\1&2\end{bmatrix},\qquad
+V=\begin{bmatrix}2&0\\0&1\\2&1\end{bmatrix}
+$$
+
+這裡 $d_k=2$（每個 query／key 向量都是 2 維）。以下依 §3.3 的四步 $S\to E\to A\to C$ 逐步計算。
+
+**Step 1：原始分數 $S=QK^\top$。** §2.3 已算出
+
+$$
+K^\top=\begin{bmatrix}1&0&1\\1&1&2\end{bmatrix}
+\quad\Rightarrow\quad
+S=QK^\top=\begin{bmatrix}1&0&1\\1&1&2\\2&1&3\end{bmatrix}
+$$
+
+每一列是「某 token 作為 query 時，對所有 token 的 key 的匹配分數」。例如第 1 列 $S_{1,:}=[1,0,1]$：token 1 較關注 token 1、token 3，較少關注 token 2。
+
+**Step 2：縮放 $E=S/\sqrt{d_k}$。** 因 $\sqrt{d_k}=\sqrt 2\approx 1.414$：
+
+$$
+E\approx\begin{bmatrix}0.707&0&0.707\\0.707&0.707&1.414\\1.414&0.707&2.121\end{bmatrix}
+$$
+
+縮放不改變每列分數的大小順序，只把尺度壓小（縮放的統計理由見 §3.2）。
+
+**Step 3：逐列 softmax $A=\text{softmax}_\text{row}(E)$。**
+
+$$
+A\approx\begin{bmatrix}0.401&0.198&0.401\\0.248&0.248&0.503\\0.284&0.140&0.576\end{bmatrix},\qquad \sum_j A_{ij}=1
+$$
+
+第一列 $A_{1,:}=[0.401,0.198,0.401]$ 表示 token 1 讀取資訊時，約 $40.1\%$ 來自 token 1、$19.8\%$ 來自 token 2、$40.1\%$ 來自 token 3——softmax 把任意大小的分數轉成一組比例。
+
+**Step 4：加權讀取 $C=AV$。**
+
+$$
+C\approx\begin{bmatrix}1.604&0.599\\1.503&0.752\\1.720&0.716\end{bmatrix}
+$$
+
+以第一列為例逐格展開：
+
+$$
+c_1=0.401\,v_1+0.198\,v_2+0.401\,v_3
+=0.401[2,0]+0.198[0,1]+0.401[2,1]=[1.604,\,0.599]
+$$
+
+token 1 最後的輸出不是複製某一個 value，而是依注意力比例把三個 value 混合起來。
+
+**縮放前後對照。** §2.3 為突顯 QKV 動機曾**暫略縮放**，對同一條第一列 $[1,0,1]$ 直接 softmax：
+
+$$
+\text{softmax}([1,0,1])\approx[0.422,\,0.155,\,0.422]\;\Rightarrow\; c_1=[1.688,\,0.577]
+$$
+
+加上縮放後（本節 Step 3、Step 4）則是：
+
+$$
+\text{softmax}\!\left(\tfrac{[1,0,1]}{\sqrt 2}\right)\approx[0.401,\,0.198,\,0.401]\;\Rightarrow\; c_1=[1.604,\,0.599]
+$$
+
+縮放把中間那個較低分數的權重從 $0.155$ 提高到 $0.198$，分佈更平滑。此例 $d_k=2$ 差異還小；實際 Transformer 中 $d_k$ 常達 $64$，不縮放時 softmax 會尖銳得多。
+
+> 這條四步流程對應 [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) §5（Self-Attention 層）的 `forward`：`scores = (Q @ K.T) / dk` → `softmax` → `attn @ V`。
+
+一句話收束：$QK^\top$ 決定「看誰」、softmax 決定「看多少」、$V$ 決定「讀到什麼」。公式與數值都走過一遍，接下來追蹤每個矩陣在每一步的形狀，確認維度計算前後一致。
 
 ---
 
 ## 4. 矩陣形式與 Shape 分析
+
+§3.4 已把 $S\to E\to A\to C$ 的**數值**完整算過一遍；本節不再重算數字，改為追蹤每個矩陣在每一步的**形狀**，確認維度前後自洽。下文以一般的 $T, d, d_k, d_v$ 推導，並在 §4.4 用 §3.4 那組 $T=3, d=2$ 的例子列出具體形狀對照表。
 
 ### 4.1 投影
 
@@ -225,6 +406,8 @@ Q = X W_Q \in \mathbb{R}^{T \times d_k}, \qquad
 K = X W_K \in \mathbb{R}^{T \times d_k}, \qquad
 V = X W_V \in \mathbb{R}^{T \times d_v}
 $$
+
+形狀算式：$(T\times d)(d\times d_k)=(T\times d_k)$，三個投影同理（$W_V$ 換成 $d\times d_v$）。
 
 ### 4.2 計算流程與 Shape 追蹤
 
@@ -238,7 +421,7 @@ $$
 (T \times d_k) \cdot (d_k \times T) = (T \times T) \checkmark
 $$
 
-每個元素 $E_{ij} = \dfrac{q_i^\top k_j}{\sqrt{d_k}}$，衡量 token $i$ 對 token $j$ 的注意力分數。
+$Q$ 與 $K$ 都是 $T\times d_k$，要讓「每個 query 對每個 key 各算一次內積」，必須把 $K$ 轉置成 $K^\top\in\mathbb{R}^{d_k\times T}$，內側維度 $d_k$ 才能相消、得到 $T\times T$。每個元素 $E_{ij} = \dfrac{q_i^\top k_j}{\sqrt{d_k}}$，衡量 token $i$ 對 token $j$ 的注意力分數。
 
 **Step 2：歸一化**
 
@@ -270,6 +453,23 @@ $$
 $$
 (T \times d) \;\to\; (T \times d_k),\, (T \times d_k),\, (T \times d_v) \;\to\; (T \times T) \;\to\; (T \times T) \;\to\; (T \times d_v)
 $$
+
+### 4.4 Shape 總表（以 §3.4 的 $T=3, d=2$ 為例）
+
+把上面的一般式代入 §3.4 的具體例子（$T=3$、$d=d_k=d_v=2$），每一步的形狀如下表。數值本身見 §3.4，這裡只看維度如何相消、串接：
+
+| 步驟 | 公式 | Shape 算式 | 結果 |
+|---|---|---|---|
+| 輸入 | $X$ | — | $T\times d = 3\times 2$ |
+| Query 投影 | $Q=XW_Q$ | $(3\times 2)(2\times 2)$ | $3\times 2$ |
+| Key 投影 | $K=XW_K$ | $(3\times 2)(2\times 2)$ | $3\times 2$ |
+| Value 投影 | $V=XW_V$ | $(3\times 2)(2\times 2)$ | $3\times 2$ |
+| 原始分數 | $S=QK^\top$ | $(3\times 2)(2\times 3)$ | $3\times 3$ |
+| 縮放分數 | $E=S/\sqrt{d_k}$ | 逐元素，形狀不變 | $3\times 3$ |
+| 注意力權重 | $A=\text{softmax}_\text{row}(E)$ | 逐列正規化，形狀不變 | $3\times 3$ |
+| 加權讀取 | $C=AV$ | $(3\times 3)(3\times 2)$ | $3\times 2$ |
+
+兩個觀察：$QK^\top$ 把序列「打成」$T\times T$ 的兩兩分數方陣（$3\times 3$）；$AV$ 又把它「收回」$T\times d_v$（$3\times 2$），輸出列數始終是 $T=3$，每個 token 各得一個新的 context 向量。縮放與 softmax 都是逐元素／逐列操作，完全不改變形狀。
 
 Shape 追蹤完了，但單頭 attention 每次只能學一種「注意力模式」——下一節說明多頭如何讓模型同時關注不同面向。
 
@@ -375,15 +575,23 @@ $$
 
 ### 5.6 最小數值例子（H=2, d=4, d_k=2）
 
-設 T=2（2 個 token），d=4，H=2，d_k=d_v=2。
+核心想法是：不要只用一組 $Q,K,V$ 去看整個輸入，而是把模型維度切成多個子空間，讓不同 head 在不同子空間中各自計算 attention。本節用一個最小例子把整條流程逐步算出來。
 
-**輸入：**
+**本例設定：**
+
+$$
+T=2,\qquad d=4,\qquad H=2,\qquad d_k=d_v=2
+$$
+
+**輸入矩陣**（每一列代表一個 token，因此這裡有兩個 token，每個是 4 維向量）：
 
 $$
 X = \begin{bmatrix} 1 & 0 & 0 & 1 \\ 0 & 1 & 1 & 0 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
 $$
 
-**Head 1 的投影矩陣（取輸入的前 2 維）：**
+#### Step 1：Head 1 取前兩維做 attention
+
+令 Head 1 的三個投影矩陣都取輸入的前兩維：
 
 $$
 W_Q^{(1)} = W_K^{(1)} = W_V^{(1)} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0 & 0 \end{bmatrix} \in \mathbb{R}^{4 \times 2}
@@ -391,55 +599,92 @@ W_Q^{(1)} = W_K^{(1)} = W_V^{(1)} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 0 & 0 \\ 0
 Q^{(1)} = K^{(1)} = V^{(1)} = X W^{(1)} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
 $$
 
-（驗算第一列：$x_1 = [1, 0, 0, 1]$ 乘上 $W^{(1)}$ 只留下前 2 維 → $[1, 0]$ ✓）
+也就是 Head 1 只看原本輸入的前兩個維度。（驗算第一列：$x_1 = [1, 0, 0, 1]$ 乘上 $W^{(1)}$ 只留下前 2 維 → $[1, 0]$ ✓）
 
-**Head 1 的 attention：**
-
-$$
-E^{(1)} = \frac{Q^{(1)} (K^{(1)})^\top}{\sqrt{2}} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix},\quad
-A^{(1)} = \text{softmax}(E^{(1)}) = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
-$$
-
-（softmax 計算：第一行為 $\frac{e^{0.707}}{e^{0.707} + e^0} = \frac{2.028}{3.028} \approx 0.67$；這組數字與 [`05-backpropagation.md`](05-backpropagation.md) 開頭的數值驗證範例相同，之後推梯度時可直接對照。）
+接著計算 scaled dot-product attention。先算未縮放的內積：
 
 $$
-C^{(1)} = A^{(1)} V^{(1)} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
+Q^{(1)} (K^{(1)})^\top
+= \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
+= \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
 $$
 
-**Head 2 的投影矩陣（取輸入的後 2 維）：**
+除以 $\sqrt{d_k} = \sqrt{2}$ 得縮放後的分數矩陣，再逐列做 softmax：
+
+$$
+E^{(1)} = \frac{Q^{(1)} (K^{(1)})^\top}{\sqrt{2}} = \begin{bmatrix} 0.707 & 0 \\ 0 & 0.707 \end{bmatrix},\quad
+A^{(1)} = \text{softmax}_\text{row}(E^{(1)}) \approx \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
+$$
+
+（softmax 計算：第一列為 $\frac{e^{0.707}}{e^{0.707} + e^0} = \frac{2.028}{3.028} \approx 0.67$；這組數字與 [`05-backpropagation.md`](05-backpropagation.md) 開頭的數值驗證範例相同，之後推梯度時可直接對照。）這表示第一個 token 主要看自己（權重約 $0.67$），但也保留約 $0.33$ 給第二個 token；第二個 token 對稱。
+
+最後乘上 $V^{(1)}$：
+
+$$
+C^{(1)} = A^{(1)} V^{(1)} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
+$$
+
+#### Step 2：Head 2 取後兩維做 attention
+
+令 Head 2 的三個投影矩陣都取輸入的後兩維：
 
 $$
 W_Q^{(2)} = W_K^{(2)} = W_V^{(2)} = \begin{bmatrix} 0 & 0 \\ 0 & 0 \\ 1 & 0 \\ 0 & 1 \end{bmatrix} \in \mathbb{R}^{4 \times 2}
 \quad \Rightarrow \quad
-Q^{(2)} = K^{(2)} = V^{(2)} = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+Q^{(2)} = K^{(2)} = V^{(2)} = X W^{(2)} = \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
 $$
 
-（$x_1 = [1, 0, 0, 1]$ 的後 2 維是 $[0, 1]$；$x_2 = [0, 1, 1, 0]$ 的後 2 維是 $[1, 0]$——注意順序與 Head 1 對調了。）
+注意這裡和 Head 1 不同：$x_1 = [1, 0, 0, 1]$ 的後 2 維是 $[0, 1]$、$x_2 = [0, 1, 1, 0]$ 的後 2 維是 $[1, 0]$——兩個 token 在後兩維的表示順序剛好和 Head 1 對調。
 
-**Head 2 的 attention：**
-
-$$
-E^{(2)} = \frac{Q^{(2)} (K^{(2)})^\top}{\sqrt{2}}
-= \frac{1}{\sqrt{2}}\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
-= \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
-$$
-
-注意力分數矩陣與 Head 1 相同（每個 token 仍然與自己最像），所以 $A^{(2)} = A^{(1)}$。但 **Value 不同**，輸出就不同：
+計算 attention 分數：
 
 $$
-C^{(2)} = A^{(2)} V^{(2)} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} = \begin{bmatrix} 0.33 & 0.67 \\ 0.67 & 0.33 \end{bmatrix}
+Q^{(2)} (K^{(2)})^\top
+= \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}\begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix}
+= \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
+\quad \Rightarrow \quad
+E^{(2)} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.707 & 0 \\ 0 & 0.707 \end{bmatrix}
 $$
 
-**拼接與輸出：**
+注意力分數矩陣與 Head 1 相同（每個 token 仍然與自己最像），所以 $A^{(2)} = A^{(1)}$。但因為 **Value 不同**，輸出就不同：
+
+$$
+C^{(2)} = A^{(2)} V^{(2)} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix} \begin{bmatrix} 0 & 1 \\ 1 & 0 \end{bmatrix} = \begin{bmatrix} 0.33 & 0.67 \\ 0.67 & 0.33 \end{bmatrix} \in \mathbb{R}^{2 \times 2}
+$$
+
+這裡就看出 Multi-Head 的重點：兩個 head 的注意力權重可以相同，但因為讀取的 Value 子空間不同，輸出仍然不同。
+
+#### Step 3：把兩個 head 的輸出拼接
+
+將兩個 head 的輸出沿 feature 維度拼接，$(2\times 2)$ 與 $(2\times 2)$ 拼成 $2\times 4$，即一般式的 $\text{Concat} \in \mathbb{R}^{T \times d}$：
 
 $$
 \text{Concat}(C^{(1)}, C^{(2)}) = \begin{bmatrix} 0.67 & 0.33 & 0.33 & 0.67 \\ 0.33 & 0.67 & 0.67 & 0.33 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
-\xrightarrow{W_O} \text{Output} \in \mathbb{R}^{2 \times 4}
 $$
 
-（若取 $W_O = I$ 則輸出就是 Concat 本身；實際模型中 $W_O$ 是可學習參數，會把前 2 維（Head 1 的觀點）與後 2 維（Head 2 的觀點）混合重組——見 §5.7。）
+#### Step 4：經過輸出投影 $W_O$
 
-**關鍵觀察：** 兩個 head 分別處理輸入的不同子空間（前 2 維 vs 後 2 維）。本例中兩個 head 的注意力分佈恰好相同，但讀取的 Value 不同，輸出也就不同——多頭的價值正在於此：**同樣的「該看誰」，可以搭配不同的「看到什麼」**。最後透過 $W_O$ 融合，輸出維度 $d=4$ 不變。
+Multi-Head Attention 不會只停在 concat，還會再乘上輸出投影矩陣 $W_O \in \mathbb{R}^{4 \times 4}$：
+
+$$
+O = \text{Concat}(C^{(1)}, C^{(2)})\, W_O,\qquad (2\times 4)(4\times 4) = (2\times 4)
+$$
+
+若為了簡化計算暫令 $W_O = I$，則輸出就是 Concat 本身：
+
+$$
+O = \begin{bmatrix} 0.67 & 0.33 & 0.33 & 0.67 \\ 0.33 & 0.67 & 0.67 & 0.33 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
+$$
+
+但實際模型中 $W_O$ 是可學習矩陣。若沒有它，Head 1 的資訊永遠固定在前兩維、Head 2 的資訊永遠固定在後兩維；加上 $W_O$ 後，模型可以學習如何把不同 head 的結果融合成新的表示（詳見 §5.7）。
+
+**關鍵觀察：** 兩個 head 分別處理輸入的不同子空間（前 2 維 vs 後 2 維）。本例中兩個 head 的注意力權重恰好相同：
+
+$$
+A^{(1)} = A^{(2)} = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
+$$
+
+但輸出不同，原因是 $V^{(1)} \neq V^{(2)}$——即使「注意力分佈」相同，不同 head 仍會從不同子空間讀出不同資訊。多頭的價值正在於此：**同樣的「該看誰」，可以搭配不同的「看到什麼」**，最後再透過 $W_O$ 混合成下一層可用的 $d=4$ 維表示。
 
 > **想看完整一條前向流程？** 本例只算到 MHA。[`03b-transformer-architecture-example.md`](03b-transformer-architecture-example.md) 把同一組輸入接著算完整個 **Pre-LN Block**（MHA → 殘差 → FFN → 殘差）並含 Positional Encoding 數值與旋轉驗證，每步皆可用 NB1 §13 重現。
 
