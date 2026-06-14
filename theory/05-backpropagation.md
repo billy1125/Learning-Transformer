@@ -1,6 +1,6 @@
 # 05｜反向傳播推導：Self-Attention 與 LayerNorm
 
-> **適合對象：** 讀完 03 並實際跑過 NB1 或 NB2 後，想從頭推導梯度的讀者。需要熟悉矩陣微分與鏈式法則。
+> **適合對象：** 讀完 03a 並實際跑過 NB1 或 NB2 後，想從頭推導梯度的讀者。需要熟悉矩陣微分與鏈式法則。
 >
 > **讀完後你能做什麼：**
 > - 推導 $\partial \mathcal{L}/\partial Q$、$\partial \mathcal{L}/\partial K$、$\partial \mathcal{L}/\partial V$ 的完整公式
@@ -9,7 +9,7 @@
 > - 解釋為什麼 Residual Connection 能讓梯度直接流過而不衰減
 > - 推導 Embedding 矩陣的完整梯度（含 Weight Tying 的稀疏／稠密雙通道）
 >
-> **前置文件：** [`03-transformer-architecture.md`](03-transformer-architecture.md)，以及 NB1 或 NB2 中的前向傳播實作
+> **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)，以及 NB1 或 NB2 中的前向傳播實作
 >
 > **對應 Notebook：** [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb) — 本文每個公式都有對應的 Python 實作
 
@@ -207,7 +207,7 @@ $$
 
 驗證：$l = j$ 時得 $a_j(1 - a_j)$ ✓；$l \neq j$ 時得 $-a_j a_l$ ✓。
 
-> **附帶收穫——飽和為什麼導致梯度消失：** 對角項 $a_j(1 - a_j)$ 在 $a_j \to 0$ 或 $a_j \to 1$ 時都趨近 0，非對角項 $-a_j a_l$ 也是。也就是說，softmax 一旦輸出接近 one-hot（飽和），**整個 Jacobian 趨近零矩陣**，任何上游梯度乘上它都會消失——這正是 `03` §3.2 說「不除以 $\sqrt{d_k}$ 會讓訓練停滯」的數學原因。
+> **附帶收穫——飽和為什麼導致梯度消失：** 對角項 $a_j(1 - a_j)$ 在 $a_j \to 0$ 或 $a_j \to 1$ 時都趨近 0，非對角項 $-a_j a_l$ 也是。也就是說，softmax 一旦輸出接近 one-hot（飽和），**整個 Jacobian 趨近零矩陣**，任何上游梯度乘上它都會消失——這正是 `03a` §3.2 說「不除以 $\sqrt{d_k}$ 會讓訓練停滯」的數學原因。
 
 #### 1.4.2 套用鏈式法則
 

@@ -114,7 +114,7 @@ jupyter lab
 | [`01a-prerequisites-intuition.md`](theory/01a-prerequisites-intuition.md) | Embedding、Softmax、加權平均（白話版） |
 | [`01b-prerequisites-math.md`](theory/01b-prerequisites-math.md) | 同上，附完整統計推導（數學版） |
 | [`02-attention-intuition.md`](theory/02-attention-intuition.md) | QKV 直覺、翻譯範例逐步計算 |
-| [`03-transformer-architecture.md`](theory/03-transformer-architecture.md) | Multi-Head Attention、Transformer Block、Positional Encoding |
+| [`03a-transformer-architecture.md`](theory/03a-transformer-architecture.md) | Multi-Head Attention、Transformer Block、Positional Encoding |
 | [`04-gpt-decoder-only.md`](theory/04-gpt-decoder-only.md) | Causal Masking、語言模型訓練目標、nanoGPT 架構解析 |
 | [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀） |

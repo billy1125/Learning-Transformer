@@ -1,6 +1,6 @@
 # 04｜GPT Decoder-Only：從 Transformer 到 nanoGPT
 
-> **適合對象：** 讀完 03 後，想理解 GPT 架構與原始 Transformer 的差異，並準備打開 nanoGPT Notebook 的讀者。
+> **適合對象：** 讀完 03a 後，想理解 GPT 架構與原始 Transformer 的差異，並準備打開 nanoGPT Notebook 的讀者。
 >
 > **讀完後你能做什麼：**
 > - 解釋為什麼 GPT 只有 Decoder，不需要 Encoder
@@ -9,7 +9,7 @@
 > - 對照 `Head` / `MultiHeadAttention` / `Block` / `GPT` 類別與理論文件的對應關係
 > - 解釋 Pre-LN 與 Post-LN 的差異
 >
-> **前置文件：** [`03-transformer-architecture.md`](03-transformer-architecture.md)
+> **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)
 >
 > **學完後的下一步：** → [`../notebooks/NB4-nanoGPT.ipynb`](../notebooks/NB4-nanoGPT.ipynb)
 
@@ -246,7 +246,7 @@ Step 5｜Optimizer 更新：
 
 ### 5.1 `Head`：單頭 Causal Self-Attention
 
-對應理論：[`03-transformer-architecture.md`](03-transformer-architecture.md) §1–§4
+對應理論：[`03a-transformer-architecture.md`](03a-transformer-architecture.md) §1–§4
 
 ```python
 class Head(nn.Module):
@@ -290,7 +290,7 @@ forward 的兩行與理論公式 $\text{Concat}(C^{(1)}, \ldots, C^{(H)}) \, W_O
 
 - `[h(x) for h in self.heads]`：`num_heads` 個 `Head` 並行執行，各得 `(B, T, head_size)`
 - `torch.cat(..., dim=-1)`：沿最後一維拼接 → `(B, T, n_embd)`（因為 `num_heads × head_size = n_embd`）
-- `self.proj(out)`：乘以 $W_O$，把各 head 的資訊混合重組（動機見 03 §5.7）
+- `self.proj(out)`：乘以 $W_O$，把各 head 的資訊混合重組（動機見 03a §5.7）
 - `self.dropout(...)`：殘差路徑前的 dropout（見 §5.3 的 Dropout 說明）
 
 在 nanoGPT 中：`n_embd=384, n_head=6` → 每個 head 的 `head_size = 384/6 = 64`
@@ -366,9 +366,9 @@ self.lm_head.weight = self.transformer.wte.weight   # Weight Tying
 
 **等一下——這個 `position_embedding` 和 03 講的 PE 是同一件事嗎？**
 
-是同一個目的（注入位置資訊），但做法不同。03 §7.2 推導的是 Sinusoidal PE（固定公式），nanoGPT 用的是 `nn.Embedding` 實作的 **Learned PE**（03 §7.4）——每個位置一個可訓練向量：
+是同一個目的（注入位置資訊），但做法不同。03a §7.2 推導的是 Sinusoidal PE（固定公式），nanoGPT 用的是 `nn.Embedding` 實作的 **Learned PE**（03a §7.4）——每個位置一個可訓練向量：
 
-| | Sinusoidal PE（03 §7.2 所介紹）| Learned PE（nanoGPT 所用）|
+| | Sinusoidal PE（03a §7.2 所介紹）| Learned PE（nanoGPT 所用）|
 |---|---|---|
 | 參數量 | 無（固定公式）| $T_{\max} \times d$（可訓練）|
 | 泛化超出訓練長度 | 理論上可以 | 不能（沒看過的位置沒有 embedding）|
@@ -516,11 +516,11 @@ nanoGPT 為了教學簡潔沒有實作 KV Cache，但讀懂它之後，看任何
 | 問題 | 對應概念 |
 |---|---|
 | `Head` 裡的 `self.tril` 遮罩在做什麼？ | Causal Masking（§3）|
-| `C**-0.5` 是什麼？ | $1/\sqrt{d_k}$ 縮放（03 §3.2）|
+| `C**-0.5` 是什麼？ | $1/\sqrt{d_k}$ 縮放（03a §3.2）|
 | `Block` 裡兩個 `x = x + ...` 是什麼結構？ | Residual Connection + Pre-LN（§6）|
 | `lm_head` 輸出的 `(B, T, vocab_size)` 裡，哪個位置是訓練用的目標？ | 每個位置 $i$ 預測 $i+1$（§4）|
 | 為什麼 `generate` 要截取 `idx[:, -block_size:]`？ | Context window 上限（§8）|
-| `n_embd=384, n_head=6` → 每個 head 的維度是多少？ | $384/6=64$（03 §5）|
+| `n_embd=384, n_head=6` → 每個 head 的維度是多少？ | $384/6=64$（03a §5）|
 | 訓練和生成時 `targets` 的差異？ | 訓練時傳入 targets 算 loss；生成時不傳（§4, §8）|
 
 ---
