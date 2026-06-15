@@ -33,7 +33,7 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 ## 資料夾結構
 
 ```
-theory/          ← 理論主線（7 份文件，依序閱讀；06 為選讀出口）
+theory/          ← 理論主線（7 份文件，依序閱讀；06 為選讀出口；03b 為 03a 的選讀計算案例）
 notebooks/       ← 實作主線（4 個 Notebook，依序執行）
 advanced/        ← 進階補充（選讀，非主線）
 archive/         ← 所有舊版文件備份（不會動到）
@@ -47,7 +47,8 @@ environment/     ← Conda 環境設定檔
 | `01a-prerequisites-intuition.md` | Embedding、Softmax、加權平均（白話版，高中數學程度）|
 | `01b-prerequisites-math.md` | 同上，附完整統計推導（大學線性代數程度）|
 | `02-attention-intuition.md` | QKV 直覺、翻譯範例逐步計算（I eat fish → 我吃魚）|
-| `03-transformer-architecture.md` | Multi-Head Attention、Transformer Block、Positional Encoding |
+| `03a-transformer-architecture.md` | Multi-Head Attention、Transformer Block、Positional Encoding |
+| `03b-transformer-architecture-example.md` | 03a 的計算案例（選讀）：$2\times4$ 輸入手算整個 Pre-LN Block，對應 NB1 §13 |
 | `04-gpt-decoder-only.md` | Causal Masking、GPT Decoder-Only 架構、nanoGPT 逐行解析 |
 | `05-backpropagation.md` | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀）|
@@ -77,9 +78,14 @@ environment/     ← Conda 環境設定檔
 
 ## 改善計劃文件
 
-`improvement-plan*.md` 為歷次品質改善的規劃與執行紀錄（均已完成，狀態標記在各檔的優先順序表中）：
+歷次規劃與草稿統一存放於 `draft/`（不在主線閱讀路徑上，僅供維護參考）：
 
-- `improvement-plan.md` — 第一輪：修正錯誤、補數值範例與圖表、銜接語
-- `improvement-plan-01.md` — 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
-- `improvement-plan-02-writing.md` — 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
-- `improvement-plan-03-notebooks.md` — 第四輪：Notebook 逐 cell 執行驗證（NB3 梯度 bug 修復、NB4 首次執行、路徑隔離）
+- `draft/restructure-plan.md` — 倉庫重整計劃草稿（理論／實作／進階／archive 四區結構的原始規劃，已完成）
+
+`draft/improvement-*.md` 為歷次品質改善的規劃與執行紀錄（均已完成，狀態標記在各檔的優先順序表中；檔名編號對應各檔標題的「改善計劃 0X」）：
+
+- `draft/improvement-00-fixes.md` — 第一輪：修正錯誤、補數值範例與圖表、銜接語
+- `draft/improvement-01-mainline-gaps.md` — 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
+- `draft/improvement-02-writing.md` — 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
+- `draft/improvement-03-notebooks.md` — 第四輪：Notebook 逐 cell 執行驗證（NB3 梯度 bug 修復、NB4 首次執行、路徑隔離）
+- `draft/improvement-04-llama.md` — 第五輪（規劃中）：把 `06` 文末「下一步」做成可執行出口（新增 NB5 改造實作、`theory/07` 官方碼對照）

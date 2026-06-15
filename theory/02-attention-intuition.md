@@ -9,7 +9,7 @@
 >
 > **前置文件：** [`01a-prerequisites-intuition.md`](01a-prerequisites-intuition.md) 或 [`01b-prerequisites-math.md`](01b-prerequisites-math.md)
 >
-> **學完後的下一步：** → [`03-transformer-architecture.md`](03-transformer-architecture.md)（完整架構：Multi-Head、Block、位置編碼）
+> **學完後的下一步：** → [`03a-transformer-architecture.md`](03a-transformer-architecture.md)（完整架構：Multi-Head、Block、位置編碼）
 
 ---
 
@@ -427,11 +427,11 @@ $$
 | # | 簡化點             | 真實技術                          | 解法詳見 |
 | - | ------------------ | --------------------------------- | --- |
 | 1 | 2 維 embedding     | 高維 embedding（數千維）          | [`01b`](01b-prerequisites-math.md) §2、[`04`](04-gpt-decoder-only.md) §5.5（nanoGPT 用 384 維）|
-| 2 | $W = I$            | 獨立訓練的投影矩陣                | [`03`](03-transformer-architecture.md) §2 |
-| 3 | 單頭注意力         | Multi-Head Attention              | [`03`](03-transformer-architecture.md) §5 |
-| 4 | 沒有位置資訊       | Positional Encoding / RoPE        | [`03`](03-transformer-architecture.md) §7、[`06`](06-modern-transformer-variants.md) §3（RoPE）|
+| 2 | $W = I$            | 獨立訓練的投影矩陣                | [`03a`](03a-transformer-architecture.md) §2 |
+| 3 | 單頭注意力         | Multi-Head Attention              | [`03a`](03a-transformer-architecture.md) §5 |
+| 4 | 沒有位置資訊       | Positional Encoding / RoPE        | [`03a`](03a-transformer-architecture.md) §7、[`06`](06-modern-transformer-variants.md) §3（RoPE）|
 | 5 | 可看未來詞         | Causal Mask                       | [`04`](04-gpt-decoder-only.md) §3 |
-| 6 | 單層               | 數十到上百層堆疊                  | [`03`](03-transformer-architecture.md) §6（Transformer Block 可串疊）|
+| 6 | 單層               | 數十到上百層堆疊                  | [`03a`](03a-transformer-architecture.md) §6（Transformer Block 可串疊）|
 | 7 | 詞彙乾淨對應       | Subword tokenization              | [`04`](04-gpt-decoder-only.md) §7 |
 | 8 | 手動指定權重       | 反向傳播訓練                      | [`04`](04-gpt-decoder-only.md) §4、[`05`](05-backpropagation.md) 全篇 |
 
@@ -502,4 +502,4 @@ $$
 
 你已經能用數字追蹤一個完整的 QKV attention 計算，也清楚知道簡化版的 8 個缺口。
 
-**接下來：** [`03-transformer-architecture.md`](03-transformer-architecture.md) — 深入 Multi-Head Attention、Transformer Block（Residual + LayerNorm + FFN）、Positional Encoding，以及與 RNN 的核心差異。
+**接下來：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md) — 深入 Multi-Head Attention、Transformer Block（Residual + LayerNorm + FFN）、Positional Encoding，以及與 RNN 的核心差異。
