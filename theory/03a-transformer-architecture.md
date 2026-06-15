@@ -411,25 +411,37 @@ $$
 
 ### 4.2 計算流程與 Shape 追蹤
 
-**Step 1：注意力分數矩陣**
+沿用 §3.4 的四步 $S\to E\to A\to C$，但這裡只追蹤形狀（數值見 §3.4）。
+
+**Step 1：原始分數矩陣**
 
 $$
-E = \frac{QK^\top}{\sqrt{d_k}} \in \mathbb{R}^{T \times T}
+S = QK^\top \in \mathbb{R}^{T \times T}
 $$
 
 $$
 (T \times d_k) \cdot (d_k \times T) = (T \times T) \checkmark
 $$
 
-$Q$ 與 $K$ 都是 $T\times d_k$，要讓「每個 query 對每個 key 各算一次內積」，必須把 $K$ 轉置成 $K^\top\in\mathbb{R}^{d_k\times T}$，內側維度 $d_k$ 才能相消、得到 $T\times T$。每個元素 $E_{ij} = \dfrac{q_i^\top k_j}{\sqrt{d_k}}$，衡量 token $i$ 對 token $j$ 的注意力分數。
+$Q$ 與 $K$ 都是 $T\times d_k$，要讓「每個 query 對每個 key 各算一次內積」，必須把 $K$ 轉置成 $K^\top\in\mathbb{R}^{d_k\times T}$，內側維度 $d_k$ 才能相消、得到 $T\times T$。每個元素 $S_{ij} = q_i^\top k_j$，衡量 token $i$ 對 token $j$ 的原始注意力分數。
 
-**Step 2：歸一化**
+**Step 2：縮放**
+
+$$
+E = \frac{S}{\sqrt{d_k}} \in \mathbb{R}^{T \times T}
+$$
+
+逐元素除以常數 $\sqrt{d_k}$，形狀不變（縮放的統計理由見 §3.2）。
+
+**Step 3：歸一化**
 
 $$
 A = \text{softmax}_{\text{row}}(E) \in \mathbb{R}^{T \times T}, \qquad \sum_{j=1}^T A_{ij} = 1 \; \forall i
 $$
 
-**Step 3：加權讀取**
+逐列正規化，形狀不變。
+
+**Step 4：加權讀取**
 
 $$
 C = AV \in \mathbb{R}^{T \times d_v}
@@ -445,29 +457,30 @@ $$
 
 $$
 X \xrightarrow{W_Q, W_K, W_V} Q, K, V
-\xrightarrow{QK^\top / \sqrt{d_k}} E
+\xrightarrow{QK^\top} S
+\xrightarrow{/\sqrt{d_k}} E
 \xrightarrow{\text{softmax}} A
 \xrightarrow{\times V} C
 $$
 
 $$
-(T \times d) \;\to\; (T \times d_k),\, (T \times d_k),\, (T \times d_v) \;\to\; (T \times T) \;\to\; (T \times T) \;\to\; (T \times d_v)
+(T \times d) \;\to\; (T \times d_k),\, (T \times d_k),\, (T \times d_v) \;\to\; (T \times T) \;\to\; (T \times T) \;\to\; (T \times T) \;\to\; (T \times d_v)
 $$
 
 ### 4.4 Shape 總表（以 §3.4 的 $T=3, d=2$ 為例）
 
-把上面的一般式代入 §3.4 的具體例子（$T=3$、$d=d_k=d_v=2$），每一步的形狀如下表。數值本身見 §3.4，這裡只看維度如何相消、串接：
+把上面的一般式代入 §3.4 的具體例子（$T=3$、$d=d_k=d_v=2$），每一步的形狀如下表。最後一欄指回 §3.4 算出的數值，方便對照「這個形狀裝的是哪個矩陣」：
 
-| 步驟 | 公式 | Shape 算式 | 結果 |
-|---|---|---|---|
-| 輸入 | $X$ | — | $T\times d = 3\times 2$ |
-| Query 投影 | $Q=XW_Q$ | $(3\times 2)(2\times 2)$ | $3\times 2$ |
-| Key 投影 | $K=XW_K$ | $(3\times 2)(2\times 2)$ | $3\times 2$ |
-| Value 投影 | $V=XW_V$ | $(3\times 2)(2\times 2)$ | $3\times 2$ |
-| 原始分數 | $S=QK^\top$ | $(3\times 2)(2\times 3)$ | $3\times 3$ |
-| 縮放分數 | $E=S/\sqrt{d_k}$ | 逐元素，形狀不變 | $3\times 3$ |
-| 注意力權重 | $A=\text{softmax}_\text{row}(E)$ | 逐列正規化，形狀不變 | $3\times 3$ |
-| 加權讀取 | $C=AV$ | $(3\times 3)(3\times 2)$ | $3\times 2$ |
+| 步驟 | 公式 | Shape 算式 | 結果 | 對應數值（§3.4）|
+|---|---|---|---|---|
+| 輸入 | $X$ | — | $T\times d = 3\times 2$ | §2.3 輸入 $X$ |
+| Query 投影 | $Q=XW_Q$ | $(3\times 2)(2\times 2)$ | $3\times 2$ | §3.4 開頭 $Q$ |
+| Key 投影 | $K=XW_K$ | $(3\times 2)(2\times 2)$ | $3\times 2$ | §3.4 開頭 $K$ |
+| Value 投影 | $V=XW_V$ | $(3\times 2)(2\times 2)$ | $3\times 2$ | §3.4 開頭 $V$ |
+| 原始分數 | $S=QK^\top$ | $(3\times 2)(2\times 3)$ | $3\times 3$ | §3.4 Step 1 |
+| 縮放分數 | $E=S/\sqrt{d_k}$ | 逐元素，形狀不變 | $3\times 3$ | §3.4 Step 2 |
+| 注意力權重 | $A=\text{softmax}_\text{row}(E)$ | 逐列正規化，形狀不變 | $3\times 3$ | §3.4 Step 3 |
+| 加權讀取 | $C=AV$ | $(3\times 3)(3\times 2)$ | $3\times 2$ | §3.4 Step 4 |
 
 兩個觀察：$QK^\top$ 把序列「打成」$T\times T$ 的兩兩分數方陣（$3\times 3$）；$AV$ 又把它「收回」$T\times d_v$（$3\times 2$），輸出列數始終是 $T=3$，每個 token 各得一個新的 context 向量。縮放與 softmax 都是逐元素／逐列操作，完全不改變形狀。
 
@@ -476,6 +489,18 @@ Shape 追蹤完了，但單頭 attention 每次只能學一種「注意力模式
 ---
 
 ## 5. Multi-Head Attention
+
+到目前為止，我們只有**一組** $W_Q, W_K, W_V$。這組投影學完之後，整個句子就只剩下**一種**「誰該關注誰」的看法——所有 token 之間的關係都被壓進這一張 $T\times T$ 的注意力表裡。
+
+問題是，語言中 token 的關係不只一種。讀「貓 追 老鼠」這句時，「追」這個字至少同時牽涉到：
+
+- **句法**：誰是主語、誰是受詞（追 ↔ 貓、追 ↔ 老鼠）
+- **語意**：哪些字意思相近、屬於同一場景
+- **位置**：哪個字就在隔壁
+
+一組 QKV 只能算出一張注意力表，等於逼模型「把上面這些不同面向擠成一種權重」——顧到句法就顧不到語意。這就是單頭的瓶頸：**不是它算錯，而是它只能同時表達一種關係。**
+
+Multi-Head 的解法很直白：**與其勉強用一組 QKV 看全部，不如準備好幾組，各看一個面向。** 把 $d$ 維切成 $H$ 份，每一份用自己獨立的 $W_Q, W_K, W_V$ 算一張注意力表（一個 head 專管句法、另一個專管語意……），最後再把這 $H$ 種看法拼起來、用 $W_O$ 融合成下一層能用的表示。下面先給形式定義，§5.3 再回頭量化「一組 vs 多組」的差別。
 
 ### 5.1 定義
 
@@ -515,15 +540,7 @@ $$
 
 ### 5.3 為什麼需要多頭？
 
-**單一 attention 的限制：** $A = \text{softmax}(QK^\top / \sqrt{d_k})$ 每行只能生成一種注意力分佈。對於同一個 token，可能同時需要：
-
-- 關注句法依賴（如主語和動詞）
-- 關注語意相似性（如同義詞）
-- 關注局部位置（如相鄰詞）
-
-這些是截然不同的「注意力模式」，單頭無法同時建模。
-
-**多頭的優勢：**
+本節把開場的直覺量化。關鍵限制是：單頭的 $A = \text{softmax}(QK^\top / \sqrt{d_k})$ **每行只能生成一種注意力分佈**，沒辦法同時表達句法、語意、位置等截然不同的關係模式。多頭則用 $H$ 組獨立投影各算一種，差別整理如下：
 
 | 面向 | 單頭 | 多頭（$H$ 個）|
 |---|---|---|
@@ -532,7 +549,7 @@ $$
 | 可學習參數 | $3d^2$ | $3Hd \cdot d_k + d^2 = 3d^2 + d^2$（含 $W_O$）|
 | 表示能力 | 低 | 高 |
 
-直觀理解：多個 head 就像多個「關注角度」，讓模型從不同維度理解 token 之間的關係。
+值得注意的是參數那一列：當 $d_k = d/H$ 時，多頭的 $W_Q, W_K, W_V$ 參數量（$3Hd\cdot d_k = 3d^2$）與單頭相同——**多頭不是靠堆更多參數取勝，而是把同樣的參數預算切成 $H$ 份、各自專注於一個子空間**，額外成本只有一個 $W_O$（$d^2$）。
 
 ### 5.4 參數量分析
 
