@@ -33,7 +33,7 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 ## 資料夾結構
 
 ```
-theory/          ← 理論主線（7 份文件，依序閱讀；06 為選讀出口；03b 為 03a 的選讀計算案例）
+theory/          ← 理論主線（7 份文件，依序閱讀；00 為前言導讀、06 為選讀出口；03b 為 03a 的選讀計算案例）
 notebooks/       ← 實作主線（4 個 Notebook，依序執行）
 advanced/        ← 進階補充（選讀，非主線）
 archive/         ← 所有舊版文件備份（不會動到）
@@ -44,6 +44,7 @@ environment/     ← Conda 環境設定檔
 
 | 文件 | 說明 |
 |---|---|
+| `00-learning-path.md` | 學習路線與背景（前言／導讀，無公式）：ML 歷史與歷程、本教材必學與延伸數學分級、最短主線、學完後的自我檢查與後續路線 |
 | `01a-prerequisites-intuition.md` | Embedding、Softmax、加權平均（白話版，高中數學程度）|
 | `01b-prerequisites-math.md` | 同上，附完整統計推導（大學線性代數程度）|
 | `02-attention-intuition.md` | QKV 直覺、翻譯範例逐步計算（I eat fish → 我吃魚）|
@@ -81,6 +82,7 @@ environment/     ← Conda 環境設定檔
 歷次規劃與草稿統一存放於 `draft/`（不在主線閱讀路徑上，僅供維護參考）：
 
 - `draft/restructure-plan.md` — 倉庫重整計劃草稿（理論／實作／進階／archive 四區結構的原始規劃，已完成）
+- `draft/learning-route-notes.md` — 學習路線與未來 AI 趨勢的原始筆記（`theory/00-learning-path.md` 的素材來源）
 
 `draft/improvement-*.md` 為歷次品質改善的規劃與執行紀錄（均已完成，狀態標記在各檔的優先順序表中；檔名編號對應各檔標題的「改善計劃 0X」）：
 

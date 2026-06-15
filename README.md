@@ -6,6 +6,14 @@
 
 ---
 
+## 前言：開始之前
+
+在常見的神經網路模型裡，Transformer 屬於**進階難度（★★★★☆）**——但只要拆成「直覺 → 數學 → 實作」三層，從零讀懂完全可行。這份教材的唯一目標，就是**讓你能獨立看懂、並親手刻出 nanoGPT**。
+
+> 📍 **第一次來、或想確認方向？** 先讀 [`theory/00-learning-path.md`](theory/00-learning-path.md)——它說明 Transformer 在機器學習史上的位置、本教材會用到與值得延伸的數學、完整學習路線，以及學完後的自我檢查與下一步。
+
+---
+
 ## 環境安裝
 
 ### 方法一：Conda（建議）
@@ -112,6 +120,7 @@ jupyter lab
 
 | 文件 | 說明 |
 |---|---|
+| [`00-learning-path.md`](theory/00-learning-path.md) | 學習路線與背景（前言／導讀）：ML 歷史、必學與延伸數學、最短主線、自我檢查與後續路線 |
 | [`01a-prerequisites-intuition.md`](theory/01a-prerequisites-intuition.md) | Embedding、Softmax、加權平均（白話版） |
 | [`01b-prerequisites-math.md`](theory/01b-prerequisites-math.md) | 同上，附完整統計推導（數學版） |
 | [`02-attention-intuition.md`](theory/02-attention-intuition.md) | QKV 直覺、翻譯範例逐步計算 |
