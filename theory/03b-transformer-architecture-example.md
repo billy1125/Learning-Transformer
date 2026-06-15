@@ -1,4 +1,11 @@
-# 03b｜Transformer Block 計算案例：一條前向流程從頭算到尾
+# 03b｜Transformer Block 計算案例（完整版）：一條前向流程從頭算到尾
+
+> **這是三階段計算案例的最後一階段（完整版）。** 若你是第一次接觸，建議從輕量的前兩階段循序而上（三份共用同一組 $X$ 與權重，數字完全銜接）：
+> 1. [`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（簡單版）— 單頭 attention：$X \to \tilde X \to C^{(1)}$
+> 2. [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（中等版）— 補上第二頭、$W_O$、殘差、FFN，算到 Block 輸出 $Y$
+> 3. **03b（本文，完整版）** — 在前兩階段之上，再補縮放數值對照、Positional Encoding 與相對位置旋轉驗證、NB1 重現
+>
+> 本文自成一體（重述完整流程），可單獨閱讀；若已讀過 03b1／03b2，可略過重複的步驟、直接看 §2.3 縮放對照、§6 Positional Encoding 與 §7 NB1 重現。
 
 > **適合對象：** 已讀完 [`03a-transformer-architecture.md`](03a-transformer-architecture.md)，想用具體數字把整個 Transformer Block 親手算一遍的讀者。
 >
