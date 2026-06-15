@@ -47,7 +47,7 @@ environment/     ← Conda 環境設定檔
 | `01a-prerequisites-intuition.md` | Embedding、Softmax、加權平均（白話版，高中數學程度）|
 | `01b-prerequisites-math.md` | 同上，附完整統計推導（大學線性代數程度）|
 | `02-attention-intuition.md` | QKV 直覺、翻譯範例逐步計算（I eat fish → 我吃魚）|
-| `03a-transformer-architecture.md` | Multi-Head Attention、Transformer Block、Positional Encoding |
+| `03a-transformer-architecture.md` | Multi-Head Attention、Transformer Block、Positional Encoding（§2.3／§3.4 QKV 與縮放逐步數值、§5.6 多頭數值範例皆內嵌於本文）|
 | `03b-transformer-architecture-example.md` | 03a 的計算案例（選讀）：$2\times4$ 輸入手算整個 Pre-LN Block，對應 NB1 §13 |
 | `04-gpt-decoder-only.md` | Causal Masking、GPT Decoder-Only 架構、nanoGPT 逐行解析 |
 | `05-backpropagation.md` | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |

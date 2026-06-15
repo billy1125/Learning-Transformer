@@ -84,8 +84,9 @@ jupyter lab
 
         ↓
 
-03 Transformer 架構           ──────▶  NB1 §6–§8
+03a Transformer 架構          ──────▶  NB1 §6–§8
   (Multi-Head、Block、PE)              NB2 完整模型
+  └ 03b 計算案例（選讀）               NB1 §13 可重現
 
         ↓
 
@@ -114,7 +115,8 @@ jupyter lab
 | [`01a-prerequisites-intuition.md`](theory/01a-prerequisites-intuition.md) | Embedding、Softmax、加權平均（白話版） |
 | [`01b-prerequisites-math.md`](theory/01b-prerequisites-math.md) | 同上，附完整統計推導（數學版） |
 | [`02-attention-intuition.md`](theory/02-attention-intuition.md) | QKV 直覺、翻譯範例逐步計算 |
-| [`03a-transformer-architecture.md`](theory/03a-transformer-architecture.md) | Multi-Head Attention、Transformer Block、Positional Encoding |
+| [`03a-transformer-architecture.md`](theory/03a-transformer-architecture.md) | Multi-Head Attention、Transformer Block、Positional Encoding（含 QKV／縮放／多頭逐步數值範例） |
+| [`03b-transformer-architecture-example.md`](theory/03b-transformer-architecture-example.md) | 03a 的計算案例（選讀）：$2\times4$ 輸入手算整個 Pre-LN Block，對應 NB1 §13 |
 | [`04-gpt-decoder-only.md`](theory/04-gpt-decoder-only.md) | Causal Masking、語言模型訓練目標、nanoGPT 架構解析 |
 | [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀） |
@@ -125,7 +127,7 @@ jupyter lab
 |---|---|---|
 | [`NB1-simple-llm-vanilla.ipynb`](notebooks/NB1-simple-llm-vanilla.ipynb) | NumPy 從零實作，無框架依賴 | 01 + 02 + 03 |
 | [`NB2-simple-llm-pytorch.ipynb`](notebooks/NB2-simple-llm-pytorch.ipynb) | PyTorch 版本 | 01 + 02 + 03 |
-| [`NB3-llm-backpropagation.ipynb`](notebooks/NB3-llm-backpropagation.ipynb) | NumPy 手刻完整反向傳播 | 01–05 |
+| [`NB3-llm-backpropagation.ipynb`](notebooks/NB3-llm-backpropagation.ipynb) | NumPy 手刻完整反向傳播 | 01–03 + 05 |
 | [`NB4-nanoGPT.ipynb`](notebooks/NB4-nanoGPT.ipynb) | 完整 nanoGPT，訓練莎士比亞文本 | 01–04 |
 
 #### 進階補充 (`advanced/`，選讀)
