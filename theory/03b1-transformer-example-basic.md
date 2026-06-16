@@ -12,7 +12,7 @@
 > **這是三階段計算案例的第一階段：**
 > 1. **03b1（本文，簡單版）** — 單頭 attention：$X \to \tilde X \to C^{(1)}$
 > 2. [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（中等版）— 補上第二頭、$W_O$、殘差、FFN，算到完整 Block 輸出 $Y$
-> 3. [`03b-transformer-architecture-example.md`](03b-transformer-architecture-example.md)（完整版）— 再補縮放數值對照、Positional Encoding 與相對位置旋轉驗證、NB1 重現
+> 3. [`03b3-transformer-architecture-example.md`](03b3-transformer-architecture-example.md)（完整版）— 再補縮放數值對照、Positional Encoding 與相對位置旋轉驗證、NB1 重現
 >
 > 三份文件**共用同一組 $X$ 與權重**，數字完全銜接：本文算出的 $\tilde X$、$C^{(1)}$ 會被下一階段直接沿用，不需重算。數字一律四捨五入到小數第 4 位，最末位可能有 $\pm 0.0001$ 的進位誤差。
 
@@ -108,7 +108,7 @@ $$
 
 接著除以 $\sqrt{d_k}=\sqrt2$ 再取 softmax。
 
-> **為什麼要除以 $\sqrt{d_k}$？** 一句話：避免分數過大讓 softmax 太「尖」、梯度飽和。本階段先照做，完整的數值對照（縮放／不縮放會差多少）見 [`03b` §2.3](03b-transformer-architecture-example.md)。
+> **為什麼要除以 $\sqrt{d_k}$？** 一句話：避免分數過大讓 softmax 太「尖」、梯度飽和。本階段先照做，完整的數值對照（縮放／不縮放會差多少）見 [`03b3` §2.3](03b3-transformer-architecture-example.md)。
 
 $$
 E^{(1)}=\frac{S^{(1)}}{\sqrt2}=\begin{bmatrix}1.4142&-1.4142\\-1.4142&1.4142\end{bmatrix}

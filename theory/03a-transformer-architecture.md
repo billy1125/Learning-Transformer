@@ -703,7 +703,7 @@ $$
 
 但輸出不同，原因是 $V^{(1)} \neq V^{(2)}$——即使「注意力分佈」相同，不同 head 仍會從不同子空間讀出不同資訊。多頭的價值正在於此：**同樣的「該看誰」，可以搭配不同的「看到什麼」**，最後再透過 $W_O$ 混合成下一層可用的 $d=4$ 維表示。
 
-> **想看完整一條前向流程？** 本例只算到 MHA。計算案例分三階段循序加深（共用同一組輸入，數字銜接）：[`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（單頭 attention）→ [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（補上第二頭、$W_O$、殘差、FFN，算到 Block 輸出）→ [`03b-transformer-architecture-example.md`](03b-transformer-architecture-example.md)（完整版，再加 Positional Encoding 與旋轉驗證），每步皆可用 NB1 §13 重現。
+> **想看完整一條前向流程？** 本例只算到 MHA。計算案例分三階段循序加深（共用同一組輸入，數字銜接）：[`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（單頭 attention）→ [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（補上第二頭、$W_O$、殘差、FFN，算到 Block 輸出）→ [`03b3-transformer-architecture-example.md`](03b3-transformer-architecture-example.md)（完整版，再加 Positional Encoding 與旋轉驗證），每步皆可用 NB1 §13 重現。
 
 ### 5.7 $W_O$ 的角色：混合重組各 head 的資訊
 
@@ -932,7 +932,7 @@ $$
 
 **幾條岔路，可以依興趣選擇順序：**
 
-- **想先把數字算一遍：** 三階段計算案例，從簡到繁循序爬升（同一組 $2\times4$ 輸入）—— [`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（單頭 attention 入門）→ [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（多頭、$W_O$、殘差、FFN，算到 Block 輸出）→ [`03b-transformer-architecture-example.md`](03b-transformer-architecture-example.md)（完整版，含縮放對照與 PE 旋轉驗證）
+- **想先把數字算一遍：** 三階段計算案例，從簡到繁循序爬升（同一組 $2\times4$ 輸入）—— [`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（單頭 attention 入門）→ [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（多頭、$W_O$、殘差、FFN，算到 Block 輸出）→ [`03b3-transformer-architecture-example.md`](03b3-transformer-architecture-example.md)（完整版，含縮放對照與 PE 旋轉驗證）
 - **往實作走：** [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) — 用 NumPy 從零實作本文所有元件（§13 即 03a 的可執行版）
 - **往 GPT 走：** [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md) — 了解 GPT 的 Decoder-Only 架構與 Causal Masking，然後打開 nanoGPT
 - **往反向傳播走：** [`05-backpropagation.md`](05-backpropagation.md) — 手推 Self-Attention 與 LayerNorm 的完整梯度

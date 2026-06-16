@@ -94,7 +94,7 @@ jupyter lab
 
 03a Transformer 架構          ──────▶  NB1 §6–§8
   (Multi-Head、Block、PE)              NB2 完整模型
-  └ 03b1→03b2→03b 計算案例（選讀）     NB1 §13 可重現
+  └ 03b1→03b2→03b3 計算案例（選讀）     NB1 §13 可重現
     (簡單→中等→完整，三階段)
 
         ↓
@@ -128,7 +128,7 @@ jupyter lab
 | [`03a-transformer-architecture.md`](theory/03a-transformer-architecture.md) | Multi-Head Attention、Transformer Block、Positional Encoding（含 QKV／縮放／多頭逐步數值範例） |
 | [`03b1-transformer-example-basic.md`](theory/03b1-transformer-example-basic.md) | 03a 計算案例・簡單版（選讀）：$2\times4$ 輸入手算單頭 attention（$X\to\tilde X\to C^{(1)}$） |
 | [`03b2-transformer-example-block.md`](theory/03b2-transformer-example-block.md) | 03a 計算案例・中等版（選讀）：承接 03b1，補上多頭、$W_O$、殘差、FFN，算到 Block 輸出 $Y$ |
-| [`03b-transformer-architecture-example.md`](theory/03b-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：整個 Pre-LN Block 加縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
+| [`03b3-transformer-architecture-example.md`](theory/03b3-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：整個 Pre-LN Block 加縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
 | [`04-gpt-decoder-only.md`](theory/04-gpt-decoder-only.md) | Causal Masking、語言模型訓練目標、nanoGPT 架構解析 |
 | [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀） |

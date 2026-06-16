@@ -12,7 +12,7 @@
 > **這是三階段計算案例的第二階段：**
 > 1. [`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（簡單版）— 單頭 attention：$X \to \tilde X \to C^{(1)}$
 > 2. **03b2（本文，中等版）** — 補上第二頭、$W_O$、殘差、FFN，算到 Block 輸出 $Y$
-> 3. [`03b-transformer-architecture-example.md`](03b-transformer-architecture-example.md)（完整版）— 再補縮放數值對照、Positional Encoding 與相對位置旋轉驗證、NB1 重現
+> 3. [`03b3-transformer-architecture-example.md`](03b3-transformer-architecture-example.md)（完整版）— 再補縮放數值對照、Positional Encoding 與相對位置旋轉驗證、NB1 重現
 >
 > 三份文件**共用同一組 $X$ 與權重**，數字完全銜接。數字一律四捨五入到小數第 4 位，最末位可能有 $\pm 0.0001$ 的進位誤差。
 
@@ -213,7 +213,7 @@ $$
 X \;\to\; \underbrace{\tilde X \to \text{MHA}(C^{(1)},C^{(2)}) \to O}_{\text{第一子層}} \;\to\; Z'=X+O \;\to\; \underbrace{\tilde Z \to \text{FFN} \to F}_{\text{第二子層}} \;\to\; Y=Z'+F
 $$
 
-**下一階段** [`03b-transformer-architecture-example.md`](03b-transformer-architecture-example.md)（完整版）會在同一組數字上再補：
+**下一階段** [`03b3-transformer-architecture-example.md`](03b3-transformer-architecture-example.md)（完整版）會在同一組數字上再補：
 
 - **縮放的數值對照**：除以 $\sqrt{d_k}$ 與不除，softmax 分佈差多少（一張對照表）
 - **Positional Encoding** 的編碼表，以及「相對位置 = 旋轉」的數值驗證
