@@ -33,7 +33,7 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 ## 資料夾結構
 
 ```
-theory/          ← 理論主線（7 份文件，依序閱讀；06 為選讀出口；03b 為 03a 的選讀計算案例）
+theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為選讀出口；03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
 notebooks/       ← 實作主線（4 個 Notebook，依序執行）
 advanced/        ← 進階補充（選讀，非主線）
 archive/         ← 所有舊版文件備份（不會動到）
@@ -44,11 +44,14 @@ environment/     ← Conda 環境設定檔
 
 | 文件 | 說明 |
 |---|---|
+| `00-learning-path.md` | 學習路線與背景（前言／導讀，無公式）：ML 歷史與歷程、本教材必學與延伸數學分級、最短主線、學完後的自我檢查與後續路線 |
 | `01a-prerequisites-intuition.md` | Embedding、Softmax、加權平均（白話版，高中數學程度）|
 | `01b-prerequisites-math.md` | 同上，附完整統計推導（大學線性代數程度）|
 | `02-attention-intuition.md` | QKV 直覺、翻譯範例逐步計算（I eat fish → 我吃魚）|
-| `03a-transformer-architecture.md` | Multi-Head Attention、Transformer Block、Positional Encoding |
-| `03b-transformer-architecture-example.md` | 03a 的計算案例（選讀）：$2\times4$ 輸入手算整個 Pre-LN Block，對應 NB1 §13 |
+| `03a-transformer-architecture.md` | Multi-Head Attention、Transformer Block、Positional Encoding（§2.3／§3.4 QKV 與縮放逐步數值、§5.6 多頭數值範例皆內嵌於本文）|
+| `03b1-transformer-example-basic.md` | 03a 計算案例・簡單版（選讀）：$2\times4$ 輸入手算單頭 attention（$X\to\tilde X\to C^{(1)}$），不含多頭／FFN |
+| `03b2-transformer-example-block.md` | 03a 計算案例・中等版（選讀）：承接 03b1，補上第二頭、$W_O$、殘差、FFN，算到完整 Block 輸出 $Y$ |
+| `03b3-transformer-architecture-example.md` | 03a 計算案例・完整版（選讀）：整個 Pre-LN Block 加縮放對照與 PE 旋轉驗證，對應 NB1 §13；三份共用同一組數字 |
 | `04-gpt-decoder-only.md` | Causal Masking、GPT Decoder-Only 架構、nanoGPT 逐行解析 |
 | `05-backpropagation.md` | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀）|
@@ -81,6 +84,7 @@ environment/     ← Conda 環境設定檔
 歷次規劃與草稿統一存放於 `draft/`（不在主線閱讀路徑上，僅供維護參考）：
 
 - `draft/restructure-plan.md` — 倉庫重整計劃草稿（理論／實作／進階／archive 四區結構的原始規劃，已完成）
+- `draft/learning-route-notes.md` — 學習路線與未來 AI 趨勢的原始筆記（`theory/00-learning-path.md` 的素材來源）
 
 `draft/improvement-*.md` 為歷次品質改善的規劃與執行紀錄（均已完成，狀態標記在各檔的優先順序表中；檔名編號對應各檔標題的「改善計劃 0X」）：
 

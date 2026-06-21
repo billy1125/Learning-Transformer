@@ -502,6 +502,42 @@ Shape 追蹤完了，但單頭 attention 每次只能學一種「注意力模式
 
 Multi-Head 的解法很直白：**與其勉強用一組 QKV 看全部，不如準備好幾組，各看一個面向。** 把 $d$ 維切成 $H$ 份，每一份用自己獨立的 $W_Q, W_K, W_V$ 算一張注意力表（一個 head 專管句法、另一個專管語意……），最後再把這 $H$ 種看法拼起來、用 $W_O$ 融合成下一層能用的表示。下面先給形式定義，§5.3 再回頭量化「一組 vs 多組」的差別。
 
+> **補充：什麼叫「把 $d$ 維切成 $H$ 份」？**
+>
+> 這裡切的是**每個 token 向量的特徵維度**，不是切 token 數，也不是把句子切成 $H$ 段。若每個 token 原本是 $d$ 維向量，使用 $H$ 個 head 時，通常讓每個 head 的 Query／Key／Value 維度變成：
+>
+> $d_q = d_k = d_v = \frac{d}{H}$
+>
+> 不過許多 Transformer 教材會省略 $d_q$，直接寫成：
+>
+> $d_k = d_v = \frac{d}{H}$
+>
+> 原因是 Query 必須和 Key 做內積：
+>
+> $q_i^\top k_j$
+>
+> 因此 $q_i$ 和 $k_j$ 的維度必須相同，也就是 $d_q=d_k$。如果 $q_i \in \mathbb{R}^{64}$、$k_j \in \mathbb{R}^{32}$，兩者就無法做標準內積。因此文件通常把 Query 與 Key 的維度都記成 $d_k$，而不另外寫 $d_q$。
+>
+> 要特別注意，這裡的 $d$ 是 model dimension，所以正確寫法是：
+>
+> $d_q = d_k = d_v = \frac{d}{H}$
+>
+> 不是 $d/Hd$。若寫成 $d/Hd$，數學上通常會被讀成：
+>
+> $\frac{d}{H d}=\frac{1}{H}$
+>
+> 這會把維度錯誤地化成 $1/H$，不符合維度意義。
+>
+> 例如 $d=512$、$H=8$，則每個 head 處理：
+>
+> $d_q=d_k=d_v=\frac{512}{8}=64$
+>
+> 8 個 head 各自算 attention 後，輸出會沿 feature 維度拼接回來：
+>
+> $64 \times 8 = 512$
+>
+> 因此，Multi-Head 不是讓每個 head 都處理完整的 $512$ 維，而是讓每個 head 在自己的 $64$ 維子空間中學一種注意力模式。最後再透過 $W_O$ 把這些 head 的結果混合回完整的 $d$ 維表示。
+
 ### 5.1 定義
 
 將 $d$ 維空間分成 $H$ 個 head，每個 head 獨立執行一次 attention：
@@ -703,7 +739,7 @@ $$
 
 但輸出不同，原因是 $V^{(1)} \neq V^{(2)}$——即使「注意力分佈」相同，不同 head 仍會從不同子空間讀出不同資訊。多頭的價值正在於此：**同樣的「該看誰」，可以搭配不同的「看到什麼」**，最後再透過 $W_O$ 混合成下一層可用的 $d=4$ 維表示。
 
-> **想看完整一條前向流程？** 本例只算到 MHA。[`03b-transformer-architecture-example.md`](03b-transformer-architecture-example.md) 把同一組輸入接著算完整個 **Pre-LN Block**（MHA → 殘差 → FFN → 殘差）並含 Positional Encoding 數值與旋轉驗證，每步皆可用 NB1 §13 重現。
+> **想看完整一條前向流程？** 本例只算到 MHA。計算案例分三階段循序加深（共用同一組輸入，數字銜接）：[`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（單頭 attention）→ [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（補上第二頭、$W_O$、殘差、FFN，算到 Block 輸出）→ [`03b3-transformer-architecture-example.md`](03b3-transformer-architecture-example.md)（完整版，再加 Positional Encoding 與旋轉驗證），每步皆可用 NB1 §13 重現。
 
 ### 5.7 $W_O$ 的角色：混合重組各 head 的資訊
 
@@ -932,7 +968,7 @@ $$
 
 **幾條岔路，可以依興趣選擇順序：**
 
-- **想先把數字算一遍：** [`03b-transformer-architecture-example.md`](03b-transformer-architecture-example.md) — 用 $2\times4$ 輸入手算整個 Pre-LN Block，含縮放對照、$W_O$ 混合、LayerNorm、FFN、PE 旋轉驗證
+- **想先把數字算一遍：** 三階段計算案例，從簡到繁循序爬升（同一組 $2\times4$ 輸入）—— [`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（單頭 attention 入門）→ [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（多頭、$W_O$、殘差、FFN，算到 Block 輸出）→ [`03b3-transformer-architecture-example.md`](03b3-transformer-architecture-example.md)（完整版，含縮放對照與 PE 旋轉驗證）
 - **往實作走：** [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) — 用 NumPy 從零實作本文所有元件（§13 即 03a 的可執行版）
 - **往 GPT 走：** [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md) — 了解 GPT 的 Decoder-Only 架構與 Causal Masking，然後打開 nanoGPT
 - **往反向傳播走：** [`05-backpropagation.md`](05-backpropagation.md) — 手推 Self-Attention 與 LayerNorm 的完整梯度

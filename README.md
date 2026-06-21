@@ -6,6 +6,14 @@
 
 ---
 
+## 前言：開始之前
+
+在常見的神經網路模型裡，Transformer 屬於**進階難度（★★★★☆）**——但只要拆成「直覺 → 數學 → 實作」三層，從零讀懂完全可行。這份教材的唯一目標，就是**讓你能獨立看懂、並親手刻出 nanoGPT**。
+
+> 📍 **第一次來、或想確認方向？** 先讀 [`theory/00-learning-path.md`](theory/00-learning-path.md)——它說明 Transformer 在機器學習史上的位置、本教材會用到與值得延伸的數學、完整學習路線，以及學完後的自我檢查與下一步。
+
+---
+
 ## 環境安裝
 
 ### 方法一：Conda（建議）
@@ -84,8 +92,10 @@ jupyter lab
 
         ↓
 
-03 Transformer 架構           ──────▶  NB1 §6–§8
+03a Transformer 架構          ──────▶  NB1 §6–§8
   (Multi-Head、Block、PE)              NB2 完整模型
+  └ 03b1→03b2→03b3 計算案例（選讀）     NB1 §13 可重現
+    (簡單→中等→完整，三階段)
 
         ↓
 
@@ -111,10 +121,14 @@ jupyter lab
 
 | 文件 | 說明 |
 |---|---|
+| [`00-learning-path.md`](theory/00-learning-path.md) | 學習路線與背景（前言／導讀）：ML 歷史、必學與延伸數學、最短主線、自我檢查與後續路線 |
 | [`01a-prerequisites-intuition.md`](theory/01a-prerequisites-intuition.md) | Embedding、Softmax、加權平均（白話版） |
 | [`01b-prerequisites-math.md`](theory/01b-prerequisites-math.md) | 同上，附完整統計推導（數學版） |
 | [`02-attention-intuition.md`](theory/02-attention-intuition.md) | QKV 直覺、翻譯範例逐步計算 |
-| [`03a-transformer-architecture.md`](theory/03a-transformer-architecture.md) | Multi-Head Attention、Transformer Block、Positional Encoding |
+| [`03a-transformer-architecture.md`](theory/03a-transformer-architecture.md) | Multi-Head Attention、Transformer Block、Positional Encoding（含 QKV／縮放／多頭逐步數值範例） |
+| [`03b1-transformer-example-basic.md`](theory/03b1-transformer-example-basic.md) | 03a 計算案例・簡單版（選讀）：$2\times4$ 輸入手算單頭 attention（$X\to\tilde X\to C^{(1)}$） |
+| [`03b2-transformer-example-block.md`](theory/03b2-transformer-example-block.md) | 03a 計算案例・中等版（選讀）：承接 03b1，補上多頭、$W_O$、殘差、FFN，算到 Block 輸出 $Y$ |
+| [`03b3-transformer-architecture-example.md`](theory/03b3-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：整個 Pre-LN Block 加縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
 | [`04-gpt-decoder-only.md`](theory/04-gpt-decoder-only.md) | Causal Masking、語言模型訓練目標、nanoGPT 架構解析 |
 | [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀） |
@@ -125,7 +139,7 @@ jupyter lab
 |---|---|---|
 | [`NB1-simple-llm-vanilla.ipynb`](notebooks/NB1-simple-llm-vanilla.ipynb) | NumPy 從零實作，無框架依賴 | 01 + 02 + 03 |
 | [`NB2-simple-llm-pytorch.ipynb`](notebooks/NB2-simple-llm-pytorch.ipynb) | PyTorch 版本 | 01 + 02 + 03 |
-| [`NB3-llm-backpropagation.ipynb`](notebooks/NB3-llm-backpropagation.ipynb) | NumPy 手刻完整反向傳播 | 01–05 |
+| [`NB3-llm-backpropagation.ipynb`](notebooks/NB3-llm-backpropagation.ipynb) | NumPy 手刻完整反向傳播 | 01–03 + 05 |
 | [`NB4-nanoGPT.ipynb`](notebooks/NB4-nanoGPT.ipynb) | 完整 nanoGPT，訓練莎士比亞文本 | 01–04 |
 
 #### 進階補充 (`advanced/`，選讀)
