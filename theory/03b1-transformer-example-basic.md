@@ -23,13 +23,14 @@
 0. 設定：本階段用到的矩陣
 1. Pre-LN：$\tilde X = \text{LayerNorm}(X)$
 2. 單頭 Scaled Dot-Product：$\tilde X \to C^{(1)}$
-3. 小結與下一階段
+3. 動手算：換 Head 2 試試看（練習題＋解答）
+4. 小結與下一階段
 
 ---
 
 ## 0. 設定：本階段用到的矩陣
 
-超參數：序列長度 $T=2$、模型維度 $d=4$、head 數 $H=2$、每頭維度 $d_k=d_v=2$。本階段只用到 **Head 1**，其餘權重（Head 2、$W_O$、FFN）留到 [`03b2`](03b2-transformer-example-block.md) 再登場。
+超參數：序列長度 $T=2$、模型維度 $d=4$、head 數 $H=2$、每頭維度 $d_k=d_v=2$。本階段正文只用 **Head 1** 走完整條流程；**Head 2** 會在 §3 以**練習題**形式登場（其投影矩陣在該節就地給出，讓你自己算一遍）。把各頭拼接、混合的 $W_O$ 與 FFN 仍留到 [`03b2`](03b2-transformer-example-block.md) 再登場。
 
 **輸入序列**（每列一個 token，沿用 [`03a` §5.6](03a-transformer-architecture.md)）：
 
@@ -138,7 +139,78 @@ $$
 
 ---
 
-## 3. 小結與下一階段
+## 3. 動手算：換 Head 2 試試看
+
+「多頭」的意思，就是**同一條流程平行跑好幾遍**，每個 head 用不同的投影權重，因此看到資料的不同面向。你已經把 Head 1 算完了——把 §2 的四步（投影 → $S$ → 縮放 softmax → $AV$）原封不動再走一次，就能算出 Head 2。先自己動手，再對答案。
+
+### 3.1 題目
+
+Head 2 改取 $\tilde X$ 的**後 2 維**（Head 1 取的是前 2 維），投影矩陣為：
+
+$$
+W_Q^{(2)}=W_K^{(2)}=W_V^{(2)}=\begin{bmatrix}0&0\\0&0\\1&0\\0&1\end{bmatrix}\;\in\mathbb{R}^{4\times2}
+$$
+
+**請沿用 §1 的 $\tilde X=\begin{bmatrix}1&-1&-1&1\\-1&1&1&-1\end{bmatrix}$**，照 §2.1～§2.4 算出 Head 2 的 context $C^{(2)}$。提示：投影後別忘了照樣除以 $\sqrt{d_k}=\sqrt2$ 再取 softmax。
+
+> 動手前先想一秒：Head 2 的投影只是把 $\tilde X$ 的**後 2 維**挑出來，你不必重算 LayerNorm。
+
+### 3.2 解答
+
+**第一步：投影。** 取 $\tilde X$ 的後 2 維（注意兩列的順序與 Head 1 相反）：
+
+$$
+Q^{(2)}=K^{(2)}=V^{(2)}=\tilde X\,W_Q^{(2)}=\begin{bmatrix}-1&1\\1&-1\end{bmatrix}
+$$
+
+（驗算第 1 列：$\tilde x_1=[1,-1,-1,1]$ 乘 $W_Q^{(2)}$ 只留**後 2 維** → $[-1,1]$ ✓）
+
+**第二步：原始分數 $S^{(2)}=Q^{(2)}(K^{(2)})^\top$。** 逐格手算：
+
+$$
+S^{(2)}_{11}=[-1,1]\cdot[-1,1]=1+1=2,\qquad
+S^{(2)}_{12}=[-1,1]\cdot[1,-1]=-1-1=-2
+$$
+
+$$
+S^{(2)}=\begin{bmatrix}2&-2\\-2&2\end{bmatrix}\quad(\textbf{與 Head 1 的 }S^{(1)}\textbf{ 完全相同})
+$$
+
+> **為什麼兩頭的分數會一模一樣？** 關鍵在這組 $\tilde X$ 的**後 2 維恰好是前 2 維的相反數**：
+> $$
+> \underbrace{\begin{bmatrix}1&-1\\-1&1\end{bmatrix}}_{\text{前 2 維（Head 1）}}\quad\xrightarrow{\ \times(-1)\ }\quad\underbrace{\begin{bmatrix}-1&1\\1&-1\end{bmatrix}}_{\text{後 2 維（Head 2）}}
+> $$
+> 因此 $Q^{(2)}=-Q^{(1)}$、$K^{(2)}=-K^{(1)}$。代進分數時，兩個負號在乘積裡**相乘抵消**：
+> $$
+> S^{(2)}=Q^{(2)}\big(K^{(2)}\big)^\top=(-Q^{(1)})(-K^{(1)})^\top=Q^{(1)}\big(K^{(1)}\big)^\top=S^{(1)}
+> $$
+> **這是本例刻意挑的數字造成的巧合，不是通則。** 一般情況下不同 head 的 $W_Q,W_K$ 不會讓 $Q,K$ 差一個整體符號，分數 $S$（與注意力 $A$）通常各不相同——各頭因此能關注不同的 token。本例特意讓 $A$ 相同、只讓 $V$ 不同，是為了把「該看誰相同、看到什麼不同」這件事孤立出來看清楚。
+
+**第三步：縮放與 softmax。** 因為 $S^{(2)}=S^{(1)}$，除以 $\sqrt2$ 再取 softmax 的結果也一樣：
+
+$$
+A^{(2)}=\text{softmax}_\text{row}\!\Big(\tfrac{S^{(2)}}{\sqrt2}\Big)=A^{(1)}=\begin{bmatrix}0.9442&0.0558\\0.0558&0.9442\end{bmatrix}
+$$
+
+**第四步：加權 $V$ 得 context $C^{(2)}=A^{(2)}V^{(2)}$。** 第 1 列：
+
+$$
+C^{(2)}_1=0.9442\,[-1,1]+0.0558\,[1,-1]=[-0.9442+0.0558,\ 0.9442-0.0558]=[-0.8884,\,0.8884]
+$$
+
+$$
+\boxed{\,C^{(2)}=\begin{bmatrix}-0.8884&0.8884\\0.8884&-0.8884\end{bmatrix}\in\mathbb{R}^{2\times2}\,}
+$$
+
+### 3.3 一個關鍵觀察
+
+兩個 head 的 $S$（因而 $A$）**完全相同**——也就是「**該看誰**」一樣（兩個 token 都主要關注自己）；但因為 $V$ 不同（一個取前 2 維、一個取後 2 維），「**看到什麼**」不同，於是 $C^{(2)}\neq C^{(1)}$。這正是多頭的價值：用不同的投影，從同一份輸入抽出不同面向（見 [`03a` §5.6](03a-transformer-architecture.md)）。
+
+至於這兩個 head 接下來**如何拼接、再用 $W_O$ 混合重組**成一條輸出，就是下一階段 [`03b2`](03b2-transformer-example-block.md) 的內容——你在這裡算出的 $C^{(2)}$ 會被它直接沿用。
+
+---
+
+## 4. 小結與下一階段
 
 你剛剛走完了一條最短的 attention 流程：
 
@@ -146,11 +218,11 @@ $$
 X \;\xrightarrow{\text{LayerNorm}}\; \tilde X \;\xrightarrow{\text{投影}}\; Q,K,V \;\xrightarrow{QK^\top/\sqrt{d_k}}\; \text{分數} \;\xrightarrow{\text{softmax}}\; A \;\xrightarrow{AV}\; C^{(1)}
 $$
 
-但這還不是一個完整的 Transformer Block——目前只有**一個 head**，而且還沒接殘差與 FFN。
+但這還不是一個完整的 Transformer Block——你雖然在 §3 練習中算出了 $C^{(2)}$，但兩個 head 還沒被**拼接、混合**成一條輸出，也還沒接殘差與 FFN。
 
-**下一階段** [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（中等版）會沿用本文的 $\tilde X$ 與 $C^{(1)}$，補上：
+**下一階段** [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（中等版）會沿用本文的 $\tilde X$、$C^{(1)}$ 與你練習算出的 $C^{(2)}$，補上：
 
-- **第二個 head** 與拼接，再用 $W_O$ 把各頭「混合重組」
+- **拼接兩個 head**，再用 $W_O$ 把各頭「混合重組」
 - 第一個**殘差連接**
 - 第二子層：LayerNorm → **FFN** → 第二個殘差
 
