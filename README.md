@@ -55,7 +55,7 @@ jupyter lab
 | 套件 | 版本 | 用途 |
 |---|---|---|
 | `python` | 3.11 | 執行環境 |
-| `torch` | 2.11 | 神經網路、autograd（NB2、NB4） |
+| `torch` | 2.x | 神經網路、autograd（NB2、NB4） |
 | `numpy` | 2.x | 手刻矩陣運算（NB1、NB3） |
 | `matplotlib` | 3.x | 損失曲線、注意力熱圖（NB2、NB3、NB4） |
 | `jupyterlab` | 4.x | Notebook 執行環境 |
@@ -128,7 +128,7 @@ jupyter lab
 | [`03a-transformer-architecture.md`](theory/03a-transformer-architecture.md) | Multi-Head Attention、Transformer Block、Positional Encoding（含 QKV／縮放／多頭逐步數值範例） |
 | [`03b1-transformer-example-basic.md`](theory/03b1-transformer-example-basic.md) | 03a 計算案例・簡單版（選讀）：$2\times4$ 輸入手算單頭 attention（$X\to\tilde X\to C^{(1)}$） |
 | [`03b2-transformer-example-block.md`](theory/03b2-transformer-example-block.md) | 03a 計算案例・中等版（選讀）：承接 03b1，補上多頭、$W_O$、殘差、FFN，算到 Block 輸出 $Y$ |
-| [`03b3-transformer-architecture-example.md`](theory/03b3-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：整個 Pre-LN Block 加縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
+| [`03b3-transformer-architecture-example.md`](theory/03b3-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：§0 依前向順序推導每個矩陣的設計歷程，再算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
 | [`04-gpt-decoder-only.md`](theory/04-gpt-decoder-only.md) | Causal Masking、語言模型訓練目標、nanoGPT 架構解析 |
 | [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀） |
@@ -144,11 +144,11 @@ jupyter lab
 
 #### 進階補充 (`advanced/`，選讀)
 
-- `Attention-Mechanism-Part1.md` — Nadaraya-Watson 核回歸視角
-- `Attention-Mechanism-Part2.md` — Bahdanau 注意力、seq2seq 歷史
-- `Attention-NW-Kernel-Regression.md` — 注意力的非參數統計解釋
-- `Transformer-in-Nushell.md` — 精簡速查版
-- `Suggested-Papers.md` — 延伸閱讀論文清單
+- [`Attention-Mechanism-Part1.md`](advanced/Attention-Mechanism-Part1.md) — Nadaraya-Watson 核回歸視角
+- [`Attention-Mechanism-Part2.md`](advanced/Attention-Mechanism-Part2.md) — Bahdanau 注意力、seq2seq 歷史
+- [`Attention-NW-Kernel-Regression.md`](advanced/Attention-NW-Kernel-Regression.md) — 注意力的非參數統計解釋
+- [`Transformer-in-Nushell.md`](advanced/Transformer-in-Nushell.md) — 精簡速查版
+- [`Suggested-Papers.md`](advanced/Suggested-Papers.md) — 延伸閱讀論文清單
 
 ---
 
