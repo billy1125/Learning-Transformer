@@ -19,9 +19,7 @@
 
 > 本文件將 Pre-Transformer 的基本形式：
 >
-> $$
-> c_i = \sum_j \text{softmax}(x_i^\top x_j) \, x_j
-> $$
+> $ c_i = \sum_j \text{softmax}(x_i^\top x_j) \, x_j $
 >
 > 推廣為完整 Transformer 架構，涵蓋 Multi-Head Attention、Transformer Block、Positional Encoding。
 > 反向傳播推導請見 [`05-backpropagation.md`](05-backpropagation.md)。
@@ -246,10 +244,13 @@ $$
 
 看第一列 $S_{1,:}=[1,0,1]$：token 1 查詢時，$q_1\cdot k_1=1$、$q_1\cdot k_2=0$、$q_1\cdot k_3=1$，也就是它對 token 1 與 token 3 較有興趣、對 token 2 較沒興趣。
 
-**從分數變成 context。** 此處 $d_k=2$ 很小，為突顯動機**暫略 $\sqrt{d_k}$ 縮放**（縮放的必要性見 §3.2），直接對第一列做 softmax：
+接著把這一列分數轉成權重、再混合 Value。此處 $d_k=2$ 很小，為突顯動機**暫略 $\sqrt{d_k}$ 縮放**（縮放的必要性見 §3.4），直接對第一列做 softmax——先對三個分數取指數 $e^{1}\approx2.718,\;e^{0}=1,\;e^{1}\approx2.718$，總和 $2.718+1+2.718=6.436$，再各除以總和：
 
 $$
-\text{softmax}([1,0,1])\approx[0.422,\,0.155,\,0.422]
+\text{softmax}([1,0,1])
+=\frac{[\,e^{1},\,e^{0},\,e^{1}\,]}{e^{1}+e^{0}+e^{1}}
+=\frac{[2.718,\,1,\,2.718]}{6.436}
+\approx[0.422,\,0.155,\,0.422]\qquad(\text{未除以 }\sqrt{d_k})
 $$
 
 $$
@@ -258,19 +259,169 @@ c_1=0.422\,v_1+0.155\,v_2+0.422\,v_3
 =[1.688,\,0.577]
 $$
 
-也就是說，token 1 依 Query–Key 的匹配結果，主要讀取 token 1 與 token 3 的 Value，少量讀取 token 2 的 Value。這條「$Q$ 決定看誰、$V$ 決定讀到什麼」的流程，下一節補上 $\sqrt{d_k}$ 縮放後就是完整的 Scaled Dot-Product Attention。
+同樣對第二、三列分數 $S_{2,:}=[1,1,2]$、$S_{3,:}=[2,1,3]$ 做（未縮放）softmax，再加權混合 Value：
+
+$$
+\text{softmax}([1,1,2])
+=\frac{[2.718,\,2.718,\,7.389]}{12.826}
+\approx[0.212,\,0.212,\,0.576]
+$$
+
+$$
+c_2=0.212[2,0]+0.212[0,1]+0.576[2,1]=[1.576,\,0.788]
+$$
+
+$$
+\text{softmax}([2,1,3])
+=\frac{[7.389,\,2.718,\,20.086]}{30.193}
+\approx[0.245,\,0.090,\,0.665]
+$$
+
+$$
+c_3=0.245[2,0]+0.090[0,1]+0.665[2,1]=[1.820,\,0.755]
+$$
+
+也就是說，token 1 依 Query–Key 的匹配結果，主要讀取 token 1 與 token 3 的 Value，少量讀取 token 2 的 Value；token 2、token 3 則都因分數最高的 $k_3$ 而最重視 token 3 的 Value。
+
+#### 補充與說明
+
+⚠️ **注意：這一節「沒有」做縮放，從分數變成 context。**
+
+> 為了先把「分數 → 權重 → 混合」的邏輯講清楚，本節的 softmax 直接吃原始分數 $[1,0,1]$，**跳過了除以 $\sqrt{d_k}$ 這一步**。因此這裡算出的權重 $[0.422,0.155,0.422]$ 與 context $c_1=[1.688,0.577]$ 都是「未縮放」的結果。完整含縮放的版本在 §3.2–§3.3，兩者的並排對照見 §3.3「縮放前後對照」。
+
+這條「$Q$ 決定看誰、$V$ 決定讀到什麼」的流程，下一節補上 $\sqrt{d_k}$ 縮放後就是完整的 Scaled Dot-Product Attention。
 
 ---
 
 ## 3. Scaled Dot-Product Attention
 
-### 3.1 注意力分數
+### 3.1 原始注意力分數
+
+§2.3 已用具體數字算過一次，這裡給出一般定義。把 token $i$ 的 query $q_i$ 與 token $j$ 的 key $k_j$（§2.1 的 Query／Key 投影）做內積，得到[**原始注意力分數** $S$](#符號表)（未縮放）：
 
 $$
 S_{ij} = q_i^\top k_j = (W_Q^\top x_i)^\top (W_K^\top x_j)
 $$
 
-### 3.2 縮放的必要性（統計推導）
+$S_{ij}$ 衡量「token $i$ 作為 query 時、對 token $j$ 的 key 有多匹配」，整個 $S\in\mathbb{R}^{T\times T}$ 收齊所有 token 兩兩之間的分數。由於 $W_Q\neq W_K$，一般情況下 $S_{ij}\neq S_{ji}$——不再像 naive 版本那樣對稱（§1 限制二）。
+
+### 3.2 完整注意力分數 （縮放、歸一化與加權）
+
+有了分數 $S$，Scaled Dot-Product Attention 透過四步 $S\to E\to A\to C$ 把它轉成 context：
+
+1. **縮放** $E_{ij}=S_{ij}/\sqrt{d_k}$，得[**縮放後分數** $E$](#符號表)（為何除以 $\sqrt{d_k}$ 見 §3.4）；
+2. **歸一化** $A=\text{softmax}_\text{row}(E)$，得逐列總和為 1 的[**注意力權重** $A$](#符號表)；
+3. **加權讀取** $c_i=\sum_j A_{ij}\,v_j$，用權重混合各 token 的 value $v_j$，得[**context 向量** $c_i$](#符號表)。
+
+把這三步合併，就是常見的兩種等價寫法。
+
+**逐元素形式：**
+
+$$
+A_{ij} = \frac{\exp\!\left(\dfrac{q_i^\top k_j}{\sqrt{d_k}}\right)}{\displaystyle\sum_{l=1}^T \exp\!\left(\dfrac{q_i^\top k_l}{\sqrt{d_k}}\right)}, \qquad c_i = \sum_{j=1}^T A_{ij} \, v_j
+$$
+
+**矩陣形式**（同一件事的緊湊寫法，把 $Q,K,V$ 逐列堆疊起來）：
+
+$$
+\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
+$$
+
+公式確定了，先把它套到 §2.3 的數字上完整算一遍（§3.3）。
+
+### 3.3 數值範例：四步驟走一遍
+
+**沿用 §2.3 算出的 Q/K/V**（不再重新投影）：
+
+$$
+Q=\begin{bmatrix}1&0\\0&1\\1&1\end{bmatrix},\qquad
+K=\begin{bmatrix}1&1\\0&1\\1&2\end{bmatrix},\qquad
+V=\begin{bmatrix}2&0\\0&1\\2&1\end{bmatrix}
+$$
+
+這裡 $d_k=2$（每個 query／key 向量都是 2 維）。以下依 §3.2 的四步 $S\to E\to A\to C$ 逐步計算。
+
+**Step 1：[原始分數 $S$](#符號表) $=QK^\top$。** §2.3 已算出
+
+$$
+K^\top=\begin{bmatrix}1&0&1\\1&1&2\end{bmatrix}
+\quad\Rightarrow\quad
+S=QK^\top=\begin{bmatrix}1&0&1\\1&1&2\\2&1&3\end{bmatrix}
+$$
+
+每一列是「某 token 作為 query 時，對所有 token 的 key 的匹配分數」。例如第 1 列 $S_{1,:}=[1,0,1]$：token 1 較關注 token 1、token 3，較少關注 token 2。
+
+**Step 2：縮放——[縮放後分數 $E$](#符號表) $=S/\sqrt{d_k}$。** 因 $\sqrt{d_k}=\sqrt 2\approx 1.414$：
+
+$$
+E\approx\begin{bmatrix}0.707&0&0.707\\0.707&0.707&1.414\\1.414&0.707&2.121\end{bmatrix}
+$$
+
+縮放不改變每列分數的大小順序，只把尺度壓小（縮放的統計理由見 §3.4）。
+
+**Step 3：逐列 softmax——[注意力權重 $A$](#符號表) $=\text{softmax}_\text{row}(E)$。**
+
+$$
+A\approx\begin{bmatrix}0.401&0.198&0.401\\0.248&0.248&0.503\\0.284&0.140&0.576\end{bmatrix},\qquad \sum_j A_{ij}=1
+$$
+
+第一列 $A_{1,:}=[0.401,0.198,0.401]$ 表示 token 1 讀取資訊時，約 $40.1\%$ 來自 token 1、$19.8\%$ 來自 token 2、$40.1\%$ 來自 token 3——softmax 把任意大小的分數轉成一組比例。
+
+**Step 4：加權讀取——[context 矩陣 $C$](#符號表) $=AV$。**
+
+$$
+C\approx\begin{bmatrix}1.604&0.599\\1.503&0.752\\1.720&0.716\end{bmatrix}
+$$
+
+逐列展開（$v_1=[2,0]$、$v_2=[0,1]$、$v_3=[2,1]$）：
+
+$$
+\begin{aligned}
+c_1&=0.401\,v_1+0.198\,v_2+0.401\,v_3=0.401[2,0]+0.198[0,1]+0.401[2,1]=[1.604,\,0.599]\\
+c_2&=0.248\,v_1+0.248\,v_2+0.503\,v_3=0.248[2,0]+0.248[0,1]+0.503[2,1]=[1.503,\,0.752]\\
+c_3&=0.284\,v_1+0.140\,v_2+0.576\,v_3=0.284[2,0]+0.140[0,1]+0.576[2,1]=[1.720,\,0.716]
+\end{aligned}
+$$
+
+每個 token 最後的輸出都不是複製某一個 value，而是依各自的注意力比例把三個 value 混合起來。
+
+#### 縮放前後對照：同一條分數的兩種 softmax
+
+**這一段要做什麼？** 上面 Step 1～4 已經把「有縮放」的完整流程算過一遍。但 §2.3 介紹 QKV 動機時，為了讓讀者先專心理解「分數→權重→混合」的邏輯，曾**暫時略過 $\sqrt{d_k}$ 縮放**。這就留下一個問題：縮放到底改變了什麼？本段把同一條分數分別用「不縮放」與「縮放」各做一次 softmax，並排比較兩者算出的注意力權重與 context 向量，讓「縮放的效果」具體現形——也順帶把 §2.3 暫略的那一步補齊、與本節對齊。
+
+這裡的 $[1,0,1]$ 就是 Step 1 原始分數矩陣 $S$ 的第一列 $S_{1,:}$——token 1 作為 query、對三個 token 的 key 尚未縮放的匹配分數。
+
+**① 不縮放**（§2.3 的做法）：直接對 $[1,0,1]$ 做 softmax：
+
+$$
+\begin{aligned}
+\text{softmax}([1,0,1])
+&=\frac{[e^1,\,e^0,\,e^1]}{e^1+e^0+e^1}
+=\frac{[2.718,\,1,\,2.718]}{6.437}
+\approx[0.422,\,0.155,\,0.422]\\
+c_1&=0.422[2,0]+0.155[0,1]+0.422[2,1]=[1.688,\,0.577]
+\end{aligned}
+$$
+
+**② 縮放**（本節 Step 2～4 的做法）：先把分數除以 $\sqrt2$（Step 2）得 $\tfrac{[1,0,1]}{\sqrt 2}\approx[0.707,\,0,\,0.707]$，再 softmax（Step 3）、加權讀取（Step 4）：
+
+$$
+\begin{aligned}
+\text{softmax}([0.707,\,0,\,0.707])
+&=\frac{[e^{0.707},\,e^0,\,e^{0.707}]}{e^{0.707}+e^0+e^{0.707}}
+=\frac{[2.028,\,1,\,2.028]}{5.056}
+\approx[0.401,\,0.198,\,0.401]\\
+c_1&=0.401[2,0]+0.198[0,1]+0.401[2,1]=[1.604,\,0.599]
+\end{aligned}
+$$
+
+縮放把中間那個較低分數的權重從 $0.155$ 提高到 $0.198$，分佈更平滑。此例 $d_k=2$ 差異還小；實際 Transformer 中 $d_k$ 常達 $64$，不縮放時 softmax 會尖銳得多。
+
+> 這條四步流程對應 [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) §5（Self-Attention 層）的 `forward`：`scores = (Q @ K.T) / dk` → `softmax` → `attn @ V`。
+
+一句話收束：$QK^\top$ 決定「看誰」、softmax 決定「看多少」、$V$ 決定「讀到什麼」。公式與數值都走過一遍——但還有一個問題沒回答：為什麼非得除以 $\sqrt{d_k}$ 不可？下一節給出統計理由。
+
+### 3.4 縮放的必要性（統計推導）
 
 設 $q_i, k_j$ 的各分量 i.i.d. 來自 $\mathcal{N}(0, 1)$，則：
 
@@ -306,98 +457,13 @@ $$
 > PyTorch 的 `F.softmax` 內部已做這個處理，手寫 NumPy 版（NB1、NB3）時需要自己加。
 > 數值對比實驗見 [`01b-prerequisites-math.md`](01b-prerequisites-math.md) §4.3。
 
-### 3.3 完整公式
-
-**逐元素形式：**
-
-$$
-A_{ij} = \frac{\exp\!\left(\dfrac{q_i^\top k_j}{\sqrt{d_k}}\right)}{\displaystyle\sum_{l=1}^T \exp\!\left(\dfrac{q_i^\top k_l}{\sqrt{d_k}}\right)}, \qquad c_i = \sum_{j=1}^T A_{ij} \, v_j
-$$
-
-**矩陣形式：**
-
-$$
-\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_k}}\right) V
-$$
-
-公式確定了，先把它套到 §2.3 的數字上完整算一遍。
-
-### 3.4 數值範例：四步驟走一遍
-
-**沿用 §2.3 算出的 Q/K/V**（不再重新投影）：
-
-$$
-Q=\begin{bmatrix}1&0\\0&1\\1&1\end{bmatrix},\qquad
-K=\begin{bmatrix}1&1\\0&1\\1&2\end{bmatrix},\qquad
-V=\begin{bmatrix}2&0\\0&1\\2&1\end{bmatrix}
-$$
-
-這裡 $d_k=2$（每個 query／key 向量都是 2 維）。以下依 §3.3 的四步 $S\to E\to A\to C$ 逐步計算。
-
-**Step 1：原始分數 $S=QK^\top$。** §2.3 已算出
-
-$$
-K^\top=\begin{bmatrix}1&0&1\\1&1&2\end{bmatrix}
-\quad\Rightarrow\quad
-S=QK^\top=\begin{bmatrix}1&0&1\\1&1&2\\2&1&3\end{bmatrix}
-$$
-
-每一列是「某 token 作為 query 時，對所有 token 的 key 的匹配分數」。例如第 1 列 $S_{1,:}=[1,0,1]$：token 1 較關注 token 1、token 3，較少關注 token 2。
-
-**Step 2：縮放 $E=S/\sqrt{d_k}$。** 因 $\sqrt{d_k}=\sqrt 2\approx 1.414$：
-
-$$
-E\approx\begin{bmatrix}0.707&0&0.707\\0.707&0.707&1.414\\1.414&0.707&2.121\end{bmatrix}
-$$
-
-縮放不改變每列分數的大小順序，只把尺度壓小（縮放的統計理由見 §3.2）。
-
-**Step 3：逐列 softmax $A=\text{softmax}_\text{row}(E)$。**
-
-$$
-A\approx\begin{bmatrix}0.401&0.198&0.401\\0.248&0.248&0.503\\0.284&0.140&0.576\end{bmatrix},\qquad \sum_j A_{ij}=1
-$$
-
-第一列 $A_{1,:}=[0.401,0.198,0.401]$ 表示 token 1 讀取資訊時，約 $40.1\%$ 來自 token 1、$19.8\%$ 來自 token 2、$40.1\%$ 來自 token 3——softmax 把任意大小的分數轉成一組比例。
-
-**Step 4：加權讀取 $C=AV$。**
-
-$$
-C\approx\begin{bmatrix}1.604&0.599\\1.503&0.752\\1.720&0.716\end{bmatrix}
-$$
-
-以第一列為例逐格展開：
-
-$$
-c_1=0.401\,v_1+0.198\,v_2+0.401\,v_3
-=0.401[2,0]+0.198[0,1]+0.401[2,1]=[1.604,\,0.599]
-$$
-
-token 1 最後的輸出不是複製某一個 value，而是依注意力比例把三個 value 混合起來。
-
-**縮放前後對照。** §2.3 為突顯 QKV 動機曾**暫略縮放**，對同一條第一列 $[1,0,1]$ 直接 softmax：
-
-$$
-\text{softmax}([1,0,1])\approx[0.422,\,0.155,\,0.422]\;\Rightarrow\; c_1=[1.688,\,0.577]
-$$
-
-加上縮放後（本節 Step 3、Step 4）則是：
-
-$$
-\text{softmax}\!\left(\tfrac{[1,0,1]}{\sqrt 2}\right)\approx[0.401,\,0.198,\,0.401]\;\Rightarrow\; c_1=[1.604,\,0.599]
-$$
-
-縮放把中間那個較低分數的權重從 $0.155$ 提高到 $0.198$，分佈更平滑。此例 $d_k=2$ 差異還小；實際 Transformer 中 $d_k$ 常達 $64$，不縮放時 softmax 會尖銳得多。
-
-> 這條四步流程對應 [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) §5（Self-Attention 層）的 `forward`：`scores = (Q @ K.T) / dk` → `softmax` → `attn @ V`。
-
-一句話收束：$QK^\top$ 決定「看誰」、softmax 決定「看多少」、$V$ 決定「讀到什麼」。公式與數值都走過一遍，接下來追蹤每個矩陣在每一步的形狀，確認維度計算前後一致。
+縮放的統計理由講清楚了，接下來追蹤每個矩陣在每一步的形狀，確認維度計算前後一致。
 
 ---
 
 ## 4. 矩陣形式與 Shape 分析
 
-§3.4 已把 $S\to E\to A\to C$ 的**數值**完整算過一遍；本節不再重算數字，改為追蹤每個矩陣在每一步的**形狀**，確認維度前後自洽。下文以一般的 $T, d, d_k, d_v$ 推導，並在 §4.4 用 §3.4 那組 $T=3, d=2$ 的例子列出具體形狀對照表。
+§3.3 已把 $S\to E\to A\to C$ 的**數值**完整算過一遍；本節不再重算數字，改為追蹤每個矩陣在每一步的**形狀**，確認維度前後自洽。下文以一般的 $T, d, d_k, d_v$ 推導，並在 §4.4 用 §3.3 那組 $T=3, d=2$ 的例子列出具體形狀對照表。
 
 ### 4.1 投影
 
@@ -411,7 +477,7 @@ $$
 
 ### 4.2 計算流程與 Shape 追蹤
 
-沿用 §3.4 的四步 $S\to E\to A\to C$，但這裡只追蹤形狀（數值見 §3.4）。
+沿用 §3.3 的四步 $S\to E\to A\to C$，但這裡只追蹤形狀（數值見 §3.3）。
 
 **Step 1：原始分數矩陣**
 
@@ -431,7 +497,7 @@ $$
 E = \frac{S}{\sqrt{d_k}} \in \mathbb{R}^{T \times T}
 $$
 
-逐元素除以常數 $\sqrt{d_k}$，形狀不變（縮放的統計理由見 §3.2）。
+逐元素除以常數 $\sqrt{d_k}$，形狀不變（縮放的統計理由見 §3.4）。
 
 **Step 3：歸一化**
 
@@ -467,20 +533,20 @@ $$
 (T \times d) \;\to\; (T \times d_k),\, (T \times d_k),\, (T \times d_v) \;\to\; (T \times T) \;\to\; (T \times T) \;\to\; (T \times T) \;\to\; (T \times d_v)
 $$
 
-### 4.4 Shape 總表（以 §3.4 的 $T=3, d=2$ 為例）
+### 4.4 Shape 總表（以 §3.3 的 $T=3, d=2$ 為例）
 
-把上面的一般式代入 §3.4 的具體例子（$T=3$、$d=d_k=d_v=2$），每一步的形狀如下表。最後一欄指回 §3.4 算出的數值，方便對照「這個形狀裝的是哪個矩陣」：
+把上面的一般式代入 §3.3 的具體例子（$T=3$、$d=d_k=d_v=2$），每一步的形狀如下表。最後一欄指回 §3.3 算出的數值，方便對照「這個形狀裝的是哪個矩陣」：
 
-| 步驟 | 公式 | Shape 算式 | 結果 | 對應數值（§3.4）|
+| 步驟 | 公式 | Shape 算式 | 結果 | 對應數值（§3.3）|
 |---|---|---|---|---|
 | 輸入 | $X$ | — | $T\times d = 3\times 2$ | §2.3 輸入 $X$ |
-| Query 投影 | $Q=XW_Q$ | $(3\times 2)(2\times 2)$ | $3\times 2$ | §3.4 開頭 $Q$ |
-| Key 投影 | $K=XW_K$ | $(3\times 2)(2\times 2)$ | $3\times 2$ | §3.4 開頭 $K$ |
-| Value 投影 | $V=XW_V$ | $(3\times 2)(2\times 2)$ | $3\times 2$ | §3.4 開頭 $V$ |
-| 原始分數 | $S=QK^\top$ | $(3\times 2)(2\times 3)$ | $3\times 3$ | §3.4 Step 1 |
-| 縮放分數 | $E=S/\sqrt{d_k}$ | 逐元素，形狀不變 | $3\times 3$ | §3.4 Step 2 |
-| 注意力權重 | $A=\text{softmax}_\text{row}(E)$ | 逐列正規化，形狀不變 | $3\times 3$ | §3.4 Step 3 |
-| 加權讀取 | $C=AV$ | $(3\times 3)(3\times 2)$ | $3\times 2$ | §3.4 Step 4 |
+| Query 投影 | $Q=XW_Q$ | $(3\times 2)(2\times 2)$ | $3\times 2$ | §3.3 開頭 $Q$ |
+| Key 投影 | $K=XW_K$ | $(3\times 2)(2\times 2)$ | $3\times 2$ | §3.3 開頭 $K$ |
+| Value 投影 | $V=XW_V$ | $(3\times 2)(2\times 2)$ | $3\times 2$ | §3.3 開頭 $V$ |
+| 原始分數 | $S=QK^\top$ | $(3\times 2)(2\times 3)$ | $3\times 3$ | §3.3 Step 1 |
+| 縮放分數 | $E=S/\sqrt{d_k}$ | 逐元素，形狀不變 | $3\times 3$ | §3.3 Step 2 |
+| 注意力權重 | $A=\text{softmax}_\text{row}(E)$ | 逐列正規化，形狀不變 | $3\times 3$ | §3.3 Step 3 |
+| 加權讀取 | $C=AV$ | $(3\times 3)(3\times 2)$ | $3\times 2$ | §3.3 Step 4 |
 
 兩個觀察：$QK^\top$ 把序列「打成」$T\times T$ 的兩兩分數方陣（$3\times 3$）；$AV$ 又把它「收回」$T\times d_v$（$3\times 2$），輸出列數始終是 $T=3$，每個 token 各得一個新的 context 向量。縮放與 softmax 都是逐元素／逐列操作，完全不改變形狀。
 

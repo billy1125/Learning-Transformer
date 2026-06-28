@@ -516,7 +516,7 @@ nanoGPT 為了教學簡潔沒有實作 KV Cache，但讀懂它之後，看任何
 | 問題 | 對應概念 |
 |---|---|
 | `Head` 裡的 `self.tril` 遮罩在做什麼？ | Causal Masking（§3）|
-| `C**-0.5` 是什麼？ | $1/\sqrt{d_k}$ 縮放（03a §3.2）|
+| `C**-0.5` 是什麼？ | $1/\sqrt{d_k}$ 縮放（03a §3.4）|
 | `Block` 裡兩個 `x = x + ...` 是什麼結構？ | Residual Connection + Pre-LN（§6）|
 | `lm_head` 輸出的 `(B, T, vocab_size)` 裡，哪個位置是訓練用的目標？ | 每個位置 $i$ 預測 $i+1$（§4）|
 | 為什麼 `generate` 要截取 `idx[:, -block_size:]`？ | Context window 上限（§8）|
