@@ -552,6 +552,8 @@ $$
 
 Shape 追蹤完了，但單頭 attention 每次只能學一種「注意力模式」——下一節說明多頭如何讓模型同時關注不同面向。
 
+![](images/attention_projection_vs_interaction.png)
+
 ---
 
 ## 5. Multi-Head Attention
@@ -818,6 +820,95 @@ Shape：
 $$
 [T \times d] \cdot [d \times d] = [T \times d] \quad \text{（維度不變，可直接接 Residual）}
 $$
+
+### 5.8 Multi-Head Attention 的 Shape 分析
+
+§4 已把**單頭** attention 的形狀追蹤過一遍；多頭只是把同一套流程在 $H$ 個 $d_k$ 維子空間各跑一次，再沿 feature 維拼接、過 $W_O$。本節沿用 §4 的寫法追蹤多頭每一步的形狀（數值見 §5.6），確認維度前後自洽。下文以一般的 $T, d, H, d_k, d_v$ 推導，並在末尾用 §5.6 那組 $T=2, d=4, H=2, d_k=d_v=2$ 列出總表。
+
+**Step 1：每個 head 各自投影（共 $H$ 組）**
+
+對 $h = 1, \ldots, H$：
+
+$$
+Q^{(h)} = X W_Q^{(h)},\quad K^{(h)} = X W_K^{(h)} \in \mathbb{R}^{T \times d_k},\qquad V^{(h)} = X W_V^{(h)} \in \mathbb{R}^{T \times d_v}
+$$
+
+$$
+(T \times d)(d \times d_k) = (T \times d_k) \checkmark
+$$
+
+每個 head 用自己獨立的一組投影，把同一個 $X$ 投到不同的 $d_k$ 維子空間。注意輸入 $X$ 是 $H$ 個 head 共用的，列數 $T$ 不變——切的是 feature 維（§5 開頭的「把 $d$ 切成 $H$ 份」），不是切 token。
+
+**Step 2：每個 head 各算一次 attention**
+
+每個 head 內部就是 §4.2 那四步 $S^{(h)} \to E^{(h)} \to A^{(h)} \to C^{(h)}$，形狀與單頭完全相同：
+
+$$
+S^{(h)} = Q^{(h)} (K^{(h)})^\top \in \mathbb{R}^{T \times T},\qquad
+C^{(h)} = \underbrace{\text{softmax}_\text{row}\!\Big(\tfrac{S^{(h)}}{\sqrt{d_k}}\Big)}_{A^{(h)} \in \mathbb{R}^{T \times T}} V^{(h)} \in \mathbb{R}^{T \times d_v}
+$$
+
+$H$ 個 head 平行進行，得到 $H$ 個 $T \times d_v$ 的輸出 $C^{(1)}, \ldots, C^{(H)}$。
+
+**Step 3：沿 feature 維拼接**
+
+$$
+\text{Concat}(C^{(1)}, \ldots, C^{(H)}) \in \mathbb{R}^{T \times (H \cdot d_v)} = \mathbb{R}^{T \times d} \quad (\text{當 } d_v = d/H)
+$$
+
+$H$ 個 $T \times d_v$ 沿 feature 維「橫向」併排：列數 $T$ 不變，欄數從 $d_v$ 變成 $H \cdot d_v$。當 $d_v = d/H$ 時，$H \cdot d_v = d$，恰好補回完整的模型維度。
+
+**Step 4：輸出投影 $W_O$**
+
+$$
+O = \text{Concat}(C^{(1)}, \ldots, C^{(H)})\, W_O \in \mathbb{R}^{T \times d},\qquad (T \times d)(d \times d) = (T \times d) \checkmark
+$$
+
+$W_O \in \mathbb{R}^{d \times d}$ 把拼接結果重新混合（§5.7），形狀維持 $T \times d$，與輸入 $X$ 一致，因此可以直接接 Residual。
+
+**完整流程圖（Shape 標注）：**
+
+$$
+X \xrightarrow{H \text{ 組 } W_Q, W_K, W_V} \{Q^{(h)}, K^{(h)}, V^{(h)}\}_{h=1}^{H}
+\xrightarrow{\text{各自 attention}} \{C^{(h)}\}_{h=1}^{H}
+\xrightarrow{\text{Concat}} \text{Concat}
+\xrightarrow{\times W_O} O
+$$
+
+$$
+(T \times d) \;\to\; H \times (T \times d_k),\ H \times (T \times d_v) \;\to\; H \times (T \times d_v) \;\to\; (T \times d) \;\to\; (T \times d)
+$$
+
+**Shape 總表（以 §5.6 的 $T=2, d=4, H=2, d_k=d_v=2$ 為例）：**
+
+| 步驟 | 公式 | Shape 算式 | 結果 | 對應數值（§5.6）|
+|---|---|---|---|---|
+| 輸入 | $X$ | — | $T\times d = 2\times 4$ | §5.6 輸入 $X$ |
+| 每頭投影（$\times H$）| $Q^{(h)}=XW_Q^{(h)}$ 等 | $(2\times 4)(4\times 2)$ | $2\times 2$ | Step 1／2 的 $Q^{(h)},K^{(h)},V^{(h)}$ |
+| 每頭原始分數 | $S^{(h)}=Q^{(h)}(K^{(h)})^\top$ | $(2\times 2)(2\times 2)$ | $2\times 2$ | Step 1／2 |
+| 每頭注意力權重 | $A^{(h)}=\text{softmax}_\text{row}(S^{(h)}/\sqrt{d_k})$ | 逐列正規化，形狀不變 | $2\times 2$ | $A^{(1)}=A^{(2)}$ |
+| 每頭輸出 | $C^{(h)}=A^{(h)}V^{(h)}$ | $(2\times 2)(2\times 2)$ | $2\times 2$ | $C^{(1)},C^{(2)}$ |
+| 拼接 | $\text{Concat}(C^{(1)},C^{(2)})$ | 沿 feature 維，$H\cdot d_v=2\cdot 2$ | $2\times 4$ | §5.6 Step 3 |
+| 輸出投影 | $O=\text{Concat}\cdot W_O$ | $(2\times 4)(4\times 4)$ | $2\times 4$ | §5.6 Step 4 |
+
+關鍵觀察：多頭全程**列數 $T$ 不變**，只在 feature 維上「先切成 $H$ 份各算 attention、再拼回 $d$ 維」。每個 head 的子流程（Step 2）與單頭的 §4.4 一字不差——多頭沒有引入新的形狀規則，只是把同一套規則平行套用 $H$ 次。
+
+> **實作中的張量形狀（連到 NB4）**
+>
+> 上面的形狀都是 $T \times d$ 的二維矩陣；實際程式還會多一個 batch 維 $B$（一次處理 $B$ 個句子），所以每個張量是三維 $(B, T, d)$。多頭有兩種等價寫法：
+>
+> 1. **逐 head 並聯（NB4 用的教學寫法）**：直接照 Step 1–3 的數學，準備 $H$ 個獨立的 `Head` 模組各自算出 $(B, T, d_v)$，再沿最後一維 concat 成 $(B, T, d)$。NB4 的 `MultiHeadAttention` 正是這樣寫：
+>    ```python
+>    self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+>    out = torch.cat([h(x) for h in self.heads], dim=-1)   # (B, T, d)
+>    ```
+>    這與 §5.8 把多頭寫成 $H$ 組獨立矩陣是一字不差的對應。
+>
+> 2. **單張量批次寫法（生產級 nanoGPT 用的優化寫法）**：不跑 $H$ 次迴圈，而是把 head 維併進一個四維張量，靠 batched matrix multiply 一次算完：
+>    $$
+>    (B, T, d) \xrightarrow{\text{reshape}} (B, T, H, d_k) \xrightarrow{\text{transpose}} (B, H, T, d_k) \xrightarrow{\text{attention}} (B, H, T, d_v) \xrightarrow{\text{transpose+reshape}} (B, T, d)
+>    $$
+>    `reshape` 對應「切成／拼回 $H$ 份」，`transpose` 把 head 維挪到前面，好讓 attention 只作用在最後兩維 $(T, d_k)$ 上。兩種寫法的數學完全相同，只是後者把 $H$ 從 Python 迴圈搬進張量維度以加速。
 
 Multi-Head Attention 是 Transformer Block 的第一個子模組——第 6 節把四個子模組（MHA → Residual → FFN → Residual）組裝成完整的 Block。
 
