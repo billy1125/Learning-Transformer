@@ -36,7 +36,9 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 
 ```
 theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為選讀出口；03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
+theory/images/   ← 理論文件內嵌圖檔（如 03a §5 的 attention_projection_vs_interaction）
 notebooks/       ← 實作主線（4 個 Notebook，依序執行）
+notebooks/data/  ← Notebook 訓練資料（如 NB4 莎士比亞文本）
 advanced/        ← 進階補充（選讀，非主線）
 archive/         ← 所有舊版文件備份（不會動到）
 environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / CUDA；安裝說明見 README.md）
