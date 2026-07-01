@@ -428,7 +428,7 @@ $$
 
 | # | 簡化點             | 真實技術                          | 解法詳見 |
 | - | ------------------ | --------------------------------- | --- |
-| 1 | 2 維 embedding     | 高維 embedding（數千維）          | [`01b`](01b-prerequisites-math.md) §2、[`04`](04-gpt-decoder-only.md) §5.5（nanoGPT 用 384 維）|
+| 1 | 2 維 embedding     | 高維 embedding（數千維）          | [`01b`](01b-prerequisites-math.md) §2、[`04`](04-gpt-decoder-only.md) §5.2（nanoGPT 用 384 維）|
 | 2 | $W = I$            | 獨立訓練的投影矩陣                | [`03a`](03a-transformer-architecture.md) §2 |
 | 3 | 單頭注意力         | Multi-Head Attention              | [`03a`](03a-transformer-architecture.md) §5 |
 | 4 | 沒有位置資訊       | Positional Encoding / RoPE        | [`03a`](03a-transformer-architecture.md) §7、[`06`](06-modern-transformer-variants.md) §3（RoPE）|

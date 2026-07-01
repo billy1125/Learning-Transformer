@@ -52,7 +52,7 @@ $$
 
 ## 1. Pre-LN：$\tilde X = \text{LayerNorm}(X)$
 
-Pre-LN 規定：**先正規化、再進子層**（[`03a` §6.1](03a-transformer-architecture.md)）。LayerNorm 對**每一列**（每個 token 的 $d$ 維）獨立做標準化。
+Pre-LN 規定：**先正規化、再進子層**（[`03a` §6.2](03a-transformer-architecture.md)）。LayerNorm 對**每一列**（每個 token 的 $d$ 維）獨立做標準化。
 
 以第 1 列 $x_1=[1,0,0,1]$ 為例，三步：
 

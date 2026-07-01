@@ -671,28 +671,7 @@ $$
 
 ### 5.5 Multi-Head Attention 架構圖
 
-```
-          X  (T × d)
-         /        \
-        /           \
-  ┌─────────┐   ┌─────────┐   (H 個 head 並行，以 H=2 為例)
-  │  Head 1 │   │  Head 2 │
-  │  W_Q¹   │   │  W_Q²   │
-  │  W_K¹   │   │  W_K²   │
-  │  W_V¹   │   │  W_V²   │
-  │         │   │         │
-  │softmax  │   │softmax  │
-  │(QK⊤/√dk)│   │(QK⊤/√dk)│
-  └────┬────┘   └────┬────┘
-       │              │
-       C¹(T×dv)      C²(T×dv)
-        \            /
-         Concat → (T × d)
-              │
-             W_O
-              │
-          Output (T × d)
-```
+![Multi-Head Attention](images/multi_head_attention_diagram.png)
 
 ### 5.6 最小數值例子（H=2, d=4, d_k=2）
 
@@ -948,17 +927,20 @@ $$
 Y \in \mathbb{R}^{T \times d}
 $$
 
-因為形狀不變，所以可以把多個 Block 直接串疊，讓 token 表示一層一層被加工成更有上下文語意的表示。
+**「形狀不變」是一個設計契約，而不只是巧合。** Transformer Block 提供一個統一的「規格」：只要內部結構滿足 $T\times d \rightarrow T\times d$（輸入輸出形狀相同），就能放進這條堆疊管線、與其它 Block 前後相接。這帶來兩個自由度：
 
-Multi-Head Attention 雖然是 Transformer Block 的核心，但它本身還不夠。它主要負責「跨 token 整合資訊」：每個 token 透過注意力權重決定要從哪些 token 讀取資訊。換句話說，Attention 解決的是「看誰」與「讀到什麼」的問題：
+- **可串接**：$N$ 個 Block 形狀完全一致，可以像積木一樣任意加深（$N=6, 12, 96\dots$），不必為每一層重新設計介面——大語言模型靠「多堆幾層」持續增強表達力，正建立在這個契約上。
+- **可替換／可混搭**：Block 內部要放什麼並非唯一解，只要維持形狀契約，內部零件就能替換或混用；不同 Block 甚至可以有不同用途（有的偏重跨 token 的全域整合、有的偏重逐 token 的局部加工），彼此仍能無縫串接。當代架構正是這樣演化的：把 LayerNorm 換成 RMSNorm、FFN 換成 SwiGLU、Attention 換成 GQA／加上 RoPE，Block 外部的串接方式完全不變（見 [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md)）。
+
+換句話說，本文接下來介紹的 **Multi-Head Attention + FFN**，只是「最經典的一種 Block 內部結構」。下文就把這種經典組合拆開來看——但在拆解之前，得先回答一個問題：既然 Multi-Head Attention 是核心，為什麼它自己還不夠？
+
+Multi-Head Attention 主要負責「跨 token 整合資訊」：每個 token 透過注意力權重決定要從哪些 token 讀取資訊。換句話說，它解決的是「看誰」與「讀到什麼」的問題：
 
 $$
 \text{Attention}(Q,K,V)=\text{softmax}\left(\frac{QK^\top}{\sqrt{d_k}}\right)V
 $$
 
-但模型還需要處理三件事：第一，讀完其他 token 的資訊後，要對每個 token 自己的表示做非線性加工；第二，要讓深層網路容易訓練，避免早期資訊被覆蓋或梯度衰減；第三，要穩定每一層的數值分佈。因此，一個完整 Transformer Block 會把 Multi-Head Attention、Residual Connection、LayerNorm 與 FFN 組合在一起。
-
-可以把它們的分工整理如下：
+但一個能穩定訓練的深層模型還需要三件事：第一，讀完其他 token 的資訊後，要對每個 token 自己的表示做**逐 token 的非線性加工**；第二，要有**殘差連接**讓深層網路容易訓練，避免早期資訊被覆蓋或梯度衰減；第三，要用**正規化**穩定每一層的數值分佈。因此，一個完整 Transformer Block 會把 Multi-Head Attention、Residual Connection、LayerNorm 與 FFN 組合在一起，分工如下：
 
 | 模組 | 做什麼 | 為什麼需要 |
 |---|---|---|
@@ -967,13 +949,32 @@ $$
 | Residual Connection | 保留原資訊，再加上子層學到的修正量 | 讓深層模型容易訓練 |
 | LayerNorm | 穩定 hidden dimension 的數值分佈 | 避免訓練不穩 |
 
-因此，Multi-Head Attention 是必要的，但不是完整的 Transformer 層。它只負責跨位置的資訊整合；Transformer Block 則進一步負責「整合後如何加工」、「如何穩定堆疊很多層」，以及「如何保留原表示並逐層修正」。
+因此，Multi-Head Attention 是必要的，但不是完整的 Transformer 層：它只負責跨位置的資訊整合，而 Transformer Block 進一步負責「整合後如何加工」「如何保留原表示並逐層修正」以及「如何穩定地堆疊很多層」。
 
-一個完整的 Transformer Block 由四個子模組依序組成：
+一個完整的 Transformer Block 由四個子模組依序組成。以下先給出整個 Block 的資料流全貌，再逐一拆解每個子模組（§6.2–§6.5）。
 
-### 6.1 Multi-Head Self-Attention（全域關聯）
+### 6.1 完整 Block 的計算圖（先看全貌）
 
-本文採 **Pre-LN**（先正規化再進子層，與 §6.5 圖示及 nanoGPT／NB4 一致）：先對輸入做 LayerNorm，再送進 Multi-Head Attention：
+$$
+X \xrightarrow{\text{LN}} \tilde{X} \xrightarrow{\text{MHA}} Z \xrightarrow{+\,X} Z' \xrightarrow{\text{LN}} \tilde{Z} \xrightarrow{\text{FFN}} F \xrightarrow{+\,Z'} Y
+$$
+
+![Block的計算圖](images/transformer_block_pre_ln_diagram.png)
+
+Shape 全程不變（始終為 $T \times d$），使得 $N$ 個 Block 可以直接串疊。下文 §6.2–§6.5 依 LN → MHA → 殘差 → LN → FFN → 殘差 的順序逐段說明。
+
+**參數量總覽（單一 Block）：**
+
+| 子模組 | 參數量 |
+|---|---|
+| Multi-Head Attention（含 $W_O$）| $4d^2$ |
+| FFN | $d \cdot d_{ff} + d_{ff} \cdot d = 2d \cdot d_{ff}$ |
+| LayerNorm（$\times 2$）| $2 \cdot 2d = 4d$ |
+| **合計（$d_{ff}=4d$）** | $4d^2 + 8d^2 + 4d \approx 12d^2$ |
+
+### 6.2 Multi-Head Self-Attention（全域關聯）
+
+本文採 **Pre-LN**（先正規化再進子層，與 §6.1 圖示及 nanoGPT／NB4 一致）：先對輸入做 LayerNorm，再送進 Multi-Head Attention：
 
 $$
 \tilde{X} = \text{LayerNorm}(X), \qquad Z = \text{MultiHead}(\tilde{X})
@@ -981,9 +982,9 @@ $$
 
 捕捉序列中任意兩個位置之間的依賴關係（路徑長度 $O(1)$）。
 
-### 6.2 第一個 Residual Connection（Pre-LN）
+### 6.3 第一個 Residual Connection（Pre-LN）
 
-殘差直接加在**未正規化**的原始輸入 $X$ 上（LayerNorm 已在 §6.1 進子層前施加）：
+殘差直接加在**未正規化**的原始輸入 $X$ 上（LayerNorm 已在 §6.2 進子層前施加）：
 
 $$
 Z' = X + Z
@@ -1001,7 +1002,7 @@ $$
 - 穩定每一層的數值分佈，加速訓練
 - 對 hidden dimension 做歸一化（與 Batch Norm 不同，不依賴 batch size）
 
-### 6.3 Position-wise Feed-Forward Network（局部非線性）
+### 6.4 Position-wise Feed-Forward Network（局部非線性）
 
 同樣先對 $Z'$ 做 LayerNorm 再進 FFN：
 
@@ -1022,54 +1023,11 @@ Attention 負責「整合序列中不同位置的資訊」，FFN 負責「對每
 - **為什麼是 4x expansion（$d \to 4d \to d$）？** 這是 Vaswani 2017 的經驗設計，給中間層足夠的「展開空間」來學習複雜的映射。
 - **為什麼需要非線性（ReLU/GELU）？** 如果沒有啟動函數，$W_1 W_2$ 等價於單一線性投影，4x expansion 毫無意義；非線性讓 FFN 能表達線性投影無法學到的函數。
 
-### 6.4 第二個 Residual Connection（Pre-LN）
+### 6.5 第二個 Residual Connection（Pre-LN）
 
 $$
 Y = Z' + F
 $$
-
-### 6.5 完整 Block 的計算圖
-
-$$
-X \xrightarrow{\text{LN}} \tilde{X} \xrightarrow{\text{MHA}} Z \xrightarrow{+\,X} Z' \xrightarrow{\text{LN}} \tilde{Z} \xrightarrow{\text{FFN}} F \xrightarrow{+\,Z'} Y
-$$
-
-```
-    輸入 X  (T × d)
-       │
-       ├──────────────────────┐  ← Residual shortcut
-       │                      │
-       ↓                      │
-  LayerNorm (Pre-LN)          │
-       │                      │
-  Multi-Head Attention        │
-       │                      │
-       └──────────── + ───────┘
-                     │
-                    Z'  (T × d)
-                     │
-       ┌─────────────┴──────────┐  ← Residual shortcut
-       │                        │
-       ↓                        │
-  LayerNorm (Pre-LN)            │
-       │                        │
-  Feed-Forward (d → 4d → d)     │
-       │                        │
-       └──────────── + ─────────┘
-                     │
-                 輸出 Y  (T × d)
-```
-
-Shape 全程不變（始終為 $T \times d$），使得 $N$ 個 Block 可以直接串疊。
-
-**參數量總覽（單一 Block）：**
-
-| 子模組 | 參數量 |
-|---|---|
-| Multi-Head Attention（含 $W_O$）| $4d^2$ |
-| FFN | $d \cdot d_{ff} + d_{ff} \cdot d = 2d \cdot d_{ff}$ |
-| LayerNorm（$\times 2$）| $2 \cdot 2d = 4d$ |
-| **合計（$d_{ff}=4d$）** | $4d^2 + 8d^2 + 4d \approx 12d^2$ |
 
 ---
 

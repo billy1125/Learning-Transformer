@@ -189,7 +189,7 @@ $$
 F=\begin{bmatrix}-0.3415&0.4961&1.7675&-0.2169\\0.9922&-0.2169&-1.2714&0.9922\end{bmatrix}
 $$
 
-> 若沒有 ReLU，$W_1W_2$ 會塌縮成單一 $4\times4$ 線性映射，中間的 8 維「展開空間」毫無意義（[`03a` §6.3](03a-transformer-architecture.md)）。本例 $d_{ff}=8=2d$ 是為了手算方便；實務通常 $d_{ff}=4d$。
+> 若沒有 ReLU，$W_1W_2$ 會塌縮成單一 $4\times4$ 線性映射，中間的 8 維「展開空間」毫無意義（[`03a` §6.4](03a-transformer-architecture.md)）。本例 $d_{ff}=8=2d$ 是為了手算方便；實務通常 $d_{ff}=4d$。
 
 ### 4.3 第二個殘差 → Block 輸出
 
@@ -201,7 +201,7 @@ $$
 \boxed{\,Y=\begin{bmatrix}0.6585&0.4961&2.6559&-0.1053\\0.9922&0.7831&-1.1598&1.8806\end{bmatrix}\in\mathbb{R}^{2\times4}\,}
 $$
 
-輸出 shape 與輸入 $X$ 相同（$2\times4$），因此可以直接把 $Y$ 餵進下一個 Block——這就是 $N$ 層 Transformer 能堆疊的原因（[`03a` §6.5](03a-transformer-architecture.md)）。
+輸出 shape 與輸入 $X$ 相同（$2\times4$），因此可以直接把 $Y$ 餵進下一個 Block——這就是 $N$ 層 Transformer 能堆疊的原因（[`03a` §6.1](03a-transformer-architecture.md)）。
 
 ---
 

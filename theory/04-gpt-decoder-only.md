@@ -251,9 +251,10 @@ Step 5｜Optimizer 更新：
 ```python
 class Head(nn.Module):
     def __init__(self, head_size):
-        self.key   = nn.Linear(n_embd, head_size, bias=False)  # W_K
-        self.query = nn.Linear(n_embd, head_size, bias=False)  # W_Q
-        self.value = nn.Linear(n_embd, head_size, bias=False)  # W_V
+        self.key     = nn.Linear(n_embd, head_size, bias=False)  # W_K
+        self.query   = nn.Linear(n_embd, head_size, bias=False)  # W_Q
+        self.value   = nn.Linear(n_embd, head_size, bias=False)  # W_V
+        self.dropout = nn.Dropout(dropout)
         # register_buffer：不是參數，但會跟模型一起存檔
         self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
 
@@ -264,6 +265,7 @@ class Head(nn.Module):
         wei = q @ k.transpose(-2, -1) * C**-0.5           # QK^T / sqrt(d_k)
         wei = wei.masked_fill(self.tril[:T,:T]==0, -inf)   # Causal mask
         wei = F.softmax(wei, dim=-1)                        # A = softmax(...)
+        wei = self.dropout(wei)                             # Dropout（見 §5.3）
         v = self.value(x)                                   # V = X W_V
         return wei @ v                                      # C = AV
 ```
@@ -293,11 +295,11 @@ forward 的兩行與理論公式 $\text{Concat}(C^{(1)}, \ldots, C^{(H)}) \, W_O
 - `self.proj(out)`：乘以 $W_O$，把各 head 的資訊混合重組（動機見 03a §5.7）
 - `self.dropout(...)`：殘差路徑前的 dropout（見 §5.3 的 Dropout 說明）
 
-在 nanoGPT 中：`n_embd=384, n_head=6` → 每個 head 的 `head_size = 384/6 = 64`
+在 nanoGPT 中：`n_embd=384, n_head=6` → 每個 head 的 `head_size = 384/6 = 64`（這是 NB4 註解區塊中「完整版超參數」的參考值；NB4 目前預設啟用的是跑得動 CPU 的輕量驗證版 `n_embd=64, n_head=2`，把 384/6 換成 64/2 一樣成立，$64/2=32$）
 
 ### 5.3 `FeedForward`：Position-wise FFN
 
-對應理論：§6.3
+對應理論：§6.4
 
 ```python
 self.net = nn.Sequential(
@@ -395,9 +397,9 @@ idx (B, T)
 |---|---|---|
 | `Head` | §3–§4 Scaled Dot-Product Attention | $\text{softmax}(QK^\top/\sqrt{d_k})V$ + Causal Mask |
 | `MultiHeadAttention` | §5 Multi-Head Attention | $H$ 個 Head concat + $W_O$ 投影 |
-| `FeedForward` | §6.3 Position-wise FFN | Linear → ReLU → Linear |
+| `FeedForward` | §6.4 Position-wise FFN | Linear → ReLU → Linear |
 | `Block` | §6 Transformer Block | Pre-LN + Residual × 2 |
-| `GPT.token_embedding` | §2 Embedding | 離散 token → 連續向量 |
+| `GPT.token_embedding` | `01b` §2 Embedding | 離散 token → 連續向量 |
 | `GPT.position_embedding` | §7.4 Learned PE | 可學習位置向量 |
 | `GPT.lm_head` | 語言模型輸出層 | $\mathbb{R}^d \to \mathbb{R}^{|\mathcal{V}|}$ |
 | `F.cross_entropy(...)` | 訓練目標 | Next-token prediction |

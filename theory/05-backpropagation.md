@@ -720,7 +720,25 @@ $$
 
 **Step 1：Cross-Entropy + Softmax 合併梯度**
 
-對 Cross-Entropy $\mathcal{L} = -\frac{1}{T}\log p^{(i)}_{y_i}$ 與 Softmax 合併求導（標準結果）：
+先看單一位置 $i$ 的損失 $\ell_i = -\log p^{(i)}_{y_i}$（先略去 $\frac{1}{T}$，最後再乘回來）。對 $p^{(i)}_{y_i}$ 求導：
+
+$$
+\frac{\partial \ell_i}{\partial p^{(i)}_{y_i}} = -\frac{1}{p^{(i)}_{y_i}}
+$$
+
+再套用鏈式法則接上 §1.4 已推導的 softmax Jacobian $\dfrac{\partial A_{i,j}}{\partial E_{i,l}} = A_{i,j}(\delta_{jl} - A_{i,l})$：這裡的 $p^{(i)}_{y_i}$ 對應 §1.4 的 $A_{i,j}$（固定輸出索引 $j = y_i$），$z_i^{(k)}$ 對應 $E_{i,l}$（$l=k$），代入得
+
+$$
+\frac{\partial p^{(i)}_{y_i}}{\partial z_i^{(k)}} = p^{(i)}_{y_i}\left(\mathbf{1}[k=y_i] - p^{(i)}_k\right)
+$$
+
+兩式相乘（鏈式法則），$p^{(i)}_{y_i}$ 恰好消掉：
+
+$$
+\frac{\partial \ell_i}{\partial z_i^{(k)}} = -\frac{1}{p^{(i)}_{y_i}} \cdot p^{(i)}_{y_i}\left(\mathbf{1}[k=y_i] - p^{(i)}_k\right) = p^{(i)}_k - \mathbf{1}[k=y_i]
+$$
+
+$\mathcal{L} = \frac{1}{T}\sum_i \ell_i$，所以乘回 $\frac{1}{T}$ 即為最終結果：
 
 $$
 \frac{\partial \mathcal{L}}{\partial z_i^{(k)}} = \frac{1}{T}\left(p^{(i)}_k - \mathbf{1}[k = y_i]\right)

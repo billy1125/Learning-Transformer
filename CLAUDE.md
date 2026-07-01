@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 語言與風格
+- 對話一律用繁體中文回覆，台灣用語習慣
+- 專有技術名詞可保留英文(例如 API、CI/CD)
+- 程式碼與註解也用同樣風格
+- 回答簡潔直接，不要過度解釋
+
 ## 專案概述
 
 從零開始學習 Transformer / Attention 機制的中文學習資源庫，目標是讓讀者能夠獨立實作 nanoGPT。每個概念提供三個層次：直覺說明 → 數學推導 → 程式實作。
@@ -36,7 +42,7 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 
 ```
 theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為選讀出口；03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
-theory/images/   ← 理論文件內嵌圖檔（如 03a §5 的 attention_projection_vs_interaction）
+theory/images/   ← 理論文件內嵌圖檔（03a §5 的 attention_projection_vs_interaction、§5.5 的 multi_head_attention_diagram、§6.1 的 transformer_block_pre_ln_diagram）
 notebooks/       ← 實作主線（4 個 Notebook，依序執行）
 notebooks/data/  ← Notebook 訓練資料（如 NB4 莎士比亞文本）
 advanced/        ← 進階補充（選讀，非主線）

@@ -129,7 +129,7 @@ $$
 
 ### 2.1 從 ReLU 到 GELU
 
-nanoGPT 的 FFN（`03a` §6.3）：
+nanoGPT 的 FFN（`03a` §6.4）：
 
 $$
 \text{FFN}(x) = \text{ReLU}(xW_1)W_2
@@ -352,6 +352,8 @@ Flash Attention（Dao et al., 2022）的核心：**永遠不要把完整的 $T \
 | Attention 實作 | 樸素矩陣乘法 | Flash Attention |
 
 **不變的部分**：Decoder-Only、Causal Mask、Pre-LN Residual 結構、$\text{softmax}(QK^\top/\sqrt{d_k})V$、next-token prediction + cross-entropy。主線學到的骨架完全通用，變的只是每個元件的「實作選型」。
+
+> nanoGPT 欄的數字（`n_embd=384`、6 層、context 256）取自 NB4 註解區塊中的「完整版超參數」，用來對照 LLaMA 規模；NB4 目前預設啟用的是可在 CPU 上跑完的輕量驗證版（`n_embd=64, n_head=2, n_layer=2, block_size=64`），骨架與對比結論不受影響。
 
 ---
 

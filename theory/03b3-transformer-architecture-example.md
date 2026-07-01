@@ -79,7 +79,7 @@ $$
 \underset{2\times4}{Y}
 $$
 
-讀法：投影矩陣必須是 $d\times d_k=4\times2$（才能把 $\tilde X$ 的 $4$ 維壓到每頭的 $2$ 維）；兩頭拼接回 $H\cdot d_v=4$ 維後，$W_O$ 必須是 $4\times4$（把 $d$ 維重新映回 $d$ 維）；FFN 先 $4\to8$ 再 $8\to4$，所以 $W_1$ 是 $4\times8$、$W_2$ 是 $8\times4$。**全程輸入輸出都維持 $2\times4$**，這正是 Block 能反覆堆疊的前提（[`03a` §6.5](03a-transformer-architecture.md)）。形狀確定後，剩下的只是「填什麼數值」——這就是 §0.2 之後要交代的設計。
+讀法：投影矩陣必須是 $d\times d_k=4\times2$（才能把 $\tilde X$ 的 $4$ 維壓到每頭的 $2$ 維）；兩頭拼接回 $H\cdot d_v=4$ 維後，$W_O$ 必須是 $4\times4$（把 $d$ 維重新映回 $d$ 維）；FFN 先 $4\to8$ 再 $8\to4$，所以 $W_1$ 是 $4\times8$、$W_2$ 是 $8\times4$。**全程輸入輸出都維持 $2\times4$**，這正是 Block 能反覆堆疊的前提（[`03a` §6.1](03a-transformer-architecture.md)）。形狀確定後，剩下的只是「填什麼數值」——這就是 §0.2 之後要交代的設計。
 
 ### 0.2 輸入 $X$：為什麼挑這組
 
@@ -191,7 +191,7 @@ $$
 
 ## 1. Pre-LN 第一步：$\tilde X = \text{LayerNorm}(X)$
 
-Pre-LN 規定：**先正規化、再進子層**（[`03a` §6.1](03a-transformer-architecture.md)）。LayerNorm 對**每一列**（每個 token 的 $d$ 維）獨立做標準化。
+Pre-LN 規定：**先正規化、再進子層**（[`03a` §6.2](03a-transformer-architecture.md)）。LayerNorm 對**每一列**（每個 token 的 $d$ 維）獨立做標準化。
 
 以第 1 列 $x_1=[1,0,0,1]$ 為例，三步：
 
@@ -389,7 +389,7 @@ $$
 F=\begin{bmatrix}-0.3415&0.4961&1.7675&-0.2169\\0.9922&-0.2169&-1.2714&0.9922\end{bmatrix}
 $$
 
-> 若沒有 ReLU，$W_1W_2$ 會塌縮成單一 $4\times4$ 線性映射，中間的 8 維「展開空間」毫無意義（[`03a` §6.3](03a-transformer-architecture.md)）。本例 $d_{ff}=8=2d$ 是為了手算方便；實務通常 $d_{ff}=4d$。
+> 若沒有 ReLU，$W_1W_2$ 會塌縮成單一 $4\times4$ 線性映射，中間的 8 維「展開空間」毫無意義（[`03a` §6.4](03a-transformer-architecture.md)）。本例 $d_{ff}=8=2d$ 是為了手算方便；實務通常 $d_{ff}=4d$。
 
 ### 5.3 第二個殘差 → Block 輸出
 
@@ -401,7 +401,7 @@ $$
 \boxed{\,Y=\begin{bmatrix}0.6585&0.4961&2.6559&-0.1053\\0.9922&0.7831&-1.1598&1.8806\end{bmatrix}\in\mathbb{R}^{2\times4}\,}
 $$
 
-輸出 shape 與輸入 $X$ 相同（$2\times4$），因此可以直接把 $Y$ 餵進下一個 Block——這就是 $N$ 層 Transformer 能堆疊的原因（[`03a` §6.5](03a-transformer-architecture.md)）。
+輸出 shape 與輸入 $X$ 相同（$2\times4$），因此可以直接把 $Y$ 餵進下一個 Block——這就是 $N$ 層 Transformer 能堆疊的原因（[`03a` §6.1](03a-transformer-architecture.md)）。
 
 ---
 
