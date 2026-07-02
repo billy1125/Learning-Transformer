@@ -6,7 +6,7 @@
 > - 推導 Naive Self-Attention 的三個限制，以及 QKV 如何解決它們
 > - 說明 Scaled Dot-Product Attention 中除以 $\sqrt{d_k}$ 的統計學原因
 > - 解釋 Multi-Head Attention 的架構與 Shape 計算
-> - 描述一個完整 Transformer Block 的四個子模組（MHA → Residual → FFN → Residual）
+> - 描述一個完整 Transformer Block 的組成：兩個子層（MHA、FFN），每個子層各配一組 LN 與 Residual
 > - 解釋 Sinusoidal Positional Encoding 的設計動機
 >
 > **前置文件：** [`01b-prerequisites-math.md`](01b-prerequisites-math.md)、[`02-attention-intuition.md`](02-attention-intuition.md)
@@ -889,7 +889,7 @@ $$
 >    $$
 >    `reshape` 對應「切成／拼回 $H$ 份」，`transpose` 把 head 維挪到前面，好讓 attention 只作用在最後兩維 $(T, d_k)$ 上。兩種寫法的數學完全相同，只是後者把 $H$ 從 Python 迴圈搬進張量維度以加速。
 
-Multi-Head Attention 是 Transformer Block 的第一個子模組——第 6 節把四個子模組（MHA → Residual → FFN → Residual）組裝成完整的 Block。
+Multi-Head Attention 是 Transformer Block 的第一個子層——第 6 節把兩個子層（MHA、FFN）各配上 LN 與 Residual，組裝成完整的 Block。
 
 ---
 
@@ -942,16 +942,16 @@ $$
 
 但一個能穩定訓練的深層模型還需要三件事：第一，讀完其他 token 的資訊後，要對每個 token 自己的表示做**逐 token 的非線性加工**；第二，要有**殘差連接**讓深層網路容易訓練，避免早期資訊被覆蓋或梯度衰減；第三，要用**正規化**穩定每一層的數值分佈。因此，一個完整 Transformer Block 會把 Multi-Head Attention、Residual Connection、LayerNorm 與 FFN 組合在一起，分工如下：
 
-| 模組 | 做什麼 | 為什麼需要 |
-|---|---|---|
-| Multi-Head Attention | 讓 token 之間交換資訊 | 建立上下文關係 |
-| FFN | 對每個 token 向量各自做非線性加工 | 增加表示能力 |
-| Residual Connection | 保留原資訊，再加上子層學到的修正量 | 讓深層模型容易訓練 |
-| LayerNorm | 穩定 hidden dimension 的數值分佈 | 避免訓練不穩 |
+| 模組 | 做什麼 | 為什麼需要 | 白話比喻 |
+|---|---|---|---|
+| Multi-Head Attention | 讓 token 之間交換資訊 | 建立上下文關係 | 開會時每個人聽別人講什麼，決定要參考誰的意見 |
+| FFN | 對每個 token 向量各自做非線性加工 | 增加表示能力 | 開完會各自回座位，把聽到的內容消化整理成自己的想法 |
+| Residual Connection（×2）| 保留原資訊，再加上子層學到的修正量 | 讓深層模型容易訓練 | 改文章時保留原稿，只在旁邊註記要改哪裡，不從白紙重寫 |
+| LayerNorm（×2）| 穩定 hidden dimension 的數值分佈 | 避免訓練不穩 | 每關開始前先把大家的音量調到差不多，不讓某個聲音蓋過全場 |
 
 因此，Multi-Head Attention 是必要的，但不是完整的 Transformer 層：它只負責跨位置的資訊整合，而 Transformer Block 進一步負責「整合後如何加工」「如何保留原表示並逐層修正」以及「如何穩定地堆疊很多層」。
 
-一個完整的 Transformer Block 由四個子模組依序組成。以下先給出整個 Block 的資料流全貌，再逐一拆解每個子模組（§6.2–§6.5）。
+一個完整的 Transformer Block 由兩個子層（MHA、FFN）組成，每個子層都外包「LN → 子層 → 殘差」的三步結構。以下先給出整個 Block 的資料流全貌，再逐一拆解（§6.2–§6.5）。
 
 ### 6.1 完整 Block 的計算圖（先看全貌）
 
@@ -980,7 +980,18 @@ $$
 \tilde{X} = \text{LayerNorm}(X), \qquad Z = \text{MultiHead}(\tilde{X})
 $$
 
-捕捉序列中任意兩個位置之間的依賴關係（路徑長度 $O(1)$）。
+**LayerNorm 在做什麼？** 它對每個 token 的 hidden vector $x \in \mathbb{R}^d$ **獨立**做歸一化（沿 hidden dimension，與 Batch Norm 不同，不依賴 batch size）：
+
+$$
+\mu = \frac{1}{d}\sum_{j=1}^d x_j, \qquad
+\sigma^2 = \frac{1}{d}\sum_{j=1}^d (x_j - \mu)^2, \qquad
+\hat{x}_j = \frac{x_j - \mu}{\sqrt{\sigma^2 + \epsilon}}, \qquad
+y_j = \gamma_j \hat{x}_j + \beta_j
+$$
+
+其中 $\gamma, \beta \in \mathbb{R}^d$ 是可學習的 scale／shift 參數，$\epsilon > 0$ 防止除以零。作用是穩定每一層的數值分佈、加速訓練（完整梯度推導見 [`05-backpropagation.md`](05-backpropagation.md) §5.1）。
+
+MHA 本身則捕捉序列中任意兩個位置之間的依賴關係（路徑長度 $O(1)$）。
 
 ### 6.3 第一個 Residual Connection（Pre-LN）
 
@@ -996,11 +1007,6 @@ $$
 
 - 提供梯度直接流動的「高速公路」，緩解深層網路的梯度消失
 - 允許模型學習「殘差」（與恆等映射的差距），而非從頭學習整個映射
-
-**Layer Normalization 的作用：**
-
-- 穩定每一層的數值分佈，加速訓練
-- 對 hidden dimension 做歸一化（與 Batch Norm 不同，不依賴 batch size）
 
 ### 6.4 Position-wise Feed-Forward Network（局部非線性）
 
@@ -1025,9 +1031,13 @@ Attention 負責「整合序列中不同位置的資訊」，FFN 負責「對每
 
 ### 6.5 第二個 Residual Connection（Pre-LN）
 
+與 §6.3 完全同機制：把 FFN 的輸出 $F$ 加回子層輸入 $Z'$，完成 FFN 子層並閉合整個 Block：
+
 $$
 Y = Z' + F
 $$
+
+輸出 $Y \in \mathbb{R}^{T \times d}$ 形狀與輸入 $X$ 相同，滿足 §6.0 的形狀契約，可直接送入下一個 Block。
 
 ---
 
@@ -1047,6 +1057,8 @@ $$
 
 ### 7.2 正弦位置編碼（Sinusoidal Positional Encoding）
 
+**直覺——用一組不同轉速的時鐘來報位置：** 把每個維度配對想成一根指針。有些指針轉得快（像秒針），適合分辨「相鄰很近」的位置；有些轉得慢（像時針），適合分辨「距離很遠」的位置。把這組快慢不同的指針角度組合起來，每個位置就得到一組獨一無二的「指紋」；又因為用的是連續的 sin/cos 波形，位置與位置之間的「距離感」也自然被保留。
+
 在輸入 embedding 中加入位置編碼向量：
 
 $$
@@ -1060,7 +1072,22 @@ p_{i, 2m} = \sin\!\left(\frac{i}{10000^{2m/d}}\right), \qquad
 p_{i, 2m+1} = \cos\!\left(\frac{i}{10000^{2m/d}}\right)
 $$
 
-其中 $i$ 是位置索引（$0 \leq i < T$，與程式 0 起算一致；此處 $i$ 專指位置，非前文的 query 索引），$m$ 是維度索引（$0 \leq m < d/2$）。
+其中 $i$ 是位置索引（$0 \leq i < T$，與程式 0 起算一致；此處 $i$ 專指位置，非前文的 query 索引），$m$ 是維度索引（$0 \leq m < d/2$）。偶數維度用 sin、奇數維度用 cos，每個維度配對 $m$ 有各自的角頻率，$m$ 愈大轉得愈慢。
+
+**動手算一次（$d = 4$）：** 4 維會拆成兩個配對，各有一個轉速 $\omega_m = 1/10000^{2m/d}$：
+
+- 配對 $m = 0$（維度 0、1）：$\omega_0 = 1/10000^{0} = 1$（快指針）
+- 配對 $m = 1$（維度 2、3）：$\omega_1 = 1/10000^{2/4} = 1/100 = 0.01$（慢指針）
+
+於是每個位置的編碼向量是 $p_i = \big[\sin(\omega_0 i),\ \cos(\omega_0 i),\ \sin(\omega_1 i),\ \cos(\omega_1 i)\big]$。代入 $i = 0, 1, 2$（角度以弧度計）：
+
+| 位置 $i$ | 維度 0：$\sin(i)$ | 維度 1：$\cos(i)$ | 維度 2：$\sin(0.01\,i)$ | 維度 3：$\cos(0.01\,i)$ |
+|:---:|:---:|:---:|:---:|:---:|
+| 0 | 0.0000 | 1.0000 | 0.0000 | 1.0000 |
+| 1 | 0.8415 | 0.5403 | 0.0100 | 1.0000 |
+| 2 | 0.9093 | −0.4161 | 0.0200 | 0.9998 |
+
+兩件事一目了然：**快指針**（維度 0、1）從 $i=0$ 到 $2$ 由 `[0, 1]` 跳到 `[0.909, −0.416]`，抓得住近距離差異；**慢指針**（維度 2、3）幾乎沒動，短距離內看不出差別，要等位置差到好幾百才明顯變化，負責分辨遠距離。快慢搭配，模型同時具備「看近」與「看遠」兩種解析度。
 
 ### 7.3 設計動機
 
@@ -1094,11 +1121,30 @@ $$
 \begin{bmatrix} p_{i, 2m} \\ p_{i, 2m+1} \end{bmatrix}
 $$
 
-這是一個**旋轉矩陣**：「位置往後移 $\delta$ 格」等於「在每個 2D 平面上旋轉固定角度 $\omega_m \delta$」。因為這個變換是線性的且只依賴 $\delta$，模型可以透過內積學習相對位置關係。（這個「位置 = 旋轉角度」的觀點，正是現代 RoPE 的前身——見 [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md) §3。）
+這是一個**旋轉矩陣**：「位置往後移 $\delta$ 格」等於「在每個 2D 平面上旋轉固定角度 $\omega_m \delta$」。因為這個變換是線性的且只依賴 $\delta$，模型可以透過內積學習相對位置關係。
+
+換個角度看，把每個維度配對 $(p_{i,2m}, p_{i,2m+1})$ 視為複數，正弦編碼就是在沿著單位圓 $e^{i\,\omega_m \cdot \text{pos}}$ 移動——位置正是這條波的**相位角**。（這個「位置 = 旋轉角度／相位」的觀點，把位置資訊直接寫進向量方向而非額外相加，正是現代 RoPE 的前身——見 [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md) §3。）
 
 **外推能力：** 正弦函數定義在整個實數域，理論上可以處理訓練時未見過的序列長度。
 
-### 7.4 可學習位置編碼（Learned Positional Encoding）
+### 7.4 與通訊相位調變（PSK）的對照
+
+為了讓讀者更好理解為什麼「用角度／相位攜帶資訊」是自然而非奇怪的設計，這裡借一個工程上早已成熟的例子來對照——它會讓前面的相位觀點更有實感。
+
+上面「位置＝相位」的觀點，跟無線通訊裡的**相位調變（Phase Shift Keying, PSK）**是同一套數學。在 Wi-Fi、4G/5G 裡要把 0/1 數位訊號傳出去，PSK 的做法是把資訊藏進載波的**相位角**，而不是振幅或頻率：BPSK 用兩個相位（0°、180°）代表 0 跟 1，QPSK 用四個相位一次代表兩個位元；接收端量測收到訊號與參考訊號的相位差，就能反推原始資料。
+
+這與位置編碼（尤其 RoPE）核心邏輯完全同構——**用相位（角度）當作攜帶資訊的載體，而不是振幅**——因為兩者共用同一組數學工具：複數表示法、傅立葉分析、旋轉群。
+
+| | 通訊 PSK | 位置編碼 / RoPE |
+|---|---|---|
+| 想編碼什麼 | 二進位資料（0/1）| 字在序列中的位置 |
+| 用什麼載體 | 載波的相位角 | 詞向量的旋轉角 |
+| 數學工具 | 複數 $e^{i\theta}$ | 複數 $e^{i\,\theta \cdot \text{pos}}$ |
+| 怎麼解碼 | 量測相位差 | 內積時自動算出角度差 |
+
+換句話說，正弦編碼、RoPE 與 PSK 本質上都是「用角度／相位攜帶資訊」，差別只在攜帶的東西不同：PSK 帶的是 0/1 資料，位置編碼帶的是字的順位。RoPE 的完整推導見 [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md) §3。
+
+### 7.5 可學習位置編碼（Learned Positional Encoding）
 
 另一種做法是讓 $p_i$ 成為可訓練參數（如 BERT、GPT 所採用）：
 

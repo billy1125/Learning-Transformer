@@ -368,7 +368,7 @@ self.lm_head.weight = self.transformer.wte.weight   # Weight Tying
 
 **等一下——這個 `position_embedding` 和 03 講的 PE 是同一件事嗎？**
 
-是同一個目的（注入位置資訊），但做法不同。03a §7.2 推導的是 Sinusoidal PE（固定公式），nanoGPT 用的是 `nn.Embedding` 實作的 **Learned PE**（03a §7.4）——每個位置一個可訓練向量：
+是同一個目的（注入位置資訊），但做法不同。03a §7.2 推導的是 Sinusoidal PE（固定公式），nanoGPT 用的是 `nn.Embedding` 實作的 **Learned PE**（03a §7.5）——每個位置一個可訓練向量：
 
 | | Sinusoidal PE（03a §7.2 所介紹）| Learned PE（nanoGPT 所用）|
 |---|---|---|
@@ -400,7 +400,7 @@ idx (B, T)
 | `FeedForward` | §6.4 Position-wise FFN | Linear → ReLU → Linear |
 | `Block` | §6 Transformer Block | Pre-LN + Residual × 2 |
 | `GPT.token_embedding` | `01b` §2 Embedding | 離散 token → 連續向量 |
-| `GPT.position_embedding` | §7.4 Learned PE | 可學習位置向量 |
+| `GPT.position_embedding` | §7.5 Learned PE | 可學習位置向量 |
 | `GPT.lm_head` | 語言模型輸出層 | $\mathbb{R}^d \to \mathbb{R}^{|\mathcal{V}|}$ |
 | `F.cross_entropy(...)` | 訓練目標 | Next-token prediction |
 
