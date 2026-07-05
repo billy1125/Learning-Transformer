@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sin / cos 數值對照 · 單位圓</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1a2b;
+    --bg2:#0a1421;
+    --surface:#16273d;
+    --surface2:#1b3048;
+    --line:#2a405d;
+    --ink:#eaf1f8;
+    --muted:#8399b3;
+    --cos:#46c9b8;   /* 水平 → cos */
+    --sin:#f5b13d;   /* 垂直 → sin */
+    --point:#ff6b7a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #16273d 0%, transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans TC","Inter",system-ui,sans-serif;
+    line-height:1.6;
+    padding:clamp(20px,4vw,56px);
+    min-height:100vh;
+  }
+  .wrap{max-width:980px;margin:0 auto}
+
+  header{margin-bottom:clamp(28px,4vw,44px)}
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:12px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:14px;
+  }
+  h1{
+    font-family:"Fraunces",serif;
+    font-weight:600;
+    font-size:clamp(34px,7vw,60px);
+    line-height:1.02;letter-spacing:-.01em;
+  }
+  h1 .s{color:var(--sin)}
+  h1 .c{color:var(--cos)}
+  .lede{color:var(--muted);max-width:52ch;margin-top:14px;font-size:15px}
+
+  /* ---- 主要互動區 ---- */
+  .stage{
+    display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;
+    align-items:stretch;margin-bottom:26px;
+  }
+  .card{
+    background:linear-gradient(180deg,var(--surface),var(--bg2));
+    border:1px solid var(--line);border-radius:18px;
+    padding:22px;
+  }
+  .circle-card{display:flex;align-items:center;justify-content:center;position:relative}
+  svg{width:100%;height:auto;display:block;touch-action:none;max-width:440px}
+
+  .hint{
+    position:absolute;bottom:14px;left:0;right:0;text-align:center;
+    font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);
+    letter-spacing:.04em;pointer-events:none;
+  }
+
+  /* ---- 讀值面板 ---- */
+  .readout{display:flex;flex-direction:column;gap:14px}
+  .angle-big{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:40px;font-weight:600;line-height:1;
+  }
+  .angle-rad{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:15px;margin-top:6px}
+  .val{
+    border-top:1px solid var(--line);padding-top:12px;
+    display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  }
+  .val .k{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px;letter-spacing:.02em}
+  .val .v{font-family:"IBM Plex Mono",monospace;font-size:20px;font-weight:500;text-align:right}
+  .k.sin,.v.sin{color:var(--sin)}
+  .k.cos,.v.cos{color:var(--cos)}
+  .k.tan,.v.tan{color:var(--ink)}
+  .val .exact{display:block;font-size:12px;color:var(--muted);font-weight:400}
+
+  /* ---- 對照表 ---- */
+  .table-title{
+    font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--muted);margin:8px 4px 12px;
+  }
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:18px}
+  table{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
+  thead th{
+    font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:12px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+    text-align:right;padding:14px 16px;background:var(--bg2);
+    position:sticky;top:0;white-space:nowrap;
+  }
+  thead th:first-child{text-align:left}
+  tbody td{
+    padding:11px 16px;text-align:right;font-family:"IBM Plex Mono",monospace;
+    border-top:1px solid var(--line);white-space:nowrap;
+  }
+  tbody td:first-child{text-align:left;font-weight:600}
+  tbody td.rad{color:var(--muted)}
+  tbody td.sc-sin{color:var(--sin)}
+  tbody td.sc-cos{color:var(--cos)}
+  tbody tr{cursor:pointer;transition:background .12s}
+  tbody tr:hover{background:var(--surface)}
+  tbody tr.active{background:var(--surface2)}
+  tbody tr.active td:first-child{box-shadow:inset 3px 0 0 var(--point)}
+
+  .legend{display:flex;gap:20px;flex-wrap:wrap;margin:16px 4px 0;font-size:13px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .dot.sin{background:var(--sin)}
+  .dot.cos{background:var(--cos)}
+
+  footer{margin-top:28px;color:var(--muted);font-size:12.5px;line-height:1.7}
+  footer code{font-family:"IBM Plex Mono",monospace;color:var(--ink)}
+
+  @media (max-width:760px){
+    .stage{grid-template-columns:1fr}
+    .readout{flex-direction:row;flex-wrap:wrap;align-items:center}
+    .readout .heading{width:100%}
+    .val{flex:1 1 140px;border-top:none;border-left:1px solid var(--line);padding:0 0 0 14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">單位圓 · 三角函數</div>
+    <h1><span class="s">sin</span> 與 <span class="c">cos</span> 的數值</h1>
+    <p class="lede">拖曳圓上的紅點，或點選下方表格的任一角度。垂直投影就是 <span style="color:var(--sin)">sin</span>、水平投影就是 <span style="color:var(--cos)">cos</span>——顏色直接對應到坐標軸。</p>
+  </header>
+
+  <div class="stage">
+    <div class="card circle-card">
+      <svg id="circle" viewBox="0 0 400 400" role="img" aria-label="可拖曳的單位圓" tabindex="0">
+        <!-- 格線圈 -->
+        <circle cx="200" cy="200" r="150" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+        <!-- 坐標軸 -->
+        <line x1="30" y1="200" x2="370" y2="200" stroke="var(--line)" stroke-width="1"/>
+        <line x1="200" y1="30" x2="200" y2="370" stroke="var(--line)" stroke-width="1"/>
+        <!-- cos 投影（水平）-->
+        <line id="cosSeg" x1="200" y1="200" x2="350" y2="200" stroke="var(--cos)" stroke-width="4" stroke-linecap="round"/>
+        <!-- sin 投影（垂直）-->
+        <line id="sinSeg" x1="350" y1="200" x2="350" y2="200" stroke="var(--sin)" stroke-width="4" stroke-linecap="round"/>
+        <!-- 半徑 -->
+        <line id="radius" x1="200" y1="200" x2="350" y2="200" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 4" opacity=".7"/>
+        <!-- 角度弧 -->
+        <path id="arc" fill="none" stroke="var(--point)" stroke-width="2.5"/>
+        <!-- 特殊角小點 -->
+        <g id="dots"></g>
+        <!-- 動點 -->
+        <circle id="point" cx="350" cy="200" r="8" fill="var(--point)" stroke="var(--bg)" stroke-width="2.5"/>
+      </svg>
+      <div class="hint">拖曳紅點 · 或用 ← → 方向鍵</div>
+    </div>
+
+    <div class="card readout">
+      <div class="heading">
+        <div class="angle-big"><span id="degOut">45</span>°</div>
+        <div class="angle-rad" id="radOut">π/4 rad</div>
+      </div>
+      <div class="val">
+        <span class="k sin">sin θ</span>
+        <span class="v sin"><span id="sinOut">0.7071</span><span class="exact" id="sinExact">= √2⁄2</span></span>
+      </div>
+      <div class="val">
+        <span class="k cos">cos θ</span>
+        <span class="v cos"><span id="cosOut">0.7071</span><span class="exact" id="cosExact">= √2⁄2</span></span>
+      </div>
+      <div class="val">
+        <span class="k tan">tan θ</span>
+        <span class="v tan"><span id="tanOut">1.0000</span><span class="exact" id="tanExact">= 1</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-title">常見角度對照表</div>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>角度</th><th>弧度</th><th>sin</th><th>cos</th><th>tan</th></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="legend">
+    <span><i class="dot sin"></i> sin θ ＝ 垂直分量（y 坐標）</span>
+    <span><i class="dot cos"></i> cos θ ＝ 水平分量（x 坐標）</span>
+  </div>
+
+  <footer>
+    小提醒：<code>tan θ = sin θ ⁄ cos θ</code>。當 cos θ = 0（也就是 90° 與 270°）時，tan 沒有定義。表格裡的「√2⁄2」也常寫成「1⁄√2」，兩者相等。
+  </footer>
+</div>
+
+<script>
+(function(){
+  const R=150, CX=200, CY=200;
+  const svg=document.getElementById('circle');
+  const pt=document.getElementById('point');
+  const cosSeg=document.getElementById('cosSeg');
+  const sinSeg=document.getElementById('sinSeg');
+  const radius=document.getElementById('radius');
+  const arc=document.getElementById('arc');
+  const dotsG=document.getElementById('dots');
+  const tbody=document.getElementById('tbody');
+
+  const degOut=document.getElementById('degOut');
+  const radOut=document.getElementById('radOut');
+  const sinOut=document.getElementById('sinOut');
+  const cosOut=document.getElementById('cosOut');
+  const tanOut=document.getElementById('tanOut');
+  const sinExact=document.getElementById('sinExact');
+  const cosExact=document.getElementById('cosExact');
+  const tanExact=document.getElementById('tanExact');
+
+  // 特殊角資料（弧度、精確值皆為顯示字串）
+  const specials=[
+    {deg:0,   rad:'0',      sin:'0',    cos:'1',    tan:'0'},
+    {deg:30,  rad:'π/6',    sin:'1/2',  cos:'√3/2', tan:'√3/3'},
+    {deg:45,  rad:'π/4',    sin:'√2/2', cos:'√2/2', tan:'1'},
+    {deg:60,  rad:'π/3',    sin:'√3/2', cos:'1/2',  tan:'√3'},
+    {deg:90,  rad:'π/2',    sin:'1',    cos:'0',    tan:'未定義'},
+    {deg:120, rad:'2π/3',   sin:'√3/2', cos:'−1/2', tan:'−√3'},
+    {deg:135, rad:'3π/4',   sin:'√2/2', cos:'−√2/2',tan:'−1'},
+    {deg:150, rad:'5π/6',   sin:'1/2',  cos:'−√3/2',tan:'−√3/3'},
+    {deg:180, rad:'π',      sin:'0',    cos:'−1',   tan:'0'},
+    {deg:210, rad:'7π/6',   sin:'−1/2', cos:'−√3/2',tan:'√3/3'},
+    {deg:225, rad:'5π/4',   sin:'−√2/2',cos:'−√2/2',tan:'1'},
+    {deg:240, rad:'4π/3',   sin:'−√3/2',cos:'−1/2', tan:'√3'},
+    {deg:270, rad:'3π/2',   sin:'−1',   cos:'0',    tan:'未定義'},
+    {deg:300, rad:'5π/3',   sin:'−√3/2',cos:'1/2',  tan:'−√3'},
+    {deg:315, rad:'7π/4',   sin:'−√2/2',cos:'√2/2', tan:'−1'},
+    {deg:330, rad:'11π/6',  sin:'−1/2', cos:'√3/2', tan:'−√3/3'},
+    {deg:360, rad:'2π',     sin:'0',    cos:'1',    tan:'0'},
+  ];
+
+  // 建立表格
+  specials.forEach((s,i)=>{
+    if(s.deg===360) return; // 360 與 0 同值，表格省略避免重複
+    const tr=document.createElement('tr');
+    tr.dataset.deg=s.deg;
+    tr.innerHTML=`<td>${s.deg}°</td>
+      <td class="rad">${s.rad}</td>
+      <td class="sc-sin">${s.sin}</td>
+      <td class="sc-cos">${s.cos}</td>
+      <td>${s.tan}</td>`;
+    tr.addEventListener('click',()=>setAngle(s.deg,true));
+    tbody.appendChild(tr);
+  });
+
+  // 建立圓上特殊角小點
+  specials.forEach(s=>{
+    if(s.deg===360) return;
+    const r=s.deg*Math.PI/180;
+    const x=CX+R*Math.cos(r), y=CY-R*Math.sin(r);
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',4);
+    c.setAttribute('fill','var(--line)');
+    c.style.cursor='pointer';
+    c.addEventListener('click',()=>setAngle(s.deg,true));
+    dotsG.appendChild(c);
+  });
+
+  function fmt(n){ // 4 位小數，處理 -0
+    if(Math.abs(n)<1e-10) n=0;
+    return n.toFixed(4);
+  }
+
+  function findExact(deg){
+    return specials.find(s=>s.deg===((deg%360)+360)%360);
+  }
+
+  function setAngle(deg, snap){
+    // 圓弧繪製角度用連續值，讀值用四捨五入到 1 度
+    const dRound=Math.round(deg);
+    const r=deg*Math.PI/180;
+    const sinV=Math.sin(r), cosV=Math.cos(r);
+    const px=CX+R*cosV, py=CY-R*sinV;
+
+    pt.setAttribute('cx',px); pt.setAttribute('cy',py);
+    radius.setAttribute('x2',px); radius.setAttribute('y2',py);
+    cosSeg.setAttribute('x2',px);                    // 中心 → (px, CY)
+    sinSeg.setAttribute('x1',px); sinSeg.setAttribute('x2',px);
+    sinSeg.setAttribute('y1',CY); sinSeg.setAttribute('y2',py);
+
+    // 角度弧（用折線近似，避免大弧旗標麻煩）
+    let d=`M ${CX+34} ${CY}`;
+    const steps=Math.max(1,Math.round(Math.abs(deg)/3));
+    for(let i=1;i<=steps;i++){
+      const t=(deg*i/steps)*Math.PI/180;
+      d+=` L ${CX+34*Math.cos(t)} ${CY-34*Math.sin(t)}`;
+    }
+    arc.setAttribute('d',d);
+
+    // 讀值
+    degOut.textContent=dRound;
+    const ex=findExact(dRound);
+    radOut.textContent=(ex? ex.rad : (r/Math.PI).toFixed(3)+'π')+' rad';
+
+    sinOut.textContent=fmt(sinV);
+    cosOut.textContent=fmt(cosV);
+    if(Math.abs(cosV)<1e-9){ tanOut.textContent='未定義'; }
+    else { tanOut.textContent=fmt(sinV/cosV); }
+
+    if(ex){
+      sinExact.textContent='= '+ex.sin;      sinExact.style.display='block';
+      cosExact.textContent='= '+ex.cos;      cosExact.style.display='block';
+      tanExact.textContent='= '+ex.tan;      tanExact.style.display='block';
+    }else{
+      sinExact.style.display='none';
+      cosExact.style.display='none';
+      tanExact.style.display='none';
+    }
+
+    // 表格高亮
+    [...tbody.children].forEach(tr=>{
+      tr.classList.toggle('active', parseInt(tr.dataset.deg)===((dRound%360)+360)%360);
+    });
+
+    current=deg;
+  }
+
+  let current=45;
+
+  // 拖曳
+  let dragging=false;
+  function angleFromEvent(e){
+    const rect=svg.getBoundingClientRect();
+    const sx=(e.clientX-rect.left)/rect.width*400;
+    const sy=(e.clientY-rect.top)/rect.height*400;
+    let a=Math.atan2(CY-sy, sx-CX)*180/Math.PI; // 數學方向
+    if(a<0) a+=360;
+    return a;
+  }
+  function start(e){dragging=true; svg.setPointerCapture&&svg.setPointerCapture(e.pointerId); move(e);}
+  function move(e){ if(!dragging) return; setAngle(angleFromEvent(e),false); e.preventDefault(); }
+  function end(){dragging=false;}
+
+  svg.addEventListener('pointerdown',start);
+  svg.addEventListener('pointermove',move);
+  svg.addEventListener('pointerup',end);
+  svg.addEventListener('pointercancel',end);
+
+  // 鍵盤
+  svg.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='ArrowUp'){ setAngle((Math.round(current)+ (e.shiftKey?15:1))%360,false); e.preventDefault(); }
+    if(e.key==='ArrowLeft'||e.key==='ArrowDown'){ setAngle(((Math.round(current)-(e.shiftKey?15:1))%360+360)%360,false); e.preventDefault(); }
+  });
+
+  setAngle(45,true);
+})();
+</script>
+</body>
+</html>
