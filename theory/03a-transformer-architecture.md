@@ -953,6 +953,8 @@ $$
 
 一個完整的 Transformer Block 由兩個子層（MHA、FFN）組成，每個子層都外包「LN → 子層 → 殘差」的三步結構。以下先給出整個 Block 的資料流全貌，再逐一拆解（§6.2–§6.5）。
 
+![](images/transformer_block.png)
+
 ### 6.1 完整 Block 的計算圖（先看全貌）
 
 $$
