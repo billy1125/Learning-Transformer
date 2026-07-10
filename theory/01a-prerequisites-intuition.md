@@ -10,6 +10,8 @@
 > **預備知識：** 知道矩陣乘法的基本概念即可（不需要會推導）。
 >
 > **學完後的下一步：** → [`02-attention-intuition.md`](02-attention-intuition.md)（注意力的直覺）
+>
+> **想先看更大的圖？** 之後讀到 Transformer Block（[`03a`](03a-transformer-architecture.md) §6）覺得零件太多時，可搭配超白話版 [`03a-transformer-block-plain.md`](03a-transformer-block-plain.md)（用生活比喻串起四個模組，零公式）。
 
 ---
 

@@ -1,4 +1,19 @@
-# Transformer Block 的簡單說明（高中生版）
+# 03a 白話前導｜Transformer Block 到底在做什麼（超白話版）
+
+> **適合對象：** 完全零基礎、想在讀 [`03a`](03a-transformer-architecture.md) 的數學之前，先用生活比喻抓住「一個 Transformer Block 有哪些零件、各自幹嘛」的讀者。
+>
+> **讀完後你能做什麼：**
+> - 說出 Transformer Block 四個模組（Multi-Head Attention / FFN / Residual Connection / LayerNorm）各自負責什麼
+> - 用一個比喻串起「先交換資訊 → 再個別整理 → 保留原稿 → 保持穩定」的完整流程
+> - 說明為什麼「只有 Attention」還不等於一個完整的 Block
+>
+> **定位：** [`03a`](03a-transformer-architecture.md) §6 的**超白話輔助版**（選讀）。這裡只給比喻與直覺、**不含任何公式**；看懂之後回到 `03a` §6 讀正式的「形狀契約」與數學，會輕鬆很多。前置直覺見 [`01a`](01a-prerequisites-intuition.md)。
+>
+> **對應 Notebook：** 無（純觀念）；Block 的實際前向見 [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) §13。
+>
+> **學完後的下一步：** → 回到 [`03a-transformer-architecture.md`](03a-transformer-architecture.md) §6 讀正式版
+
+---
 
 ## 一、先用一句話理解
 

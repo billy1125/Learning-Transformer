@@ -42,6 +42,10 @@
 「超白話輔助版」並與 `01a`／`03a` 互連；或 (b) **移入 `archive/`**（若判定與 `01a`／
 `transformer_block` 相關內容重複、不再維護）。需先比對它與 `03a §6`／`01a` 的重疊度再定。
 
+**✅ 已完成（2026-07）採 (a)：** 改名為 `theory/03a-transformer-block-plain.md`、補上倉庫規範檔頭
+（適合對象／定位／對應 Notebook／下一步），定位為 `03a §6` 白話輔助版；`03a §6` 開頭與 `01a`
+下一步各補一則指向連結，並列入 `CLAUDE.md`／`README` 理論表與資料夾說明。
+
 **優先級：P3 | 難度：低 | 對象：`transformer_block_simple_explanation.md`、`CLAUDE.md`、`README.md`**
 
 ### C3　`06` 未連結 encoder 姊妹分支（07／09）（P3）
@@ -100,7 +104,7 @@ temperature／top_k，缺 beam search 與並排對照。
 | 優先 | 編號 | 對象 | 說明 | 難度 | 狀態 |
 |---|---|---|---|---|---|
 | **P2** | C1 | 新 notebook + `09` | RAG 檢索 demo（重用 NB5 mini-BERT → 餘弦 top-k）| 中 | ⬜ 待辦 |
-| **P3** | C2 | `transformer_block_simple_explanation.md` | 孤兒檔：納入導覽或移入 archive/ | 低 | ⬜ 待辦 |
+| **P3** | C2 | `transformer_block_simple_explanation.md` | 孤兒檔：改名 `03a-transformer-block-plain.md`、補檔頭、納入導覽並與 01a／03a §6 互連 | 低 | ✅ 完成 |
 | **P3** | C3 | `theory/06` | 補連結到 encoder 姊妹分支 07／09 | 低 | ⬜ 待辦 |
 | **P3** | C4 | `NB4` 附錄、`NB5` 末段 | 補前向連結，提升分支可發現性 | 低 | ⬜ 待辦 |
 | **P3** | C5 | `NB4` 生成小節 | 並排展示解碼策略（greedy/temperature/top-k）| 低 | ⬜ 待辦（選作）|

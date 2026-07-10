@@ -895,6 +895,8 @@ Multi-Head Attention 是 Transformer Block 的第一個子層——第 6 節把�
 
 ## 6. Transformer Block
 
+> 只想先抓直覺、還不想碰形狀契約與數學？可先讀白話前導 [`03a-transformer-block-plain.md`](03a-transformer-block-plain.md)（用「開會 / 整理筆記 / 改作文」的比喻串起四個模組，零公式），再回到本節讀正式版。
+
 ### 6.0 Transformer Block 在哪裡做？為什麼 Multi-Head Attention 不夠？
 
 在完整 Transformer 架構中，Transformer Block 位於 **Embedding 之後、輸出層之前**，是模型主體中反覆堆疊的中間層。簡化流程如下：

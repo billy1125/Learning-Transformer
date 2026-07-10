@@ -41,7 +41,7 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 ## 資料夾結構
 
 ```
-theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為 decoder 選讀出口、07 為 encoder 選讀分支、09 為 embedding→RAG 應用出口；03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
+theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為 decoder 選讀出口、07 為 encoder 選讀分支、09 為 embedding→RAG 應用出口；03a-transformer-block-plain 為 03a §6 的白話輔助版、03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
 theory/images/   ← 理論文件內嵌圖檔（03a §5 的 attention_projection_vs_interaction、§5.5 的 multi_head_attention_diagram、§6.1 的 transformer_block_pre_ln_diagram）
 notebooks/       ← 實作主線（NB1–NB4）＋選讀分支（NB5 對應 07）
 notebooks/data/  ← Notebook 訓練資料（如 NB4／NB5 莎士比亞文本）
@@ -59,6 +59,7 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 | `01b-prerequisites-math.md` | 同上，附完整統計推導（大學線性代數程度）|
 | `02-attention-intuition.md` | QKV 直覺、翻譯範例逐步計算（I eat fish → 我吃魚）|
 | `03a-transformer-architecture.md` | Multi-Head Attention、Transformer Block、Positional Encoding（§2.3／§3.4 QKV 與縮放逐步數值、§5.6 多頭數值範例皆內嵌於本文）|
+| `03a-transformer-block-plain.md` | 03a §6 的**白話輔助版**（選讀）：用「開會／整理筆記／改作文」比喻串起 Attention／FFN／Residual／LayerNorm 四模組，零公式；服務零基礎讀者，讀完回 03a §6 讀正式版，與 01a 互連 |
 | `03b1-transformer-example-basic.md` | 03a 計算案例・簡單版（選讀）：$2\times4$ 輸入手算單頭 attention（$X\to\tilde X\to C^{(1)}$），不含多頭／FFN |
 | `03b2-transformer-example-block.md` | 03a 計算案例・中等版（選讀）：承接 03b1，補上第二頭、$W_O$、殘差、FFN，算到完整 Block 輸出 $Y$ |
 | `03b3-transformer-architecture-example.md` | 03a 計算案例・完整版（選讀）：§0 先依前向順序推導每個矩陣的設計歷程（維度咬合、投影＝選欄矩陣、$W_O$ 為可逆基底變換、FFN 形狀鏈），再從頭算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13；三份共用同一組數字 |
@@ -117,4 +118,4 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 **開放中的 backlog：**
 
 - `draft/improvement-04-llama.md` — 第五輪（規劃中）：把 `06` 文末「下一步」做成可執行出口（新增 NB6 改造實作、`theory/08` 官方碼對照；原規劃的 07／NB5 已改給 BERT 選讀分支）
-- `draft/improvement-05-current-backlog.md` — 整倉盤點後的當前待辦（C1 RAG demo notebook、C2 孤兒檔 `transformer_block_simple_explanation.md`、C3 06 補連結 07/09、C4 Notebook 前向連結、C5 解碼策略 demo），並彙整承接自 04 的 LLaMA 出口項目
+- `draft/improvement-05-current-backlog.md` — 整倉盤點後的當前待辦（C1 RAG demo notebook、~~C2 孤兒檔~~【✅ 已改名 `03a-transformer-block-plain.md` 並納入導覽】、C3 06 補連結 07/09、C4 Notebook 前向連結、C5 解碼策略 demo），並彙整承接自 04 的 LLaMA 出口項目

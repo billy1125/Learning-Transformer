@@ -57,6 +57,30 @@
 
 關鍵是：**這兩者的 Transformer Block 幾乎一模一樣**——多頭注意力、殘差、LayerNorm、FFN 全部照 [`03a`](03a-transformer-architecture.md) 學過的。真正的差別只有兩處，就是本文 §1（遮罩）與 §2（目標）。理解了這兩處，你就同時懂了 encoder 與 decoder 兩大家族。
 
+### 0.1 全景：從 nanoGPT 到這裡，實作只改兩處
+
+把整份教材攤平來看，主線走到 nanoGPT（NB4）就分出兩條選讀分支，本文是其中的 **encoder** 這條：
+
+```
+01→02→03  打好 Transformer Block 地基（多頭 / 殘差 / LayerNorm / FFN）
+                    │
+                    ▼
+        04 + NB4   nanoGPT（causal mask + next-token）── 主線終點
+                    │
+        ┌───────────┴────────────┐
+   decoder 分支               encoder 分支（本文）
+   06 現代變體                07 BERT ── NB5（重用 NB4，去 mask + 換 MLM）
+   → LLaMA（decoder 出口）          │
+                             09 文字轉向量 / RAG（encoder 應用出口）
+```
+
+主線終點是 nanoGPT，但 BERT **不是更進階的續集，而是平行的另一半**。你在 NB4 已經有一個能跑的 Transformer；[`NB5`](../notebooks/NB5-bert-mlm.ipynb) 幾乎原封不動**重用 NB4 的元件**（多頭注意力、殘差、LayerNorm、FFN、Pre-LN Block 全部照舊），只動兩個地方：
+
+1. **拿掉 causal mask**（§1）：注意力矩陣從下三角變回全連接，位置 $i$ 能看全序列。
+2. **換掉訓練目標**（§2）：把「預測下一字」的輸出頭改成「填被遮住的字」（MLM）。
+
+所以學過 nanoGPT 的人不必重學架構，只要理解這兩個 diff。讀完本文再往下走，encoder 產生的向量會在 [`09`](09-text-to-vector-rag.md) 接到語意檢索與 RAG——那是這條分支的**應用出口**（與 decoder 分支的 [`06`](06-modern-transformer-variants.md) → LLaMA 平行；完整分支圖見 [`00`](00-learning-path.md) §5）。
+
 ---
 
 ## 1. 雙向 Self-Attention：拿掉 Causal Mask

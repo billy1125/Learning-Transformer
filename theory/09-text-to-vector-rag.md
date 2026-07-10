@@ -33,6 +33,23 @@
 
 本文走一條時間線：靜態向量（Word2Vec）→ 動態向量（Transformer / BERT）→ 用餘弦相似度做檢索 → RAG。前半是「怎麼得到好向量」，後半是「拿向量來做什麼」。凡是 [`01a`](01a-prerequisites-intuition.md)／[`02`](02-attention-intuition.md)／[`03a`](03a-transformer-architecture.md)／[`07`](07-bert-encoder-only.md) 已經講過的（Embedding 基礎、自注意力、餘弦公式），本文只連結、不重推。
 
+**你在教材地圖的哪裡：** 主線 nanoGPT（NB4）之後分出兩條選讀分支——decoder 那條往 [`06`](06-modern-transformer-variants.md) → LLaMA，encoder 那條是 [`07`](07-bert-encoder-only.md) BERT，而本文是 **encoder 分支的應用出口**：BERT 產生的上下文向量，正是這裡拿來做語意檢索的原料。
+
+```
+01→02→03  Transformer Block 地基
+                    │
+                    ▼
+        04 + NB4   nanoGPT（主線終點）
+                    │
+        ┌───────────┴────────────┐
+   decoder 分支               encoder 分支
+   06 → LLaMA                 07 BERT ── NB5（去 mask + 換 MLM）
+                                   │
+                             09 文字轉向量 / RAG（本文，encoder 應用出口）
+```
+
+> encoder 與 decoder 在 RAG 裡各司其職——**用 encoder（BERT）做檢索、用 decoder（GPT）做生成**，這也是本文 §5 的主軸。分支全景另見 [`07`](07-bert-encoder-only.md) §0.1 與 [`00`](00-learning-path.md) §5。
+
 ---
 
 ## 1. 分佈假說：語意來自上下文
