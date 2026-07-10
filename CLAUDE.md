@@ -105,4 +105,16 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 - `draft/improvement-01-mainline-gaps.md` — 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
 - `draft/improvement-02-writing.md` — 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
 - `draft/improvement-03-notebooks.md` — 第四輪：Notebook 逐 cell 執行驗證（NB3 梯度 bug 修復、NB4 首次執行、路徑隔離）
+
+（`improvement-00`～`03` 為已完成的歷史存檔，保留供決策脈絡查閱，不再更動。）
+
+**臨時新增內容（非改善輪次，已完成，見 `add-bert-encoder-only` 分支）：**
+
+- `theory/07-bert-encoder-only.md` ＋ `notebooks/NB5-bert-mlm.ipynb` — BERT／Encoder-Only 選讀分支（雙向、MLM、`[CLS]`/`[SEP]`、預訓練+微調；NB5 從零手刻最小 BERT ＋ HuggingFace 選讀延伸）
+- `theory/09-text-to-vector-rag.md` — 文字轉向量與語意檢索（分佈假說、Word2Vec、動態 embedding、餘弦、RAG；encoder 分支的應用出口）
+- `advanced/Seq2Seq-and-Decoding-Techniques.md` — Seq2Seq 應用脈絡與解碼/訓練工藝（整理自李宏毅課程，延伸閱讀）
+
+**開放中的 backlog：**
+
 - `draft/improvement-04-llama.md` — 第五輪（規劃中）：把 `06` 文末「下一步」做成可執行出口（新增 NB6 改造實作、`theory/08` 官方碼對照；原規劃的 07／NB5 已改給 BERT 選讀分支）
+- `draft/improvement-05-current-backlog.md` — 整倉盤點後的當前待辦（C1 RAG demo notebook、C2 孤兒檔 `transformer_block_simple_explanation.md`、C3 06 補連結 07/09、C4 Notebook 前向連結、C5 解碼策略 demo），並彙整承接自 04 的 LLaMA 出口項目
