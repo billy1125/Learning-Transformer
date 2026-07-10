@@ -117,10 +117,16 @@ jupyter lab
 
 07 BERT Encoder-Only          ──────▶  NB5 最小 BERT（MLM）
   (雙向、MLM、[CLS]/[SEP])              （encoder 家族分支，選讀）
+
+        ↓
+
+09 文字轉向量與 RAG            ──────▶  語意檢索應用
+  (Word2Vec、動態 embedding、餘弦)      （encoder 分支的應用出口，選讀）
 ```
 
-> 主線 01→04→NB4 走 decoder-only 的 GPT；學完後有兩條選讀分支：
-> **06 / 未來的 NB6** 往 decoder 家族的 LLaMA，**07 / NB5** 往 encoder 家族的 BERT。
+> 主線 01→04→NB4 走 decoder-only 的 GPT；學完後有選讀分支：
+> **06 / 未來的 NB6** 往 decoder 家族的 LLaMA，**07 / NB5** 往 encoder 家族的 BERT，
+> **09** 再把 encoder 的句向量接到 RAG 語意檢索。
 
 ---
 
@@ -142,6 +148,7 @@ jupyter lab
 | [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀，decoder 家族出口） |
 | [`07-bert-encoder-only.md`](theory/07-bert-encoder-only.md) | BERT／Encoder-Only：雙向 Self-Attention、MLM 預訓練、`[CLS]`/`[SEP]`、預訓練+微調、encoder vs decoder 選型（選讀，encoder 家族分支） |
+| [`09-text-to-vector-rag.md`](theory/09-text-to-vector-rag.md) | 文字轉向量與語意檢索：分佈假說、Word2Vec、動態 embedding、餘弦相似度、RAG 檢索流程（選讀，encoder 分支的應用出口） |
 
 #### 實作主線 (`notebooks/`)
 

@@ -41,7 +41,7 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 ## 資料夾結構
 
 ```
-theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為 decoder 選讀出口、07 為 encoder 選讀分支；03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
+theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為 decoder 選讀出口、07 為 encoder 選讀分支、09 為 embedding→RAG 應用出口；03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
 theory/images/   ← 理論文件內嵌圖檔（03a §5 的 attention_projection_vs_interaction、§5.5 的 multi_head_attention_diagram、§6.1 的 transformer_block_pre_ln_diagram）
 notebooks/       ← 實作主線（NB1–NB4）＋選讀分支（NB5 對應 07）
 notebooks/data/  ← Notebook 訓練資料（如 NB4／NB5 莎士比亞文本）
@@ -66,6 +66,7 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 | `05-backpropagation.md` | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀；decoder 家族出口）|
 | `07-bert-encoder-only.md` | BERT／Encoder-Only：雙向 Self-Attention（拿掉 Causal Mask）、MLM 預訓練、`[CLS]`/`[SEP]`/三種 embedding、預訓練+微調、BERT 家族、encoder vs decoder 選型（選讀；encoder 家族分支，對應 NB5）|
+| `09-text-to-vector-rag.md` | 文字轉向量與語意檢索：分佈假說、Word2Vec（靜態）、Transformer/BERT 動態 embedding、餘弦相似度、RAG 檢索流程（選讀；encoder 分支的應用出口，重疊內容交叉引用 01a/02/03a/07 不重推）|
 
 ## Notebook（`notebooks/`）
 

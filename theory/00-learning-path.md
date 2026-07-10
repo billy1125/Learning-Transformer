@@ -71,7 +71,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 
 ### Level 3：旁支應用
 
-- **Cosine 相似度** → Embedding 檢索、RAG
+- **Cosine 相似度** → Embedding 檢索、RAG（展開見 [`09`](09-text-to-vector-rag.md)）
 - **最佳化**：SGD、Momentum、Adam → 實際訓練（NB2、NB4）
 - **SVD** → PCA、LoRA（參數高效微調）
 - **數值穩定性** → Softmax overflow、浮點誤差（`03a` §3.4 的實作注意、[`01b`](01b-prerequisites-math.md) §4.3）
@@ -113,6 +113,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 - [`05`](05-backpropagation.md)：Self-Attention／LayerNorm／Embedding 的完整梯度推導（對應 NB3）
 - [`06`](06-modern-transformer-variants.md)：RMSNorm、SwiGLU、RoPE、GQA——nanoGPT 到 LLaMA 的橋接（decoder 家族出口）
 - [`07`](07-bert-encoder-only.md)：BERT／雙向理解／MLM 預訓練——另一條 encoder 家族分支（對應 NB5）
+- [`09`](09-text-to-vector-rag.md)：文字轉向量與 RAG——Word2Vec、動態 embedding、餘弦檢索（encoder 分支的應用出口）
 
 > 完整的「理論 ↔ Notebook」對應表，以及兩個起點（直覺版／數學版）的選擇，見 [`../README.md`](../README.md) 的〈學習路線〉。
 
@@ -148,7 +149,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
         │                          Sentence-BERT
         └───────────────┬────────────────┘
                         ↓
-              Embedding → RAG   ← encoder 做檢索、decoder 做生成
+              Embedding → RAG   ← encoder 做檢索、decoder 做生成（見 09）
                         ↓
                      Agent      ← Tool Calling、Planning、Multi-Agent
                         ↓

@@ -253,13 +253,13 @@ BERT（2018）之後，encoder 家族沿著「更好的預訓練」與「更小�
             分類、NER、抽取式 QA、句子相似、檢索嵌入
 ```
 
-其中「**把句子變成一個向量**」是 encoder 最有價值的出口，直接銜接 [`00`](00-learning-path.md) §5 的 RAG 分支：
+其中「**把句子變成一個向量**」是 encoder 最有價值的出口，直接銜接 RAG 檢索（完整展開見 [`09`](09-text-to-vector-rag.md)）：
 
 ```
 Sentence-BERT ──> 句子 / 文件 embedding ──> 向量資料庫 ──> 相似度檢索（RAG）
 ```
 
-RAG（檢索增強生成）常見的組合，正是**用 encoder 做檢索、用 decoder 做生成**——兩大家族各司其職。所以這條 encoder 分支不是主線的替代品，而是**補上另一半**：讀完主線你會生成，讀完本文你會理解與檢索。
+RAG（檢索增強生成）常見的組合，正是**用 encoder 做檢索、用 decoder 做生成**——兩大家族各司其職。所以這條 encoder 分支不是主線的替代品，而是**補上另一半**：讀完主線你會生成，讀完本文你會理解與檢索。從句向量到 RAG 檢索流程的完整說明，見 [`09-text-to-vector-rag.md`](09-text-to-vector-rag.md)。
 
 > 補充：也有 **encoder-decoder** 模型（T5、BART），把「理解輸入」與「生成輸出」都要的 seq2seq 任務（翻譯、摘要）用兩半一起做。它就是原始 Transformer 的直系後代（[`04`](04-gpt-decoder-only.md) §1）。
 
@@ -288,5 +288,5 @@ RAG（檢索增強生成）常見的組合，正是**用 encoder 做檢索、用
 ## 下一步
 
 - 動手：[`../notebooks/NB5-bert-mlm.ipynb`](../notebooks/NB5-bert-mlm.ipynb) 從零手刻最小 BERT——把 NB4 的 `Head` 刪掉一行 `masked_fill`、把 next-token 換成 MLM，親眼看到「同一個 Block、換遮罩換目標」就從 GPT 變成 BERT。Notebook 末尾附**選讀延伸**：載入 HuggingFace 預訓練 BERT 做克漏字與分類，對照手刻版。
-- 應用：接 [`00`](00-learning-path.md) §5 的 RAG 分支，用 Sentence-BERT 把文件轉成向量做語意檢索。
+- 應用：[`09-text-to-vector-rag.md`](09-text-to-vector-rag.md)——從 Word2Vec 到 Sentence-BERT，再到 RAG 的完整檢索流程（encoder 分支的應用出口）。
 - 對照：想看 decoder 家族怎麼演化到 LLaMA，見 [`06`](06-modern-transformer-variants.md)。
