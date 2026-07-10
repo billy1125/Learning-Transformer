@@ -23,7 +23,7 @@
 | 1998 / 1997 | 專用結構登場 | CNN（影像）、RNN／LSTM（序列）| CNN 抓空間局部性；RNN 處理序列，但**逐步計算、長距離依賴會衰減** |
 | 2013–2014 | 表示與對齊 | word2vec（Embedding）、seq2seq + Attention | 詞被映射成向量；Attention 讓 decoder 能「對齊」到輸入任意位置 |
 | **2017** | **Transformer** | *Attention Is All You Need* | **完全用 Attention 取代遞迴**：可並行、長距離依賴變成 $O(1)$ 路徑 |
-| 2018–2020 | 預訓練範式 | BERT（Encoder）、GPT（Decoder）| 「大規模預訓練 + 下游微調」成為主流 |
+| 2018–2020 | 預訓練範式 | [BERT（Encoder）](07-bert-encoder-only.md)、GPT（Decoder）| 「大規模預訓練 + 下游微調」成為主流 |
 | 2022– | 對齊與指令 | ChatGPT、GPT-4（RLHF、指令遵循）| 讓模型「聽得懂指令、答得有用」|
 | 2024– | 推理與行動 | o 系列、DeepSeek-R1、Agent、Multimodal | 多步推理、自我檢查、工具使用、跨模態 |
 
@@ -71,7 +71,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 
 ### Level 3：旁支應用
 
-- **Cosine 相似度** → Embedding 檢索、RAG
+- **Cosine 相似度** → Embedding 檢索、RAG（展開見 [`09`](09-text-to-vector-rag.md)）
 - **最佳化**：SGD、Momentum、Adam → 實際訓練（NB2、NB4）
 - **SVD** → PCA、LoRA（參數高效微調）
 - **數值穩定性** → Softmax overflow、浮點誤差（`03a` §3.4 的實作注意、[`01b`](01b-prerequisites-math.md) §4.3）
@@ -111,7 +111,9 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 
 - [`03b3`](03b3-transformer-architecture-example.md)：用 $2\times4$ 輸入手算整個 Pre-LN Block（對應 NB1 §13）
 - [`05`](05-backpropagation.md)：Self-Attention／LayerNorm／Embedding 的完整梯度推導（對應 NB3）
-- [`06`](06-modern-transformer-variants.md)：RMSNorm、SwiGLU、RoPE、GQA——nanoGPT 到 LLaMA 的橋接
+- [`06`](06-modern-transformer-variants.md)：RMSNorm、SwiGLU、RoPE、GQA——nanoGPT 到 LLaMA 的橋接（decoder 家族出口）
+- [`07`](07-bert-encoder-only.md)：BERT／雙向理解／MLM 預訓練——另一條 encoder 家族分支（對應 NB5）
+- [`09`](09-text-to-vector-rag.md)：文字轉向量與 RAG——Word2Vec、動態 embedding、餘弦檢索（encoder 分支的應用出口）
 
 > 完整的「理論 ↔ Notebook」對應表，以及兩個起點（直覺版／數學版）的選擇，見 [`../README.md`](../README.md) 的〈學習路線〉。
 
@@ -130,24 +132,30 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 | 為什麼需要 Multi-Head？比單頭好在哪？ | `03a` §5 |
 | Transformer 本身沒有順序概念，位置資訊怎麼加入？ | `03a` §7 |
 | 為什麼需要 Residual Connection 與 LayerNorm？ | `03a` §6 |
-| GPT（Decoder-only）與 BERT（Encoder）差在哪？ | [`04`](04-gpt-decoder-only.md) |
+| GPT（Decoder-only）與 BERT（Encoder）差在哪？ | [`04`](04-gpt-decoder-only.md)、[`07`](07-bert-encoder-only.md) |
 
 若以上都能清楚解釋，就**不必再深鑽 Transformer 的理論細節**，可以往應用與前沿走。
 
 ### 接下來往哪走
 
 ```
-Transformer（本教材）
-   ↓
-GPT / LLaMA        ← 06 已是 nanoGPT → LLaMA 的橋接
-   ↓
-Embedding → RAG    ← 向量資料庫、相似度搜尋、檢索增強
-   ↓
-Agent              ← Tool Calling、Planning、Workflow、Multi-Agent
-   ↓
-Multimodal         ← ViT、CLIP、視覺-語言模型
-   ↓
-Reasoning / RLHF   ← 多步推理、自我檢查、強化學習
+                 Transformer（本教材）
+                        │
+        ┌───────────────┴───────────────┐
+   Decoder 家族                     Encoder 家族
+   GPT / LLaMA                      BERT / RoBERTa
+   ← 06 已是橋接                    ← 07 是入口（生成 vs 理解）
+        │                                │
+        │                          Sentence-BERT
+        └───────────────┬────────────────┘
+                        ↓
+              Embedding → RAG   ← encoder 做檢索、decoder 做生成（見 09）
+                        ↓
+                     Agent      ← Tool Calling、Planning、Multi-Agent
+                        ↓
+                  Multimodal    ← ViT、CLIP、視覺-語言模型
+                        ↓
+               Reasoning / RLHF ← 多步推理、自我檢查、強化學習
 ```
 
 > **趨勢備註：** 未來主流不太可能是「更大的單純 Transformer」，而是

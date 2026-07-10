@@ -216,6 +216,8 @@ $$
 \cos(x_i, x_j) = \frac{x_i^\top x_j}{\|x_i\| \cdot \|x_j\|}
 $$
 
+（餘弦相似度在語意檢索／RAG 裡的用法，見 [`09-text-to-vector-rag.md`](09-text-to-vector-rag.md) §4。）
+
 **縮放內積：** 內積除以 $\sqrt{d}$（防止高維時數字爆炸，第 8 節會詳細解釋）：
 
 $$

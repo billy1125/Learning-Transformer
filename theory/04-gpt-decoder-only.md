@@ -76,6 +76,8 @@ GPT：            只有 N 層 Causal Decoder Block
 | Decoder only | GPT, LLaMA | 文字生成、語言建模 |
 | Encoder-Decoder | T5, 原始 Transformer | 翻譯、摘要（seq2seq）|
 
+> 本文往下只談 Decoder-Only。Encoder-Only（BERT）那一支——雙向注意力、MLM 預訓練、預訓練+微調——是主線的選讀分支，見 [`07-bert-encoder-only.md`](07-bert-encoder-only.md)。
+
 Decoder-Only 架構確定了，但還有一個問題：訓練時如果讓模型看到未來的詞，等於作弊——第 3 節說明如何用遮罩阻止這件事。
 
 ---
@@ -155,6 +157,8 @@ E_masked：
 | 注意力矩陣 | 對稱 | 下三角 |
 | 適合任務 | 理解（分類/問答）| 生成（逐 token 輸出）|
 
+> Encoder（BERT）那一欄的完整展開——為何雙向、MLM 怎麼訓練、`[CLS]`/`[SEP]` 的角色——見 [`07-bert-encoder-only.md`](07-bert-encoder-only.md)。
+
 ---
 
 ## 4. Next-token Prediction：訓練目標的定義
@@ -195,40 +199,68 @@ optimizer.step()
 
 但每次 `loss.backward()` 都完整走一遍以下路徑，梯度從 loss 一路流回 `token_embedding.weight`（即 Embedding 矩陣 $E$）。括號內為關鍵公式，完整推導見 [`05-backpropagation.md`](05-backpropagation.md) §6：
 
-```
-前向傳播（forward pass）
-─────────────────────────────────────────────────────────
-token_id (B, T)
-  ↓  x_i = E[t_i]          ← Lookup：取出 E 的第 t_i 列
-x_embed (B, T, d)
-  ↓  h_0 = x_embed + p_embed
-  ↓  Block_1 → ... → Block_L
-h_L (B, T, d)
-  ↓  LayerNorm → lm_head: z_i = LN(h_L_i) · W_lm^T
-logits (B, T, V)
-  ↓  p^(i)_k = softmax(z_i)_k
-  ↓  L = −(1/T) Σ log p^(i)_{y_i}
-loss（純量）
+**前向傳播（forward pass）**
 
-反向傳播（backward pass）
-─────────────────────────────────────────────────────────
-Step 1｜Cross-Entropy + Softmax：
-  δ_i = ∂L/∂z_i，其中 δ_i^(k) = (1/T)(p^(i)_k − 1[k = y_i])
-  → 在正確 token 的位置減 1/T，其餘位置加 softmax 機率/T
+$$
+\underbrace{t_i}_{\text{token\_id }(B,T)}
+\;\xrightarrow{\;x_i = E[t_i]\;(\text{Lookup：取出 }E\text{ 的第 }t_i\text{ 列})\;}\;
+\underbrace{x_{\text{embed}}}_{(B,T,d)}
+$$
 
-Step 2｜lm_head 反向（z_i = LN(h)_i · W_lm^T）：
-  ∂L/∂LN(h_i) = δ_i · W_lm      ← 梯度流向上一層（d 維）
-  ∂L/∂W_lm = Σ_i δ_i^T · LN(h_i)^T  ← lm_head 的參數梯度（稠密，V×d；1/T 已含在 δ_i 中）
+$$
+h_0 = x_{\text{embed}} + p_{\text{embed}}
+\;\xrightarrow{\;\text{Block}_1 \to \cdots \to \text{Block}_L\;}\;
+\underbrace{h_L}_{(B,T,d)}
+$$
 
-Step 3｜穿越 LayerNorm、Residual、FFN、Attention：
-  → 最終到達 x_embed 的梯度記為 g_i ∈ R^d
+$$
+\underbrace{z_i = \mathrm{LN}(h_{L,i}) \, W_{lm}^\top}_{\text{LayerNorm} \to \text{lm\_head}}
+\;\longrightarrow\;
+\underbrace{\text{logits}}_{(B,T,V)}
+\;\xrightarrow{\;p^{(i)}_k = \mathrm{softmax}(z_i)_k\;}\;
+L = -\frac{1}{T}\sum_i \log p^{(i)}_{y_i}
+\;\;(\text{loss，純量})
+$$
 
-Step 4｜Lookup 反向（x_i = E[t_i]）：
-  ∂L/∂E[k] = Σ_{i: t_i = k} g_i   ← E 的梯度（稀疏：只有出現過的列非零）
+**反向傳播（backward pass）**
 
-Step 5｜Optimizer 更新：
-  E[k] ← E[k] − η · ∂L/∂E[k]
-```
+**Step 1｜Cross-Entropy + Softmax：**
+
+$$
+\delta_i = \frac{\partial L}{\partial z_i}, \qquad
+\delta_i^{(k)} = \frac{1}{T}\bigl(p^{(i)}_k - \mathbb{1}[k = y_i]\bigr)
+$$
+
+在正確 token 的位置減 $1/T$，其餘位置加 softmax 機率 $/T$。
+
+**Step 2｜lm_head 反向（$z_i = \mathrm{LN}(h)_i \, W_{lm}^\top$）：**
+
+$$
+\frac{\partial L}{\partial \mathrm{LN}(h_i)} = \delta_i \, W_{lm}
+\qquad (\text{梯度流向上一層，}d\text{ 維})
+$$
+
+$$
+\frac{\partial L}{\partial W_{lm}} = \sum_i \delta_i^\top \, \mathrm{LN}(h_i)^\top
+\qquad (\text{lm\_head 的參數梯度，稠密 }V \times d\text{；}1/T\text{ 已含在 }\delta_i\text{ 中})
+$$
+
+**Step 3｜穿越 LayerNorm、Residual、FFN、Attention：**
+
+最終到達 $x_{\text{embed}}$ 的梯度記為 $g_i \in \mathbb{R}^d$。
+
+**Step 4｜Lookup 反向（$x_i = E[t_i]$）：**
+
+$$
+\frac{\partial L}{\partial E[k]} = \sum_{i:\, t_i = k} g_i
+\qquad (E\text{ 的梯度，稀疏：只有出現過的列非零})
+$$
+
+**Step 5｜Optimizer 更新：**
+
+$$
+E[k] \leftarrow E[k] - \eta \cdot \frac{\partial L}{\partial E[k]}
+$$
 
 > **註（Weight Tying）：** Karpathy 的原版 nanoGPT 讓 `lm_head.weight` 與 `token_embedding.weight` 共用同一份矩陣（$W_{lm} = E$），此時 Step 2 的稠密梯度與 Step 4 的稀疏梯度會**累加**到同一個 $E$ 上。完整的雙通道梯度推導見 [`05-backpropagation.md`](05-backpropagation.md) §6。
 
@@ -508,6 +540,8 @@ def generate(self, idx, max_new_tokens):
 2. **為什麼 context 越長推理越貴？** KV Cache 的大小隨 $T$ 線性成長，長 context 模型（128K tokens）的推理瓶頸往往不是計算而是 VRAM。這也是 GQA 等技術出現的動機（見 [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md) §4）。
 
 nanoGPT 為了教學簡潔沒有實作 KV Cache，但讀懂它之後，看任何推理引擎的原始碼都會先遇到這個概念。
+
+> **延伸閱讀：** 本節只講「怎麼一步步生成」。至於**解碼策略**（greedy vs beam search、取樣的隨機性）與 Seq2Seq 的**訓練工藝**（teacher forcing、exposure bias、scheduled sampling、copy mechanism、guided attention、CE vs BLEU、用 RL 直攻不可微分指標），整理成一篇流暢的故事在 [`../advanced/Seq2Seq-and-Decoding-Techniques.md`](../advanced/Seq2Seq-and-Decoding-Techniques.md)（含 Encoder-Decoder 與 NAT decoder 的脈絡）。
 
 ---
 

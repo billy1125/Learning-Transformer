@@ -1171,7 +1171,7 @@ $$
 
 ### 7.5 可學習位置編碼（Learned Positional Encoding）
 
-另一種做法是讓 $p_i$ 成為可訓練參數（如 BERT、GPT 所採用）：
+另一種做法是讓 $p_i$ 成為可訓練參數（如 BERT、GPT 所採用；BERT 的完整輸入表示見 [`07-bert-encoder-only.md`](07-bert-encoder-only.md) §3）：
 
 $$
 p_i \in \mathbb{R}^d \quad \text{（可學習，隨梯度更新）}
