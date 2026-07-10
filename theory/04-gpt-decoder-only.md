@@ -541,6 +541,8 @@ def generate(self, idx, max_new_tokens):
 
 nanoGPT 為了教學簡潔沒有實作 KV Cache，但讀懂它之後，看任何推理引擎的原始碼都會先遇到這個概念。
 
+> **延伸閱讀：** 本節只講「怎麼一步步生成」。至於**解碼策略**（greedy vs beam search、取樣的隨機性）與 Seq2Seq 的**訓練工藝**（teacher forcing、exposure bias、scheduled sampling、copy mechanism、guided attention、CE vs BLEU、用 RL 直攻不可微分指標），整理成一篇流暢的故事在 [`../advanced/Seq2Seq-and-Decoding-Techniques.md`](../advanced/Seq2Seq-and-Decoding-Techniques.md)（含 Encoder-Decoder 與 NAT decoder 的脈絡）。
+
 ---
 
 ## 9. 打開 nanoGPT 之前的速查清單

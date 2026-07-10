@@ -165,6 +165,7 @@ jupyter lab
 - [`Attention-Mechanism-Part1.md`](advanced/Attention-Mechanism-Part1.md) — Nadaraya-Watson 核回歸視角
 - [`Attention-Mechanism-Part2.md`](advanced/Attention-Mechanism-Part2.md) — Bahdanau 注意力、seq2seq 歷史
 - [`Attention-NW-Kernel-Regression.md`](advanced/Attention-NW-Kernel-Regression.md) — 注意力的非參數統計解釋
+- [`Seq2Seq-and-Decoding-Techniques.md`](advanced/Seq2Seq-and-Decoding-Techniques.md) — Seq2Seq 應用脈絡、Encoder/Decoder、解碼與訓練工藝（teacher forcing、exposure bias、beam search、NAT、copy、guided attention、BLEU vs CE、RL；整理自李宏毅課程）
 - [`Transformer-in-Nushell.md`](advanced/Transformer-in-Nushell.md) — 精簡速查版
 - [`Suggested-Papers.md`](advanced/Suggested-Papers.md) — 延伸閱讀論文清單
 
