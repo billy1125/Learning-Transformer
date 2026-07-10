@@ -55,11 +55,12 @@ jupyter lab
 | 套件 | 版本 | 用途 |
 |---|---|---|
 | `python` | 3.11 | 執行環境 |
-| `torch` | 2.x | 神經網路、autograd（NB2、NB4） |
+| `torch` | 2.x | 神經網路、autograd（NB2、NB4、NB5） |
 | `numpy` | 2.x | 手刻矩陣運算（NB1、NB3） |
-| `matplotlib` | 3.x | 損失曲線、注意力熱圖（NB2、NB3、NB4） |
+| `matplotlib` | 3.x | 損失曲線、注意力熱圖（NB2、NB3、NB4、NB5） |
 | `jupyterlab` | 4.x | Notebook 執行環境 |
 | `pandas` | 2.x | 少量資料整理（NB3） |
+| `transformers` | 選用 | 僅 NB5 附錄「載入 HuggingFace 預訓練 BERT」選讀段需要（`pip install transformers`；預設不執行）|
 
 ---
 
@@ -110,8 +111,16 @@ jupyter lab
         ↓
 
 06 當代 Transformer 架構      ──────▶  LLaMA 等開源模型原始碼
-  (RMSNorm、SwiGLU、RoPE、GQA)         （主線出口，選讀）
+  (RMSNorm、SwiGLU、RoPE、GQA)         （decoder 家族出口，選讀）
+
+        ↓
+
+07 BERT Encoder-Only          ──────▶  NB5 最小 BERT（MLM）
+  (雙向、MLM、[CLS]/[SEP])              （encoder 家族分支，選讀）
 ```
+
+> 主線 01→04→NB4 走 decoder-only 的 GPT；學完後有兩條選讀分支：
+> **06 / 未來的 NB6** 往 decoder 家族的 LLaMA，**07 / NB5** 往 encoder 家族的 BERT。
 
 ---
 
@@ -131,7 +140,8 @@ jupyter lab
 | [`03b3-transformer-architecture-example.md`](theory/03b3-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：§0 依前向順序推導每個矩陣的設計歷程，再算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
 | [`04-gpt-decoder-only.md`](theory/04-gpt-decoder-only.md) | Causal Masking、語言模型訓練目標、nanoGPT 架構解析 |
 | [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
-| [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀） |
+| [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀，decoder 家族出口） |
+| [`07-bert-encoder-only.md`](theory/07-bert-encoder-only.md) | BERT／Encoder-Only：雙向 Self-Attention、MLM 預訓練、`[CLS]`/`[SEP]`、預訓練+微調、encoder vs decoder 選型（選讀，encoder 家族分支） |
 
 #### 實作主線 (`notebooks/`)
 
@@ -141,6 +151,7 @@ jupyter lab
 | [`NB2-simple-llm-pytorch.ipynb`](notebooks/NB2-simple-llm-pytorch.ipynb) | PyTorch 版本 | 01 + 02 + 03 |
 | [`NB3-llm-backpropagation.ipynb`](notebooks/NB3-llm-backpropagation.ipynb) | NumPy 手刻完整反向傳播 | 01–03 + 05 |
 | [`NB4-nanoGPT.ipynb`](notebooks/NB4-nanoGPT.ipynb) | 完整 nanoGPT，訓練莎士比亞文本 | 01–04 |
+| [`NB5-bert-mlm.ipynb`](notebooks/NB5-bert-mlm.ipynb) | 從零手刻最小 BERT（去 causal mask + MLM）＋ HuggingFace 選讀延伸（選讀分支） | 01–03 + 07 |
 
 #### 進階補充 (`advanced/`，選讀)
 
@@ -174,4 +185,4 @@ jupyter lab
 | `draft/improvement-01-mainline-gaps.md` | 主線概念缺口（$W_O$、FFN、PE、Dropout、KV Cache、Embedding 梯度）、新增 `06` 當代架構文件 |
 | `draft/improvement-02-writing.md` | 數學推導逐步化（Softmax Jacobian、LayerNorm 合併代數等）、程式範例說明、失效引用修正 |
 | `draft/improvement-03-notebooks.md` | Notebook 執行驗證：NB3 梯度驗證 bug 修復、NB4 首次執行、路徑隔離與 .gitignore 補強 |
-| `draft/improvement-04-llama.md` | （規劃中）把 `06` 文末「下一步」做成可執行出口：新增 NB5 改造實作、`theory/07` 官方碼對照 |
+| `draft/improvement-04-llama.md` | （規劃中）把 `06` 文末「下一步」做成可執行出口：新增 NB6 改造實作、`theory/08` 官方碼對照（原規劃 07／NB5 已改給 BERT 選讀分支） |

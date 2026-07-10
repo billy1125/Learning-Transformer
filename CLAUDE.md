@@ -26,7 +26,7 @@ pip install numpy matplotlib jupyterlab pandas
 jupyter lab
 ```
 
-主要依賴：Python 3.11、PyTorch 2.x、NumPy、JupyterLab（完整安裝說明見 `README.md`）。
+主要依賴：Python 3.11、PyTorch 2.x、NumPy、JupyterLab（完整安裝說明見 `README.md`）。NB5 主體零額外相依；其附錄「載入 HuggingFace 預訓練 BERT」選讀段才需 `pip install transformers`，且預設 `RUN_HF=False` 不執行。
 
 ## 執行 Notebook
 
@@ -41,10 +41,10 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 ## 資料夾結構
 
 ```
-theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為選讀出口；03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
+theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為 decoder 選讀出口、07 為 encoder 選讀分支；03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
 theory/images/   ← 理論文件內嵌圖檔（03a §5 的 attention_projection_vs_interaction、§5.5 的 multi_head_attention_diagram、§6.1 的 transformer_block_pre_ln_diagram）
-notebooks/       ← 實作主線（4 個 Notebook，依序執行）
-notebooks/data/  ← Notebook 訓練資料（如 NB4 莎士比亞文本）
+notebooks/       ← 實作主線（NB1–NB4）＋選讀分支（NB5 對應 07）
+notebooks/data/  ← Notebook 訓練資料（如 NB4／NB5 莎士比亞文本）
 advanced/        ← 進階補充（選讀，非主線）
 archive/         ← 所有舊版文件備份（不會動到）
 environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / CUDA；安裝說明見 README.md）
@@ -64,7 +64,8 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 | `03b3-transformer-architecture-example.md` | 03a 計算案例・完整版（選讀）：§0 先依前向順序推導每個矩陣的設計歷程（維度咬合、投影＝選欄矩陣、$W_O$ 為可逆基底變換、FFN 形狀鏈），再從頭算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13；三份共用同一組數字 |
 | `04-gpt-decoder-only.md` | Causal Masking、GPT Decoder-Only 架構、nanoGPT 逐行解析 |
 | `05-backpropagation.md` | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
-| `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀）|
+| `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀；decoder 家族出口）|
+| `07-bert-encoder-only.md` | BERT／Encoder-Only：雙向 Self-Attention（拿掉 Causal Mask）、MLM 預訓練、`[CLS]`/`[SEP]`/三種 embedding、預訓練+微調、BERT 家族、encoder vs decoder 選型（選讀；encoder 家族分支，對應 NB5）|
 
 ## Notebook（`notebooks/`）
 
@@ -74,6 +75,7 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 | `NB2-simple-llm-pytorch.ipynb` | PyTorch 版本 | 01 + 02 + 03 |
 | `NB3-llm-backpropagation.ipynb` | NumPy 手刻完整反向傳播（含梯度驗證）| 01–03 + 05 |
 | `NB4-nanoGPT.ipynb` | 完整 nanoGPT，訓練莎士比亞文本 | 01–04 |
+| `NB5-bert-mlm.ipynb` | 從零手刻最小 BERT（重用 NB4 元件、去 causal mask、MLM 目標）＋ HuggingFace 選讀延伸段（選讀分支）| 01–03 + 07 |
 
 ## 核心設計原則
 
@@ -102,4 +104,4 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 - `draft/improvement-01-mainline-gaps.md` — 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
 - `draft/improvement-02-writing.md` — 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
 - `draft/improvement-03-notebooks.md` — 第四輪：Notebook 逐 cell 執行驗證（NB3 梯度 bug 修復、NB4 首次執行、路徑隔離）
-- `draft/improvement-04-llama.md` — 第五輪（規劃中）：把 `06` 文末「下一步」做成可執行出口（新增 NB5 改造實作、`theory/07` 官方碼對照）
+- `draft/improvement-04-llama.md` — 第五輪（規劃中）：把 `06` 文末「下一步」做成可執行出口（新增 NB6 改造實作、`theory/08` 官方碼對照；原規劃的 07／NB5 已改給 BERT 選讀分支）
