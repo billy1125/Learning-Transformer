@@ -115,6 +115,8 @@ $$
 
 03b1 已經先對 $X$ 做過第一個 LayerNorm，本文不重算這一步，只在 §2 直接接續使用。
 
+> **關於位置編碼：** $X$ 是 token embedding，**尚未加入位置編碼 $P$**；位置資訊在進 Block 前以 $X_{\text{in}}=X+P$ 注入（見 [`03a` §7](03a-transformer-architecture.md)／[`03b3` §6](03b3-transformer-architecture-example.md)）。本三階段為維持數字乾淨一律取 $P=0$。
+
 ### 1.2 Head 2 的投影矩陣
 
 Head 1 在 03b1 取 $\tilde X$ 的前 2 維；Head 2 則取後 2 維：
