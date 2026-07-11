@@ -110,6 +110,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 **選讀深入**（想算得更細或推得更深時再走）：
 
 - [`03b3`](03b3-transformer-architecture-example.md)：用 $2\times4$ 輸入手算整個 Pre-LN Block（對應 NB1 §13）
+  - [`03b4`](03b4-transformer-example-with-position.md)：對照支線——把位置編碼真的加進去（P≠0）從頭算一次（對應 NB1 §13b）
 - [`05`](05-backpropagation.md)：Self-Attention／LayerNorm／Embedding 的完整梯度推導（對應 NB3）
 - [`06`](06-modern-transformer-variants.md)：RMSNorm、SwiGLU、RoPE、GQA——nanoGPT 到 LLaMA 的橋接（decoder 家族出口）
 - [`07`](07-bert-encoder-only.md)：BERT／雙向理解／MLM 預訓練——另一條 encoder 家族分支（對應 NB5）

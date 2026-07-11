@@ -611,3 +611,4 @@ $$
 - **回主線理論：** [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md) — 在本文的 attention 之上加 Causal Masking，走向 GPT。
 - **往實作走：** [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) — 用 NumPy 從零實作；§13 即本文的可執行版。
 - **往反向傳播走：** [`05-backpropagation.md`](05-backpropagation.md) — 有了前向數字，接著手推每個元件的梯度。
+- **看含位置編碼的版本：** [`03b4-transformer-example-with-position.md`](03b4-transformer-example-with-position.md) — 選讀對照支線，把 $P$ 真的加進輸入（P≠0）從頭算一次（對應 NB1 §13b）。
