@@ -181,7 +181,7 @@ Self-Attention → Residual Add → LayerNorm
 Multi-Head Attention → Add & Norm → Feed Forward → Add & Norm
 ```
 
-要特別提醒：這個設計**不是唯一、也不永遠最佳**。後續研究探討過很多問題——layer normalization 該放在 residual 之後、還是放在 block 的輸入端（也就是 Pre-LN 與 Post-LN 之爭，主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §6 有專門對比）？為什麼 Transformer 裡 layer norm 通常比 batch norm 更常用？能不能提出 power normalization 之類的替代方案？這些都說明 Transformer 是一個**可以持續改良**的架構，而不是固定不變的標準答案。
+要特別提醒：這個設計**不是唯一、也不永遠最佳**。後續研究探討過很多問題——layer normalization 該放在 residual 之後、還是放在 block 的輸入端（也就是 Pre-LN 與 Post-LN 之爭，主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §7 與 [`04b`](../theory/04b-nanogpt-walkthrough.md) §7 有專門對比）？為什麼 Transformer 裡 layer norm 通常比 batch norm 更常用？能不能提出 power normalization 之類的替代方案？這些都說明 Transformer 是一個**可以持續改良**的架構，而不是固定不變的標準答案。
 
 ### Encoder 與 RNN、CNN 的關係
 
@@ -249,7 +249,7 @@ Decoder 的 self-attention 和 Encoder 不完全一樣。Encoder 可以一次看
 產生第 3 個 token：只能看位置 1、2、3
 ```
 
-正在生第 3 個位置時，只能看位置 1、2、3，不能看第 4 個。這就是 **causal mask**（也叫 look-ahead mask）的概念，目的是避免訓練時模型偷看未來答案。（它在 nanoGPT 裡怎麼用下三角矩陣把未來位置設成 $-\infty$、以及數值演示，見主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §3。）
+正在生第 3 個位置時，只能看位置 1、2、3，不能看第 4 個。這就是 **causal mask**（也叫 look-ahead mask）的概念，目的是避免訓練時模型偷看未來答案。（它在 nanoGPT 裡怎麼用下三角矩陣把未來位置設成 $-\infty$、以及數值演示，見主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §4。）
 
 ### End Token：讓生成自己停下來
 
@@ -297,7 +297,7 @@ Value 來自 Encoder
 
 ### 訓練 Decoder：每一步都是一個分類問題
 
-訓練 Decoder 時，每個輸出位置都可以看成一個**分類問題**。假設 vocabulary 有 4000 個中文字，每一步模型都要從這 4000 個類別裡選出正確的 token；模型輸出的是 softmax 後的機率分布，正確答案是一個 one-hot vector。訓練目標是讓輸出分布靠近正確答案，因此用 **Cross Entropy**。整句的 loss，可以理解為每個位置的 cross entropy 加總，而且最後還要包含 **End token** 的預測。（next-token 訓練與 cross-entropy 在 nanoGPT 裡的實作，見主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §4。）
+訓練 Decoder 時，每個輸出位置都可以看成一個**分類問題**。假設 vocabulary 有 4000 個中文字，每一步模型都要從這 4000 個類別裡選出正確的 token；模型輸出的是 softmax 後的機率分布，正確答案是一個 one-hot vector。訓練目標是讓輸出分布靠近正確答案，因此用 **Cross Entropy**。整句的 loss，可以理解為每個位置的 cross entropy 加總，而且最後還要包含 **End token** 的預測。（next-token 訓練與 cross-entropy 在 nanoGPT 裡的實作，見主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §9。）
 
 ### Teacher Forcing 與它帶來的 Exposure Bias
 
@@ -334,7 +334,7 @@ Value 來自 Encoder
 
 ### Decoder 需要一點隨機性
 
-對某些任務來說，找出「機率最高」的輸出，不一定是人類覺得最自然的結果。故事續寫有很多都合理的答案、不是只有一個標準解；模型如果總是挑最高分 token，往往生出平庸又重複的句子。（這也是為什麼 nanoGPT 生成時用 temperature 與 top-k 取樣，而不是純 greedy——見主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §8 與 [`NB4`](../notebooks/NB4-nanoGPT.ipynb)。）
+對某些任務來說，找出「機率最高」的輸出，不一定是人類覺得最自然的結果。故事續寫有很多都合理的答案、不是只有一個標準解；模型如果總是挑最高分 token，往往生出平庸又重複的句子。（這也是為什麼 nanoGPT 生成時用 temperature 與 top-k 取樣，而不是純 greedy——見主線 [`04b`](../theory/04b-nanogpt-walkthrough.md) §9 與 [`NB4`](../notebooks/NB4-nanoGPT.ipynb)。）
 
 語音合成也可能需要隨機性。課程提到一個反直覺的現象：TTS 在**測試時**加入 noise，有時反而能產生比較自然的聲音——這跟一般機器學習的直覺不同，因為我們通常只在訓練時加 noise、不會在測試時加。這說明：Decoder 最好的解碼策略，取決於任務本身的特性。
 
@@ -362,6 +362,6 @@ Value 來自 Encoder
 如果你想把這些直覺換成能親手實作的數學與程式，回到主線：
 
 - Encoder 的 block、self-attention、多頭、殘差與 LayerNorm 的嚴謹版 → [`theory/03a-transformer-architecture.md`](../theory/03a-transformer-architecture.md)
-- Decoder-only、causal mask、next-token 訓練、自迴歸生成 → [`theory/04-gpt-decoder-only.md`](../theory/04-gpt-decoder-only.md)、[`NB4-nanoGPT`](../notebooks/NB4-nanoGPT.ipynb)
+- Decoder-only、causal mask、next-token 訓練、自迴歸生成 → [`theory/04-gpt-decoder-only.md`](../theory/04-gpt-decoder-only.md)（原理）、[`04b-nanogpt-walkthrough.md`](../theory/04b-nanogpt-walkthrough.md)（程式）、[`NB4-nanoGPT`](../notebooks/NB4-nanoGPT.ipynb)
 - BERT＝Encoder 的完整展開 → [`theory/07-bert-encoder-only.md`](../theory/07-bert-encoder-only.md)
 - 更多延伸論文 → [`Suggested-Papers.md`](Suggested-Papers.md)

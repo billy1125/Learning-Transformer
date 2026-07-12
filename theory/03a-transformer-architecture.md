@@ -13,7 +13,7 @@
 >
 > **注意：** 本文件不含反向傳播推導，梯度推導請見 [`05-backpropagation.md`](05-backpropagation.md)
 >
-> **學完後的下一步：** → [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md)（Causal Masking 與 nanoGPT 橋接）
+> **學完後的下一步：** → [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md)（GPT 原理與數學：Causal Masking 等）→ [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md)（nanoGPT 程式對照）
 
 ---
 
@@ -1234,6 +1234,6 @@ $$
 
 - **想先把數字算一遍：** 三階段計算案例，從簡到繁循序爬升（同一組 $2\times4$ 輸入）—— [`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（單頭 attention 入門）→ [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（多頭、$W_O$、殘差、FFN，算到 Block 輸出）→ [`03b3-transformer-architecture-example.md`](03b3-transformer-architecture-example.md)（完整版，含縮放對照與 PE 旋轉驗證）
 - **往實作走：** [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) — 用 NumPy 從零實作本文所有元件（§13 即 03a 的可執行版）
-- **往 GPT 走：** [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md) — 了解 GPT 的 Decoder-Only 架構與 Causal Masking，然後打開 nanoGPT
+- **往 GPT 走：** [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md)（原理與數學）→ [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md)（程式對照）— 了解 GPT 的 Decoder-Only 架構與 Causal Masking，然後打開 nanoGPT
 - **往反向傳播走：** [`05-backpropagation.md`](05-backpropagation.md) — 手推 Self-Attention 與 LayerNorm 的完整梯度
 

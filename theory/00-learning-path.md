@@ -103,9 +103,11 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 **最短主線**（理論與實作交錯進行）：
 
 ```
-01 前置數學        →  02 Attention 直覺  →  03a 架構       →  04 GPT        →  實作
-(向量/softmax/梯度)   (QKV 翻譯範例)        (多頭/Block/PE)    (Causal Mask)    NB1→NB2→NB4
+01 前置數學        →  02 Attention 直覺  →  03a 架構       →  04 GPT 原理     →  04b nanoGPT 程式 →  實作
+(向量/softmax/梯度)   (QKV 翻譯範例)        (多頭/Block/PE)    (數學/Causal Mask)   (逐行對照數學)      NB1→NB2→NB4
 ```
+
+> `04` 是 GPT 的**原理與數學**（Scaled Dot-Product、Causal Mask、Multi-Head／FFN／Pre-LN、Next-token 與梯度鏈）；[`04b`](04b-nanogpt-walkthrough.md) 是它的**程式對照**續篇（nanoGPT 逐行、每節回指 04 數學），讀完接 NB4。
 
 **選讀深入**（想算得更細或推得更深時再走）：
 
