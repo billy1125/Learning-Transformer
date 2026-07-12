@@ -1,14 +1,14 @@
 # 04b｜nanoGPT 程式對照：逐行解析與數學回指
 
-> **適合對象：** 讀完 [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（原理與數學）後，想把每一段 nanoGPT 程式碼對回數學式、並準備打開 nanoGPT Notebook 的讀者。
+> **適合對象：** 讀完 [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（基本概念與 Pipeline）與 [`05a-forward-propagation.md`](05a-forward-propagation.md)（前向數學）後，想把每一段 nanoGPT 程式碼對回數學式、並準備打開 nanoGPT Notebook 的讀者。
 >
 > **讀完後你能做什麼：**
-> - 對照 `Head` / `MultiHeadAttention` / `FeedForward` / `Block` / `GPT` 類別與 04a 的數學節
+> - 對照 `Head` / `MultiHeadAttention` / `FeedForward` / `Block` / `GPT` 類別與 05a 的數學節
 > - 解釋 Pre-LN 與 Post-LN 在程式上的差異
 > - 看懂 nanoGPT 的字元級 tokenizer 與自迴歸生成
 > - 說明 KV Cache 為什麼能加速推理
 >
-> **前置文件：** [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（原理與數學）、[`03a-transformer-architecture.md`](03a-transformer-architecture.md)
+> **前置文件：** [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（基本概念與 Pipeline）、[`05a-forward-propagation.md`](05a-forward-propagation.md)（前向數學）、[`03a-transformer-architecture.md`](03a-transformer-architecture.md)
 >
 > **學完後的下一步：** → [`../notebooks/NB4-nanoGPT.ipynb`](../notebooks/NB4-nanoGPT.ipynb)
 
@@ -27,13 +27,13 @@
 9. 自迴歸生成（Autoregressive Generation）
 10. 打開 nanoGPT 之前的速查清單
 
-> **怎麼讀：** 每節先看程式，再回指 [`04a`](04a-gpt-decoder-only.md) 對應的數學節（式子在那裡完整推導）。本文只負責「程式如何落實數學」，不重推公式。
+> **怎麼讀：** 每節先看程式，再回指 [`05a`](05a-forward-propagation.md) 對應的數學節（式子在那裡完整推導）；整體資料流與概念見 [`04a`](04a-gpt-decoder-only.md) 的 Pipeline 總覽。本文只負責「程式如何落實數學」，不重推公式。
 
 ---
 
 ## 1. `Head`：單頭 Causal Self-Attention
 
-對應數學：[`04a`](04a-gpt-decoder-only.md) §3（Scaled Dot-Product）＋ §4（Causal Masking）；幾何直覺見 [`03a`](03a-transformer-architecture.md) §1–§4
+對應數學：[`05a`](05a-forward-propagation.md) §1（Scaled Dot-Product）＋ §2（Causal Masking）；幾何直覺見 [`03a`](03a-transformer-architecture.md) §1–§4
 
 ```python
 class Head(nn.Module):
@@ -57,13 +57,13 @@ class Head(nn.Module):
         return wei @ v                                      # C = AV
 ```
 
-逐行對回 [`04a`](04a-gpt-decoder-only.md) §3 的式子：`self.key/query/value` 就是投影矩陣 $W_K,W_Q,W_V$；`q @ k.transpose(-2,-1)` 是 $QK^\top$；`* C**-0.5` 是除以 $\sqrt{d_k}$（見 §3 的方差論證）；`masked_fill(...,-inf)` 是 §4 的因果遮罩；`F.softmax` → `@ v` 就是 $A=\text{softmax}(\cdot)$、輸出 $AV$。
+逐行對回 [`05a`](05a-forward-propagation.md) §1 的式子：`self.key/query/value` 就是投影矩陣 $W_K,W_Q,W_V$；`q @ k.transpose(-2,-1)` 是 $QK^\top$；`* C**-0.5` 是除以 $\sqrt{d_k}$（見 05a §1 的方差論證）；`masked_fill(...,-inf)` 是 05a §2 的因果遮罩；`F.softmax` → `@ v` 就是 $A=\text{softmax}(\cdot)$、輸出 $AV$。
 
-**注意：** `C**-0.5` 中 `C = head_size`，即除以 $\sqrt{d_k}$，與 §3 一致。
+**注意：** `C**-0.5` 中 `C = head_size`，即除以 $\sqrt{d_k}$，與 05a §1 一致。
 
 ## 2. `MultiHeadAttention`：多頭 Attention
 
-對應數學：[`04a`](04a-gpt-decoder-only.md) §5
+對應數學：[`05a`](05a-forward-propagation.md) §3
 
 ```python
 class MultiHeadAttention(nn.Module):
@@ -77,18 +77,18 @@ class MultiHeadAttention(nn.Module):
         return self.dropout(self.proj(out))                  # 乘 W_O 再 dropout
 ```
 
-forward 的兩行與 §5 的公式 $\text{Concat}(C^{(1)}, \ldots, C^{(H)}) \, W_O$ 逐一對應：
+forward 的兩行與 05a §3 的公式 $\text{Concat}(C^{(1)}, \ldots, C^{(H)}) \, W_O$ 逐一對應：
 
 - `[h(x) for h in self.heads]`：`num_heads` 個 `Head` 並行執行，各得 `(B, T, head_size)`
 - `torch.cat(..., dim=-1)`：沿最後一維拼接 → `(B, T, n_embd)`（因為 `num_heads × head_size = n_embd`）
-- `self.proj(out)`：乘以 $W_O$，把各 head 的資訊混合重組（§5 說明 $W_O$ 為何是可逆基底變換）
+- `self.proj(out)`：乘以 $W_O$，把各 head 的資訊混合重組（05a §3 說明 $W_O$ 為何是可逆基底變換）
 - `self.dropout(...)`：殘差路徑前的 dropout（見 §3 的 Dropout 說明）
 
 在 nanoGPT 中：`n_embd=384, n_head=6` → 每個 head 的 `head_size = 384/6 = 64`（這是 NB4 註解區塊中「完整版超參數」的參考值；NB4 目前預設啟用的是跑得動 CPU 的輕量驗證版 `n_embd=64, n_head=2`，把 384/6 換成 64/2 一樣成立，$64/2=32$）
 
 ## 3. `FeedForward`：Position-wise FFN
 
-對應數學：[`04a`](04a-gpt-decoder-only.md) §6
+對應數學：[`05a`](05a-forward-propagation.md) §4
 
 ```python
 self.net = nn.Sequential(
@@ -99,7 +99,7 @@ self.net = nn.Sequential(
 )
 ```
 
-與 §6 的 $\text{ReLU}(Z'W_1 + b_1)W_2 + b_2$ 完全對應，`d_ff = 4 * n_embd`。
+與 05a §4 的 $\text{ReLU}(Z'W_1 + b_1)W_2 + b_2$ 完全對應，`d_ff = 4 * n_embd`。
 
 **Dropout 是什麼？**（這是 dropout 在本文第一次出現）
 
@@ -117,7 +117,7 @@ nanoGPT 在三個地方使用 dropout：
 
 ## 4. `Block`：完整 Transformer Block
 
-對應數學：[`04a`](04a-gpt-decoder-only.md) §7，注意是 **Pre-LN**（見本文 §7）
+對應數學：[`05a`](05a-forward-propagation.md) §5，注意是 **Pre-LN**（見本文 §7）
 
 ```python
 class Block(nn.Module):
@@ -127,7 +127,7 @@ class Block(nn.Module):
         return x
 ```
 
-兩行都是「$x \leftarrow x + f(\text{LN}(x))$」的殘差結構，對應 §7 的 Pre-LN Block 公式；`ln1`/`ln2` 是兩個獨立的 LayerNorm。
+兩行都是「$x \leftarrow x + f(\text{LN}(x))$」的殘差結構，對應 05a §5 的 Pre-LN Block 公式；`ln1`/`ln2` 是兩個獨立的 LayerNorm。
 
 ## 5. `GPT`：完整模型
 
@@ -143,7 +143,7 @@ class GPT(nn.Module):
 
 **`nn.Embedding` 在做什麼？**
 
-`nn.Embedding(V, d)` 內部就是一個 $V \times d$ 的矩陣。forward 時輸入 token ID（整數），直接返回對應的列——這就是「查表（Lookup）」，是 $O(1)$ 的索引操作，不是矩陣乘法。（數學形式化見 [`04a`](04a-gpt-decoder-only.md) §8 與 [`01b`](01b-prerequisites-math.md) §2；它如何被訓練見 [`04a`](04a-gpt-decoder-only.md) §10）
+`nn.Embedding(V, d)` 內部就是一個 $V \times d$ 的矩陣。forward 時輸入 token ID（整數），直接返回對應的列——這就是「查表（Lookup）」，是 $O(1)$ 的索引操作，不是矩陣乘法。（數學形式化見 [`05a`](05a-forward-propagation.md) §6 與 [`01b`](01b-prerequisites-math.md) §2；它如何被訓練見 [`05b`](05b-backward-propagation.md) §6）
 
 **Weight Tying（權重共享）——一個值得知道的設計**
 
@@ -155,11 +155,11 @@ Karpathy 的原版 nanoGPT 因此讓兩者共用同一份參數：
 self.lm_head.weight = self.transformer.wte.weight   # Weight Tying
 ```
 
-共用的邏輯：「意義接近的詞，embedding 向量接近；接近的向量，預測時也應該分配相近的機率。」實作上共用同一份矩陣，embedding 訓練得更好，同時參數量減少 `vocab_size × n_embd`（GPT-2 規模約 38M 參數；本倉庫的字元級模型約 2.5 萬）。本倉庫的 NB4 為求簡單，未做 Weight Tying，兩個矩陣獨立訓練。（Weight Tying 對梯度的影響見 [`04a`](04a-gpt-decoder-only.md) §10 的註）
+共用的邏輯：「意義接近的詞，embedding 向量接近；接近的向量，預測時也應該分配相近的機率。」實作上共用同一份矩陣，embedding 訓練得更好，同時參數量減少 `vocab_size × n_embd`（GPT-2 規模約 38M 參數；本倉庫的字元級模型約 2.5 萬）。本倉庫的 NB4 為求簡單，未做 Weight Tying，兩個矩陣獨立訓練。（Weight Tying 對梯度的影響見 [`05b`](05b-backward-propagation.md) §6 的註）
 
 **等一下——這個 `position_embedding` 和 03 講的 PE 是同一件事嗎？**
 
-是同一個目的（注入位置資訊），但做法不同。03a §7.2 推導的是 Sinusoidal PE（固定公式），nanoGPT 用的是 `nn.Embedding` 實作的 **Learned PE**（[`04a`](04a-gpt-decoder-only.md) §8、03a §7.5）——每個位置一個可訓練向量：
+是同一個目的（注入位置資訊），但做法不同。03a §7.2 推導的是 Sinusoidal PE（固定公式），nanoGPT 用的是 `nn.Embedding` 實作的 **Learned PE**（[`05a`](05a-forward-propagation.md) §6、03a §7.5）——每個位置一個可訓練向量：
 
 | | Sinusoidal PE（03a §7.2 所介紹）| Learned PE（nanoGPT 所用）|
 |---|---|---|
@@ -184,22 +184,22 @@ idx (B, T)
 
 ## 6. 架構對照總表
 
-| nanoGPT 類別/方法 | 對應數學（[`04a`](04a-gpt-decoder-only.md)）| 關鍵操作 |
+| nanoGPT 類別/方法 | 對應數學（[`05a`](05a-forward-propagation.md)）| 關鍵操作 |
 |---|---|---|
-| `Head` | §3 Scaled Dot-Product ＋ §4 Causal Mask | $\text{softmax}(QK^\top/\sqrt{d_k})V$ + 下三角遮罩 |
-| `MultiHeadAttention` | §5 Multi-Head Attention | $H$ 個 Head concat + $W_O$ 投影 |
-| `FeedForward` | §6 Position-wise FFN | Linear → ReLU → Linear |
-| `Block` | §7 LayerNorm 與 Pre-LN Block | Pre-LN + Residual × 2 |
-| `GPT.token_embedding` | §8 Embedding（＋[`01b`](01b-prerequisites-math.md) §2）| 離散 token → 連續向量 |
-| `GPT.position_embedding` | §8 Learned PE（＋03a §7.5）| 可學習位置向量 |
-| `GPT.lm_head` | §9 語言模型輸出層 | $\mathbb{R}^d \to \mathbb{R}^{|\mathcal{V}|}$ |
-| `F.cross_entropy(...)` | §9 訓練目標 | Next-token prediction |
+| `Head` | §1 Scaled Dot-Product ＋ §2 Causal Mask | $\text{softmax}(QK^\top/\sqrt{d_k})V$ + 下三角遮罩 |
+| `MultiHeadAttention` | §3 Multi-Head Attention | $H$ 個 Head concat + $W_O$ 投影 |
+| `FeedForward` | §4 Position-wise FFN | Linear → ReLU → Linear |
+| `Block` | §5 LayerNorm 與 Pre-LN Block | Pre-LN + Residual × 2 |
+| `GPT.token_embedding` | §6 Embedding（＋[`01b`](01b-prerequisites-math.md) §2）| 離散 token → 連續向量 |
+| `GPT.position_embedding` | §6 Learned PE（＋03a §7.5）| 可學習位置向量 |
+| `GPT.lm_head` | §7 語言模型輸出層 | $\mathbb{R}^d \to \mathbb{R}^{|\mathcal{V}|}$ |
+| `F.cross_entropy(...)` | §7 訓練目標 | Next-token prediction |
 
 ---
 
 ## 7. Pre-LN vs Post-LN：一個重要的實作差異
 
-[`04a`](04a-gpt-decoder-only.md) §7 描述的原始論文做法是 **Post-LN**：
+[`05a`](05a-forward-propagation.md) §5 描述的原始論文做法是 **Post-LN**：
 
 $$
 Z' = \text{LayerNorm}(X + \text{Attention}(X))
@@ -222,7 +222,7 @@ x = LayerNorm(x + Attn(x)) # x = x + Attn(LayerNorm(x))
 | 深層表現 | 容易梯度爆炸 | 梯度流更均勻 |
 | 代表模型 | 原始 Transformer | GPT-2、LLaMA、nanoGPT |
 
-**為什麼 Pre-LN 比較穩定？** 關鍵在殘差主幹 $x + f(\text{LN}(x))$ 保留了一條**完全不經過 LayerNorm 的直通路徑**，梯度可以恆等流過；Post-LN 的 $\text{LN}(x + f(x))$ 則每穿一層都要經過 LayerNorm 的耦合，層數一深梯度尺度就容易失控，因此需要 learning rate warm-up。完整的梯度流推導見 [`04a`](04a-gpt-decoder-only.md) §7（與 [`05`](05-backpropagation.md) §5.9／§5.10）。
+**為什麼 Pre-LN 比較穩定？** 關鍵在殘差主幹 $x + f(\text{LN}(x))$ 保留了一條**完全不經過 LayerNorm 的直通路徑**，梯度可以恆等流過；Post-LN 的 $\text{LN}(x + f(x))$ 則每穿一層都要經過 LayerNorm 的耦合，層數一深梯度尺度就容易失控，因此需要 learning rate warm-up。完整的梯度流推導見 [`05a`](05a-forward-propagation.md) §5（與 [`05b`](05b-backward-propagation.md) §5.9／§5.10）。
 
 架構設計清楚了，但模型怎麼讀取文字？第 8 節說明 nanoGPT 使用的字元級 tokenizer，以及與真實 BPE 的差異。
 
@@ -295,7 +295,7 @@ def generate(self, idx, max_new_tokens):
 
 兩個值得記住的推論：
 
-1. **為什麼可以 cache？** Causal Mask 保證位置 $t$ 的 K、V 不受未來 token 影響——一旦算出來就永遠不變，可以安心重用（因果性見 [`04a`](04a-gpt-decoder-only.md) §4）。
+1. **為什麼可以 cache？** Causal Mask 保證位置 $t$ 的 K、V 不受未來 token 影響——一旦算出來就永遠不變，可以安心重用（因果性見 [`05a`](05a-forward-propagation.md) §2）。
 2. **為什麼 context 越長推理越貴？** KV Cache 的大小隨 $T$ 線性成長，長 context 模型（128K tokens）的推理瓶頸往往不是計算而是 VRAM。這也是 GQA 等技術出現的動機（見 [`06-modern-transformer-variants.md`](06-modern-transformer-variants.md) §4）。
 
 nanoGPT 為了教學簡潔沒有實作 KV Cache，但讀懂它之後，看任何推理引擎的原始碼都會先遇到這個概念。
@@ -310,13 +310,13 @@ nanoGPT 為了教學簡潔沒有實作 KV Cache，但讀懂它之後，看任何
 
 | 問題 | 對應概念 |
 |---|---|
-| `Head` 裡的 `self.tril` 遮罩在做什麼？ | Causal Masking（[`04a`](04a-gpt-decoder-only.md) §4）|
-| `C**-0.5` 是什麼？ | $1/\sqrt{d_k}$ 縮放（[`04a`](04a-gpt-decoder-only.md) §3；幾何見 03a §3.4）|
-| `Block` 裡兩個 `x = x + ...` 是什麼結構？ | Residual Connection + Pre-LN（本文 §7、[`04a`](04a-gpt-decoder-only.md) §7）|
-| `lm_head` 輸出的 `(B, T, vocab_size)` 裡，哪個位置是訓練用的目標？ | 每個位置 $i$ 預測 $i+1$（[`04a`](04a-gpt-decoder-only.md) §9）|
+| `Head` 裡的 `self.tril` 遮罩在做什麼？ | Causal Masking（[`05a`](05a-forward-propagation.md) §2）|
+| `C**-0.5` 是什麼？ | $1/\sqrt{d_k}$ 縮放（[`05a`](05a-forward-propagation.md) §1；幾何見 03a §3.4）|
+| `Block` 裡兩個 `x = x + ...` 是什麼結構？ | Residual Connection + Pre-LN（本文 §7、[`05a`](05a-forward-propagation.md) §5）|
+| `lm_head` 輸出的 `(B, T, vocab_size)` 裡，哪個位置是訓練用的目標？ | 每個位置 $i$ 預測 $i+1$（[`05a`](05a-forward-propagation.md) §7）|
 | 為什麼 `generate` 要截取 `idx[:, -block_size:]`？ | Context window 上限（本文 §9）|
-| `n_embd=384, n_head=6` → 每個 head 的維度是多少？ | $384/6=64$（[`04a`](04a-gpt-decoder-only.md) §5）|
-| 訓練和生成時 `targets` 的差異？ | 訓練時傳入 targets 算 loss；生成時不傳（[`04a`](04a-gpt-decoder-only.md) §9、本文 §9）|
+| `n_embd=384, n_head=6` → 每個 head 的維度是多少？ | $384/6=64$（[`05a`](05a-forward-propagation.md) §3）|
+| 訓練和生成時 `targets` 的差異？ | 訓練時傳入 targets 算 loss；生成時不傳（[`05a`](05a-forward-propagation.md) §7、本文 §9）|
 
 ---
 
@@ -327,8 +327,7 @@ nanoGPT 為了教學簡潔沒有實作 KV Cache，但讀懂它之後，看任何
 按照 Notebook 的順序執行：超參數 → 資料載入 → 模型定義 → 訓練 → 視覺化 → 文字生成。
 
 **完成 nanoGPT 後，若想深入理解訓練背後的數學：**
-→ [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md) §10 — 從 loss 到 Embedding 的完整梯度鏈
-→ [`05-backpropagation.md`](05-backpropagation.md) — Self-Attention 與 LayerNorm 的完整梯度推導
+→ [`05b-backward-propagation.md`](05b-backward-propagation.md) — 從 loss 到 Embedding 的完整梯度推導＋數值計算
 → [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb) — NumPy 手刻反向傳播
 
 **完成 nanoGPT 後，若想銜接 LLaMA 等當代模型：**

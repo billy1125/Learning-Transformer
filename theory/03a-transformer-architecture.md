@@ -11,9 +11,9 @@
 >
 > **前置文件：** [`01b-prerequisites-math.md`](01b-prerequisites-math.md)、[`02-attention-intuition.md`](02-attention-intuition.md)
 >
-> **注意：** 本文件不含反向傳播推導，梯度推導請見 [`05-backpropagation.md`](05-backpropagation.md)
+> **注意：** 本文件不含反向傳播推導，梯度推導請見 [`05b-backward-propagation.md`](05b-backward-propagation.md)
 >
-> **學完後的下一步：** → [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（GPT 原理與數學：Causal Masking 等）→ [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md)（nanoGPT 程式對照）
+> **學完後的下一步：** → [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（GPT 基本概念與 Pipeline）→ [`05a-forward-propagation.md`](05a-forward-propagation.md)（前向數學：Causal Masking 等）→ [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md)（nanoGPT 程式對照）
 
 ---
 
@@ -22,7 +22,7 @@
 > $ c_i = \sum_j \text{softmax}(x_i^\top x_j) \, x_j $
 >
 > 推廣為完整 Transformer 架構，涵蓋 Multi-Head Attention、Transformer Block、Positional Encoding。
-> 反向傳播推導請見 [`05-backpropagation.md`](05-backpropagation.md)。
+> 反向傳播推導請見 [`05b-backward-propagation.md`](05b-backward-propagation.md)。
 
 
 
@@ -439,7 +439,7 @@ $$
 \text{若 } S_{ij} \gg S_{ij'} \; \forall j' \neq j, \quad \text{則 } A_{ij} \to 1, \quad \nabla_{E} \mathcal{L} \to 0
 $$
 
-梯度幾乎消失，訓練停滯。（為什麼飽和會讓梯度消失：softmax 的導數含 $A_{ij}(1-A_{ij})$ 因子，$A_{ij}$ 趨近 0 或 1 時因子趨近 0——統計推導見 [`01b`](01b-prerequisites-math.md) §8，完整 Jacobian 見 [`05`](05-backpropagation.md) §1.4。）除以 $\sqrt{d_k}$ 後：
+梯度幾乎消失，訓練停滯。（為什麼飽和會讓梯度消失：softmax 的導數含 $A_{ij}(1-A_{ij})$ 因子，$A_{ij}$ 趨近 0 或 1 時因子趨近 0——統計推導見 [`01b`](01b-prerequisites-math.md) §8，完整 Jacobian 見 [`05`](05b-backward-propagation.md) §1.4。）除以 $\sqrt{d_k}$ 後：
 
 $$
 \text{Var}\!\left(\frac{q_i^\top k_j}{\sqrt{d_k}}\right) = \frac{d_k}{d_k} = 1
@@ -716,7 +716,7 @@ E^{(1)} = \frac{Q^{(1)} (K^{(1)})^\top}{\sqrt{2}} = \begin{bmatrix} 0.707 & 0 \\
 A^{(1)} = \text{softmax}_\text{row}(E^{(1)}) \approx \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
 $$
 
-（softmax 計算：第一列為 $\frac{e^{0.707}}{e^{0.707} + e^0} = \frac{2.028}{3.028} \approx 0.67$；這組數字與 [`05-backpropagation.md`](05-backpropagation.md) 開頭的數值驗證範例相同，之後推梯度時可直接對照。）這表示第一個 token 主要看自己（權重約 $0.67$），但也保留約 $0.33$ 給第二個 token；第二個 token 對稱。
+（softmax 計算：第一列為 $\frac{e^{0.707}}{e^{0.707} + e^0} = \frac{2.028}{3.028} \approx 0.67$；這組數字與 [`05b-backward-propagation.md`](05b-backward-propagation.md) 開頭的數值驗證範例相同，之後推梯度時可直接對照。）這表示第一個 token 主要看自己（權重約 $0.67$），但也保留約 $0.33$ 給第二個 token；第二個 token 對稱。
 
 最後乘上 $V^{(1)}$：
 
@@ -993,7 +993,7 @@ $$
 y_j = \gamma_j \hat{x}_j + \beta_j
 $$
 
-其中 $\gamma, \beta \in \mathbb{R}^d$ 是可學習的 scale／shift 參數，$\epsilon > 0$ 防止除以零。作用是穩定每一層的數值分佈、加速訓練（完整梯度推導見 [`05-backpropagation.md`](05-backpropagation.md) §5.1）。
+其中 $\gamma, \beta \in \mathbb{R}^d$ 是可學習的 scale／shift 參數，$\epsilon > 0$ 防止除以零。作用是穩定每一層的數值分佈、加速訓練（完整梯度推導見 [`05b-backward-propagation.md`](05b-backward-propagation.md) §5.1）。
 
 MHA 本身則捕捉序列中任意兩個位置之間的依賴關係（路徑長度 $O(1)$）。
 
@@ -1234,6 +1234,6 @@ $$
 
 - **想先把數字算一遍：** 三階段計算案例，從簡到繁循序爬升（同一組 $2\times4$ 輸入）—— [`03b1-transformer-example-basic.md`](03b1-transformer-example-basic.md)（單頭 attention 入門）→ [`03b2-transformer-example-block.md`](03b2-transformer-example-block.md)（多頭、$W_O$、殘差、FFN，算到 Block 輸出）→ [`03b3-transformer-architecture-example.md`](03b3-transformer-architecture-example.md)（完整版，含縮放對照與 PE 旋轉驗證）
 - **往實作走：** [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) — 用 NumPy 從零實作本文所有元件（§13 即 03a 的可執行版）
-- **往 GPT 走：** [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（原理與數學）→ [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md)（程式對照）— 了解 GPT 的 Decoder-Only 架構與 Causal Masking，然後打開 nanoGPT
-- **往反向傳播走：** [`05-backpropagation.md`](05-backpropagation.md) — 手推 Self-Attention 與 LayerNorm 的完整梯度
+- **往 GPT 走：** [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（基本概念與 Pipeline）→ [`05a-forward-propagation.md`](05a-forward-propagation.md)（前向數學）→ [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md)（程式對照）— 了解 GPT 的 Decoder-Only 架構與 Causal Masking，然後打開 nanoGPT
+- **往反向傳播走：** [`05b-backward-propagation.md`](05b-backward-propagation.md) — 手推 Self-Attention 與 LayerNorm 的完整梯度
 

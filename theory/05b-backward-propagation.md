@@ -1,6 +1,6 @@
-# 05｜反向傳播推導：Self-Attention 與 LayerNorm
+# 05b｜向後傳播（Backward Pass）：梯度推導與數值計算
 
-> **適合對象：** 讀完 03a 並實際跑過 NB1 或 NB2 後，想從頭推導梯度的讀者。需要熟悉矩陣微分與鏈式法則。
+> **適合對象：** 讀完 [`05a-forward-propagation.md`](05a-forward-propagation.md)（前向數學）後，想從頭推導梯度、並看一個完整數值計算範例的讀者。需要熟悉矩陣微分與鏈式法則。
 >
 > **讀完後你能做什麼：**
 > - 推導 $\partial \mathcal{L}/\partial Q$、$\partial \mathcal{L}/\partial K$、$\partial \mathcal{L}/\partial V$ 的完整公式
@@ -9,11 +9,84 @@
 > - 解釋為什麼 Residual Connection 能讓梯度直接流過而不衰減
 > - 推導 Embedding 矩陣的完整梯度（含 Weight Tying 的稀疏／稠密雙通道）
 >
-> **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)，以及 NB1 或 NB2 中的前向傳播實作
+> **前置文件：** [`05a-forward-propagation.md`](05a-forward-propagation.md)（前向數學）、[`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（基本概念與 Pipeline）、[`03a-transformer-architecture.md`](03a-transformer-architecture.md)
 >
 > **對應 Notebook：** [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb) — 本文每個公式都有對應的 Python 實作
 >
-> **與 [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md) 的對應：** 本文是 04a §7.3（Residual／LayerNorm 梯度）與 §10（loss→Embedding 梯度鏈）指來做「完整推導」的下游文件。節級對照：04a §3–§5 Attention ↔ 本文 §1–§3、04a §7 LayerNorm ↔ 本文 §5、04a §10 Embedding 梯度 ↔ 本文 §6。
+> **與前向的對應：** 前向每個模組的數學見 [`05a`](05a-forward-propagation.md)（§1 Attention ↔ 本文 §1–§3、§5 LayerNorm ↔ 本文 §5、§6 Embedding ↔ 本文 §6）；整體資料流見 [`04a`](04a-gpt-decoder-only.md) 的「完整 Pipeline 總覽」。
+
+---
+
+## 反向傳播總覽：從 loss 到 Embedding
+
+訓練程式碼只有三行：
+
+```python
+loss = F.cross_entropy(logits.view(B*T, C), targets.view(B*T))
+loss.backward()
+optimizer.step()
+```
+
+但每次 `loss.backward()` 都完整走一遍以下路徑，梯度從 loss 一路流回 `token_embedding.weight`（即 Embedding 矩陣 $E$）。前向各模組的數學見 [`05a-forward-propagation.md`](05a-forward-propagation.md)、整體資料流見 [`04a`](04a-gpt-decoder-only.md) 的「完整 Pipeline 總覽」；本節先給反向的**五步地圖**，接著用一個 $T=2$ 範例代入真實數字，最後 §1–§6 逐一展開完整推導。
+
+**Step 1｜Cross-Entropy + Softmax：**
+
+$$
+\delta_i = \frac{\partial L}{\partial z_i}, \qquad
+\delta_i^{(k)} = \frac{1}{T}\bigl(p^{(i)}_k - \mathbb{1}[k = y_i]\bigr)
+$$
+
+在正確 token 的位置減 $1/T$，其餘位置加 softmax 機率 $/T$。
+
+**Step 2｜lm_head 反向（$z_i = \mathrm{LN}(h)_i \, W_{lm}^\top$）：**
+
+$$
+\frac{\partial L}{\partial \mathrm{LN}(h_i)} = \delta_i \, W_{lm}
+\qquad (\text{梯度流向上一層，}d\text{ 維})
+$$
+
+$$
+\frac{\partial L}{\partial W_{lm}} = \sum_i \delta_i^\top \, \mathrm{LN}(h_i)^\top
+\qquad (\text{lm\_head 的參數梯度，稠密 }V \times d\text{；}1/T\text{ 已含在 }\delta_i\text{ 中})
+$$
+
+**Step 3｜穿越 LayerNorm、Residual、FFN、Attention：**
+
+梯度沿 §1–§5 的每個模組反向傳回（Pre-LN 的殘差直通見 §5.10 與 [`05a`](05a-forward-propagation.md) §5.3），最終到達 $x_{\text{embed}}$ 的梯度記為 $g_i \in \mathbb{R}^d$。
+
+**Step 4｜Lookup 反向（$x_i = E[t_i]$）：**
+
+$$
+\frac{\partial L}{\partial E[k]} = \sum_{i:\, t_i = k} g_i
+\qquad (E\text{ 的梯度，稀疏：只有出現過的列非零})
+$$
+
+**Step 5｜Optimizer 更新：**
+
+$$
+E[k] \leftarrow E[k] - \eta \cdot \frac{\partial L}{\partial E[k]}
+$$
+
+> **註（Weight Tying）：** Karpathy 的原版 nanoGPT 讓 `lm_head.weight` 與 `token_embedding.weight` 共用同一份矩陣（$W_{lm} = E$），此時 Step 2 的稠密梯度與 Step 4 的稀疏梯度會**累加**到同一個 $E$ 上。完整的雙通道梯度推導見本文 §6。（本倉庫 NB4 未做 Weight Tying，見 [`04b`](04b-nanogpt-walkthrough.md) §5。）
+
+**三個關鍵特性：**
+
+1. **稀疏更新**：Lookup 反向（Step 4）只更新本 batch 出現過的 token 列，沒出現的 token 其 embedding 本步完全不動。
+2. **同 token 累加**：token $k$ 在同一序列出現 $m$ 次，Step 4 的梯度是 $m$ 個 $g_i$ 的加總。
+3. **直覺含義**：出現頻繁的 token 每步都被更新，embedding 收斂快；稀有 token 需要大量訓練步驟才被充分觸及。
+
+### 前向／反向 ↔ nanoGPT 元件對照
+
+前向數學（[`05a`](05a-forward-propagation.md)）與反向（本文），都對應 [`04b`](04b-nanogpt-walkthrough.md) 裡的一段程式：
+
+| 數學（[`05a`](05a-forward-propagation.md) 前向 ／ 本文反向）| nanoGPT 程式（[`04b`](04b-nanogpt-walkthrough.md)）|
+|---|---|
+| 05a §1 Scaled Dot-Product ＋ §2 Causal Mask | §1 `Head` |
+| 05a §3 Multi-Head ＋ $W_O$ | §2 `MultiHeadAttention` |
+| 05a §4 FFN | §3 `FeedForward` |
+| 05a §5 LayerNorm／Pre-LN Block | §4 `Block`、§7 Pre-LN vs Post-LN |
+| 05a §6 Embedding／Learned PE | §5 `GPT`（`token_embedding`／`position_embedding`）|
+| 05a §7 Cross-Entropy、本文梯度鏈 | §5 `lm_head`、§6 對照總表 |
 
 ---
 
@@ -684,7 +757,7 @@ Self-Attention 與 LayerNorm 都推完了，但梯度還有最後一站：Embedd
 
 ## 6. Embedding 矩陣的完整梯度推導
 
-本節即 [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md) §10「從 loss 到 Embedding」所指向的完整推導。Embedding 矩陣 $E$ 在 GPT 中扮演兩個角色：輸入側把 token ID 查表成向量（Lookup）；若使用 Weight Tying（如 Karpathy 原版 nanoGPT），輸出側的 lm_head 也共用同一份 $E$。本節推導兩條路徑的梯度，並說明它們的稀疏／稠密差異。
+本節把開頭「反向傳播總覽」Step 4 的 Lookup 反向展開成完整推導。Embedding 矩陣 $E$ 在 GPT 中扮演兩個角色：輸入側把 token ID 查表成向量（Lookup）；若使用 Weight Tying（如 Karpathy 原版 nanoGPT），輸出側的 lm_head 也共用同一份 $E$。本節推導兩條路徑的梯度，並說明它們的稀疏／稠密差異。
 
 ### 6.1 符號定義
 

@@ -50,7 +50,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 | **矩陣乘法** | QKV 投影、注意力分數、FFN 全靠它 | `01a` / `01b`、[`03a`](03a-transformer-architecture.md) §4 Shape 分析 |
 | **Dot Product（內積）** | 衡量兩個向量的相似度＝注意力分數 | [`02`](02-attention-intuition.md)、`03a` §3 |
 | **Softmax** | 把分數變成一組和為 1 的權重 | `01a` / `01b`、`03a` §3 |
-| **Gradient（梯度）** | 訓練＝沿梯度更新參數 | [`05`](05-backpropagation.md) |
+| **Gradient（梯度）** | 訓練＝沿梯度更新參數 | [`05`](05b-backward-propagation.md) |
 
 > 這五項就是入場券。只要看得懂「矩陣相乘」和「對一排數字取 softmax」，就能開始讀 `01` → `02` → `03a`。
 
@@ -103,17 +103,18 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 **最短主線**（理論與實作交錯進行）：
 
 ```
-01 前置數學        →  02 Attention 直覺  →  03a 架構       →  04a GPT 原理    →  04b nanoGPT 程式 →  實作
-(向量/softmax/梯度)   (QKV 翻譯範例)        (多頭/Block/PE)    (數學/Causal Mask)   (逐行對照數學)      NB1→NB2→NB4
+01 前置數學        →  02 Attention 直覺  →  03a 架構       →  04a GPT 概念/Pipeline →  05a 前向數學 →  04b nanoGPT 程式 →  實作
+(向量/softmax/梯度)   (QKV 翻譯範例)        (多頭/Block/PE)    (架構差異/Pipeline)      (逐節推導)      (逐行對照數學)      NB1→NB2→NB4
 ```
 
-> [`04a`](04a-gpt-decoder-only.md) 是 GPT 的**原理與數學**（Scaled Dot-Product、Causal Mask、Multi-Head／FFN／Pre-LN、Next-token 與梯度鏈）；[`04b`](04b-nanogpt-walkthrough.md) 是它的**程式對照**續篇（nanoGPT 逐行、每節回指 04a 數學），讀完接 NB4。
+> [`04a`](04a-gpt-decoder-only.md) 是 GPT 的**基本概念、架構差異與 Pipeline 總覽**；前向每個模組的數學推導在 [`05a`](05a-forward-propagation.md)、反向梯度與數值計算在 [`05b`](05b-backward-propagation.md)、逐行程式對照在 [`04b`](04b-nanogpt-walkthrough.md)（每節回指 05a／05b 數學），讀完接 NB4。
 
 **選讀深入**（想算得更細或推得更深時再走）：
 
 - [`03b3`](03b3-transformer-architecture-example.md)：用 $2\times4$ 輸入手算整個 Pre-LN Block（對應 NB1 §13）
   - [`03b4`](03b4-transformer-example-with-position.md)：對照支線——把位置編碼真的加進去（P≠0）從頭算一次（對應 NB1 §13b）
-- [`05`](05-backpropagation.md)：Self-Attention／LayerNorm／Embedding 的完整梯度推導（對應 NB3）
+- [`05a`](05a-forward-propagation.md)：GPT 前向每個模組的數學推導（Scaled Dot-Product、Causal Mask、Multi-Head／FFN／Pre-LN、Embedding、Next-token）
+- [`05b`](05b-backward-propagation.md)：Self-Attention／LayerNorm／Embedding 的完整梯度推導＋數值計算（對應 NB3）
 - [`06`](06-modern-transformer-variants.md)：RMSNorm、SwiGLU、RoPE、GQA——nanoGPT 到 LLaMA 的橋接（decoder 家族出口）
 - [`07`](07-bert-encoder-only.md)：BERT／雙向理解／MLM 預訓練——另一條 encoder 家族分支（對應 NB5）
 - [`09`](09-text-to-vector-rag.md)：文字轉向量與 RAG——Word2Vec、動態 embedding、餘弦檢索（encoder 分支的應用出口）
