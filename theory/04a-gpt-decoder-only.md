@@ -29,6 +29,7 @@
 8. Token Embedding 與位置編碼的數學
 9. Next-token Prediction 與 Cross-Entropy
 10. 反向傳播：從 loss 到 Embedding
+- 完整 Pipeline 總覽（收尾：前向＋反向一覽）
 
 > **本文與 [`04b`](04b-nanogpt-walkthrough.md) 的分工：** 本文（04a）負責**數學原理**，每個式子當場推導、自成一體；[`04b`](04b-nanogpt-walkthrough.md) 負責**程式對照**，逐行把 nanoGPT 對回本文的節號。建議 04a → 04b → NB4 依序讀。
 
@@ -103,6 +104,8 @@ Decoder-Only 架構確定了，但還有一個問題：訓練時如果讓模型�
 事實上，目前的頂級主流大型語言模型（例如 ChatGPT、Claude、Gemini、LLaMA 等），其核心本質全都屬於 **Decoder-Only（僅解碼器）** 的架構，而不是把這三種架構混在一起。
 
 原因在於：Decoder-Only 用更簡單、更統一的結構（對照上面 Encoder-Decoder 的複雜度就有感），換來更高的計算效率；而且只要把任務改寫成「接話」的形式，它就能涵蓋包含「翻譯」在內的各種通用任務——例如把輸入寫成「請翻譯成英文：今天天氣真好 →」，模型接著往下生成譯文即可。
+
+還有一個常被忽略、卻決定性的優勢：next-token 目標**不需要成對資料**。翻譯那類 Encoder-Decoder 任務得備妥「來源句＋目標句」的對照語料，量少又貴；GPT 只是「猜下一個字」，任何一大批純文字（網頁、書籍、程式碼……）不必人工標註或配對就能拿來訓練。這正是 GPT 系列能吃下整個網路規模文字的根本原因。
 
 ---
 
@@ -580,6 +583,72 @@ $$
 | §7 LayerNorm／Pre-LN Block | §4 `Block`、§7 Pre-LN vs Post-LN |
 | §8 Embedding／Learned PE | §5 `GPT`（`token_embedding`／`position_embedding`）|
 | §9 Cross-Entropy、§10 梯度鏈 | §5 `lm_head`、§6 對照總表 |
+
+---
+
+## 完整 Pipeline 總覽
+
+前面 §1–§10 各自把一個模組講透，這一節不再推導，只把它們**串成一張前向＋反向的速查圖**——看資料怎麼一路流成 loss、梯度又怎麼一路流回 Embedding，細節隨時回對應節。
+
+### Forward Pass（前向）
+
+```
+token ids (B, T)
+      │
+      ▼
+Token Embedding E[t] ─┐
+                      ├──▶ h₀ = E[t] + P[pos]          (§8：語意 + 位置)
+Position Embedding P ─┘
+      │
+      ▼
+┌─────────────────────────────────────────────┐
+│  Transformer Block × N 層                     │
+│                                               │
+│   x = x + MultiHead( LN(x) )     (§3,§4,§5,§7) │  ← 跨位置交換資訊（含因果遮罩）
+│   x = x + FFN( LN(x) )               (§6,§7)   │  ← 逐位置非線性加工
+└─────────────────────────────────────────────┘
+      │
+      ▼
+最終 LayerNorm (§7)
+      │
+      ▼
+lm_head：Linear → logits (B, T, V)              (§9；獨立輸出頭，本倉庫未做 weight tying)
+      │
+      ▼
+softmax → 機率分佈 → Cross-Entropy Loss          (§9)
+```
+
+### Backward Pass（反向）
+
+```
+Loss
+  │  δ = p − one-hot（softmax+CE 合併微分）        (§10 Step 1)
+  ▼
+lm_head 反向：δ·W_lm 傳回上一層、δᵀ·LN(h) 更新 lm_head  (§10 Step 2)
+  │
+  ▼
+最終 LayerNorm 反向
+  │
+  ▼
+┌─────────────────────────────────────────────┐
+│  反向穿越 Transformer Block × N（第 N → 第 1 層）│
+│                                               │
+│   residual 的 I（單位矩陣）＝梯度高速公路   (§7.3) │
+│   FFN 反向：ReLU′ → W₂ → W₁                (§6)   │
+│   Attention 反向：softmax Jacobian → Q,K,V   (§5)  │
+└─────────────────────────────────────────────┘
+      │
+      ▼
+x_embed 的梯度 g，依 t_i 累加回對應列          (§10 Step 4)
+      │
+      ├──▶ 更新 Token Embedding E（稀疏：只動出現過的列）
+      └──▶ 更新 Position Embedding P
+      │
+      ▼
+AdamW optimizer.step()  →  所有參數更新一次      (§10 Step 5)
+```
+
+因為有 §4 的因果遮罩，一次 forward 就同時算出序列中每個位置「預測下一個 token」的 loss，一次 backward 就更新全部參數——這條前向產生 loss、反向回灌梯度的迴圈，重複跑就是 nanoGPT 的完整訓練。
 
 ---
 
