@@ -442,7 +442,7 @@ $$
 X_{\text{in}} = X_{\text{token}} + P
 $$
 
-接著才把 $X_{\text{in}}$ 丟進 Pre-LN Block。本文前面 §1–§5 為了維持與 03b1／03b2 **同一筆資料完全銜接**，故意先不把 $P$ 加進 $X$，否則所有 attention、residual、FFN 的數字都會改掉，前兩份文件就無法直接接上。
+接著才把 $X_{\text{in}}$ 丟進 Pre-LN Block。本文前面 §1–§5 為了**避免計算過於繁複**，故意先不計算位置編碼、也就是先不把 $P$ 加進 $X$——一旦加了 $P$，$\text{LN}(X_{\text{in}})$ 就不再是乾淨的 $\pm1$，往下所有 attention、residual、FFN 的數字都會變成難以手算追蹤的無理小數（真的加進去從頭算一遍，見選讀對照支線 [`03b4`](03b4-transformer-example-with-position.md)）。附帶好處是這樣也能與 03b1／03b2 維持同一筆資料完全銜接。
 
 因此，§6 的角色不是重新改寫前面的 Block 輸入，而是補上 [`03a`](03a-transformer-architecture.md) §7 的位置概念：說明若要讓模型知道 token 的順序，$P$ 長什麼樣（§6.1）、$P$ 如何相加擴充 token 向量而不弄混語意（§6.2 用真實數字走一遍），以及「相對位置可以用旋轉表示」這件事如何用數字驗證（§6.3）。換句話說，前面 §1–§5 是 **Block 內部怎麼算**；本節是 **進 Block 前，序列順序如何被寫進向量**。
 
@@ -608,6 +608,7 @@ $$
 
 ## 下一步
 
-- **回主線理論：** [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md) — 在本文的 attention 之上加 Causal Masking，走向 GPT。
+- **回主線理論：** [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（原理與數學）→ [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md)（程式對照）— 在本文的 attention 之上加 Causal Masking，走向 GPT。
 - **往實作走：** [`../notebooks/NB1-simple-llm-vanilla.ipynb`](../notebooks/NB1-simple-llm-vanilla.ipynb) — 用 NumPy 從零實作；§13 即本文的可執行版。
 - **往反向傳播走：** [`05-backpropagation.md`](05-backpropagation.md) — 有了前向數字，接著手推每個元件的梯度。
+- **看含位置編碼的版本：** [`03b4-transformer-example-with-position.md`](03b4-transformer-example-with-position.md) — 選讀對照支線，把 $P$ 真的加進輸入（P≠0）從頭算一次（對應 NB1 §13b）。

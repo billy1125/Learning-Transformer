@@ -66,7 +66,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 |---|---|---|
 | 線性代數 | Projection、Basis、Linear Transformation | 理解 QKV「投影到子空間」的本質 |
 | 機率 | 機率分布、期望值 | `03a` §3.4 縮放的統計推導、[`01b`](01b-prerequisites-math.md) |
-| 資訊理論 | Entropy、Cross Entropy | 語言模型的損失函數（[`04`](04-gpt-decoder-only.md)）|
+| 資訊理論 | Entropy、Cross Entropy | 語言模型的損失函數（[`04a`](04a-gpt-decoder-only.md)）|
 | 特徵值 / 特徵向量 | PCA 基礎 | 理解降維與表示空間 |
 
 ### Level 3：旁支應用
@@ -103,13 +103,16 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 **最短主線**（理論與實作交錯進行）：
 
 ```
-01 前置數學        →  02 Attention 直覺  →  03a 架構       →  04 GPT        →  實作
-(向量/softmax/梯度)   (QKV 翻譯範例)        (多頭/Block/PE)    (Causal Mask)    NB1→NB2→NB4
+01 前置數學        →  02 Attention 直覺  →  03a 架構       →  04a GPT 原理    →  04b nanoGPT 程式 →  實作
+(向量/softmax/梯度)   (QKV 翻譯範例)        (多頭/Block/PE)    (數學/Causal Mask)   (逐行對照數學)      NB1→NB2→NB4
 ```
+
+> [`04a`](04a-gpt-decoder-only.md) 是 GPT 的**原理與數學**（Scaled Dot-Product、Causal Mask、Multi-Head／FFN／Pre-LN、Next-token 與梯度鏈）；[`04b`](04b-nanogpt-walkthrough.md) 是它的**程式對照**續篇（nanoGPT 逐行、每節回指 04a 數學），讀完接 NB4。
 
 **選讀深入**（想算得更細或推得更深時再走）：
 
 - [`03b3`](03b3-transformer-architecture-example.md)：用 $2\times4$ 輸入手算整個 Pre-LN Block（對應 NB1 §13）
+  - [`03b4`](03b4-transformer-example-with-position.md)：對照支線——把位置編碼真的加進去（P≠0）從頭算一次（對應 NB1 §13b）
 - [`05`](05-backpropagation.md)：Self-Attention／LayerNorm／Embedding 的完整梯度推導（對應 NB3）
 - [`06`](06-modern-transformer-variants.md)：RMSNorm、SwiGLU、RoPE、GQA——nanoGPT 到 LLaMA 的橋接（decoder 家族出口）
 - [`07`](07-bert-encoder-only.md)：BERT／雙向理解／MLM 預訓練——另一條 encoder 家族分支（對應 NB5）
@@ -132,7 +135,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 | 為什麼需要 Multi-Head？比單頭好在哪？ | `03a` §5 |
 | Transformer 本身沒有順序概念，位置資訊怎麼加入？ | `03a` §7 |
 | 為什麼需要 Residual Connection 與 LayerNorm？ | `03a` §6 |
-| GPT（Decoder-only）與 BERT（Encoder）差在哪？ | [`04`](04-gpt-decoder-only.md)、[`07`](07-bert-encoder-only.md) |
+| GPT（Decoder-only）與 BERT（Encoder）差在哪？ | [`04a`](04a-gpt-decoder-only.md)、[`07`](07-bert-encoder-only.md) |
 
 若以上都能清楚解釋，就**不必再深鑽 Transformer 的理論細節**，可以往應用與前沿走。
 

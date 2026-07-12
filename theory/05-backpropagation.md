@@ -12,6 +12,8 @@
 > **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)，以及 NB1 或 NB2 中的前向傳播實作
 >
 > **對應 Notebook：** [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb) — 本文每個公式都有對應的 Python 實作
+>
+> **與 [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md) 的對應：** 本文是 04a §7.3（Residual／LayerNorm 梯度）與 §10（loss→Embedding 梯度鏈）指來做「完整推導」的下游文件。節級對照：04a §3–§5 Attention ↔ 本文 §1–§3、04a §7 LayerNorm ↔ 本文 §5、04a §10 Embedding 梯度 ↔ 本文 §6。
 
 ---
 
@@ -682,7 +684,7 @@ Self-Attention 與 LayerNorm 都推完了，但梯度還有最後一站：Embedd
 
 ## 6. Embedding 矩陣的完整梯度推導
 
-Embedding 矩陣 $E$ 在 GPT 中扮演兩個角色：輸入側把 token ID 查表成向量（Lookup）；若使用 Weight Tying（如 Karpathy 原版 nanoGPT），輸出側的 lm_head 也共用同一份 $E$。本節推導兩條路徑的梯度，並說明它們的稀疏／稠密差異。
+本節即 [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md) §10「從 loss 到 Embedding」所指向的完整推導。Embedding 矩陣 $E$ 在 GPT 中扮演兩個角色：輸入側把 token ID 查表成向量（Lookup）；若使用 Weight Tying（如 Karpathy 原版 nanoGPT），輸出側的 lm_head 也共用同一份 $E$。本節推導兩條路徑的梯度，並說明它們的稀疏／稠密差異。
 
 ### 6.1 符號定義
 

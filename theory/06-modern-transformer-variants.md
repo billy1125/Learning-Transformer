@@ -9,7 +9,7 @@
 > - 描述 MHA → GQA → MQA 的演化，計算各自的 KV Cache 大小
 > - 解釋 Flash Attention 為什麼能把記憶體複雜度從 $O(T^2)$ 降到 $O(T)$
 >
-> **前置文件：** [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md)、[`05-backpropagation.md`](05-backpropagation.md)（§1 的梯度對比會用到）
+> **前置文件：** [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（原理與數學）、[`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md)（nanoGPT 程式對照）、[`05-backpropagation.md`](05-backpropagation.md)（§1 的梯度對比會用到）
 >
 > **定位：** 本文是主線的「出口」——讀完 nanoGPT 之後，打開 LLaMA 原始碼之前。
 

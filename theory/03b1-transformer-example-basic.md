@@ -38,7 +38,7 @@ $$
 X = \begin{bmatrix} 1 & 0 & 0 & 1 \\ 0 & 1 & 1 & 0 \end{bmatrix} \in \mathbb{R}^{2 \times 4}
 $$
 
-> **關於位置編碼：** 這裡的 $X$ 是 token embedding，**尚未加入位置編碼 $P$**。位置資訊是在「進 Block 前」以 $X_{\text{in}}=X+P$ 相加注入的（見 [`03a` §7](03a-transformer-architecture.md)／計算案例 [`03b3` §6](03b3-transformer-architecture-example.md)）。本三階段（03b1→03b2→03b3）為維持手算數字乾淨，一律取 $P=0$（即直接用 $X$）。
+> **關於位置編碼：** 這裡的 $X$ 是 token embedding，**尚未加入位置編碼 $P$**。位置資訊是在「進 Block 前」以 $X_{\text{in}}=X+P$ 相加注入的（見 [`03a` §7](03a-transformer-architecture.md)／計算案例 [`03b3` §6](03b3-transformer-architecture-example.md)）。本三階段（03b1→03b2→03b3）為維持手算數字乾淨，一律取 $P=0$（即直接用 $X$）；想看真的把 $P$ 加進去、一路算到底的版本，見選讀對照支線 [`03b4`](03b4-transformer-example-with-position.md)。
 
 **Head 1 的投影矩陣**（取前 2 維；本例令 $W_Q=W_K=W_V$ 以聚焦流程）：
 

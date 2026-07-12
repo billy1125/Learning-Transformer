@@ -41,7 +41,7 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 ## 資料夾結構
 
 ```
-theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為 decoder 選讀出口、07 為 encoder 選讀分支、09 為 embedding→RAG 應用出口；03a-transformer-block-plain 為 03a §6 的白話輔助版、03b1→03b2→03b3 為 03a 的選讀計算案例三階段）
+theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為 decoder 選讀出口、07 為 encoder 選讀分支、09 為 embedding→RAG 應用出口；04a 為 GPT 原理與數學、04b 為 04a 的 nanoGPT 程式對照續篇；03a-transformer-block-plain 為 03a §6 的白話輔助版、03b1→03b2→03b3 為 03a 的選讀計算案例三階段、03b4 為含位置編碼（P≠0）的選讀對照支線）
 theory/images/   ← 理論文件內嵌圖檔（03a §5 的 attention_projection_vs_interaction、§5.5 的 multi_head_attention_diagram、§6.1 的 transformer_block_pre_ln_diagram）
 notebooks/       ← 實作主線（NB1–NB4）＋選讀分支（NB5 對應 07）
 notebooks/data/  ← Notebook 訓練資料（如 NB4／NB5 莎士比亞文本）
@@ -63,7 +63,9 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 | `03b1-transformer-example-basic.md` | 03a 計算案例・簡單版（選讀）：$2\times4$ 輸入手算單頭 attention（$X\to\tilde X\to C^{(1)}$），不含多頭／FFN |
 | `03b2-transformer-example-block.md` | 03a 計算案例・中等版（選讀）：承接 03b1，補上第二頭、$W_O$、殘差、FFN，算到完整 Block 輸出 $Y$ |
 | `03b3-transformer-architecture-example.md` | 03a 計算案例・完整版（選讀）：§0 先依前向順序推導每個矩陣的設計歷程（維度咬合、投影＝選欄矩陣、$W_O$ 為可逆基底變換、FFN 形狀鏈），再從頭算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13；三份共用同一組數字 |
-| `04-gpt-decoder-only.md` | Causal Masking、GPT Decoder-Only 架構、nanoGPT 逐行解析 |
+| `03b4-transformer-example-with-position.md` | 03b 選讀對照支線（純計算展演）：把位置編碼 $P$ 真的加進輸入（$X_{\text{in}}=X+P$，P≠0），沿用 03b3 同一組權重從頭算一次完整 Pre-LN Block，對應 NB1 §13b；不重述概念，數字自成一組（不與 03b1–03b3 共用）|
+| `04a-gpt-decoder-only.md` | GPT Decoder-Only **原理與數學**（§1-2 概念、§3 Scaled Dot-Product、§4 Causal Masking、§5 Multi-Head、§6 FFN、§7 LayerNorm/Pre-LN、§8 Embedding/PE、§9 Next-token/CE、§10 梯度鏈）|
+| `04b-nanogpt-walkthrough.md` | GPT Decoder-Only **程式對照**（04a 的選讀續篇）：nanoGPT `Head`/`MultiHeadAttention`/`FeedForward`/`Block`/`GPT` 逐行、Pre-LN vs Post-LN、字元級 Tokenizer、自迴歸生成＋KV Cache、速查清單；每節回指 04a 對應數學節 |
 | `05-backpropagation.md` | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀；decoder 家族出口）|
 | `07-bert-encoder-only.md` | BERT／Encoder-Only：雙向 Self-Attention（拿掉 Causal Mask）、MLM 預訓練、`[CLS]`/`[SEP]`/三種 embedding、預訓練+微調、BERT 家族、encoder vs decoder 選型（選讀；encoder 家族分支，對應 NB5）|
@@ -76,7 +78,7 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 | `NB1-simple-llm-vanilla.ipynb` | NumPy 從零實作（前向傳播）| 01 + 02 + 03 |
 | `NB2-simple-llm-pytorch.ipynb` | PyTorch 版本 | 01 + 02 + 03 |
 | `NB3-llm-backpropagation.ipynb` | NumPy 手刻完整反向傳播（含梯度驗證）| 01–03 + 05 |
-| `NB4-nanoGPT.ipynb` | 完整 nanoGPT，訓練莎士比亞文本 | 01–04 |
+| `NB4-nanoGPT.ipynb` | 完整 nanoGPT，訓練莎士比亞文本 | 01–03 + 04a/04b |
 | `NB5-bert-mlm.ipynb` | 從零手刻最小 BERT（重用 NB4 元件、去 causal mask、MLM 目標）＋ HuggingFace 選讀延伸段（選讀分支）| 01–03 + 07 |
 
 ## 核心設計原則
@@ -84,7 +86,7 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 - 所有文件以**繁體中文**撰寫，數學公式用 LaTeX，程式碼用 Python
 - 理論文件與 Notebook 相互對應，每份理論文件的開頭都標示對應的 Notebook
 - `archive/` 保存所有舊版原始文件，不應修改；新版本在 `theory/` 和 `notebooks/`
-- `04-gpt-decoder-only.md` 是關鍵橋接文件，連接理論與 nanoGPT 實作
+- `04a-gpt-decoder-only.md`（原理與數學）＋ `04b-nanogpt-walkthrough.md`（nanoGPT 程式對照）是關鍵橋接文件，連接理論與 nanoGPT 實作；04b 每節回指 04a 的數學節，兩者章節編號需保持對得上
 
 ## 行文品質原則（編修理論文件時遵守）
 
