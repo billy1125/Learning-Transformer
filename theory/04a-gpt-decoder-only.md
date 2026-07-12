@@ -1,4 +1,4 @@
-# 04｜GPT Decoder-Only：原理與數學
+# 04a｜GPT Decoder-Only：原理與數學
 
 > **適合對象：** 讀完 03a 後，想從數學層面完整理解 GPT（Decoder-Only）架構，並準備對照 nanoGPT 程式的讀者。
 >
@@ -30,7 +30,7 @@
 9. Next-token Prediction 與 Cross-Entropy
 10. 反向傳播：從 loss 到 Embedding
 
-> **本文與 [`04b`](04b-nanogpt-walkthrough.md) 的分工：** 本文（04）負責**數學原理**，每個式子當場推導、自成一體；[`04b`](04b-nanogpt-walkthrough.md) 負責**程式對照**，逐行把 nanoGPT 對回本文的節號。建議 04 → 04b → NB4 依序讀。
+> **本文與 [`04b`](04b-nanogpt-walkthrough.md) 的分工：** 本文（04a）負責**數學原理**，每個式子當場推導、自成一體；[`04b`](04b-nanogpt-walkthrough.md) 負責**程式對照**，逐行把 nanoGPT 對回本文的節號。建議 04a → 04b → NB4 依序讀。
 
 ---
 

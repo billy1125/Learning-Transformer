@@ -148,7 +148,7 @@ jupyter lab
 | [`03b2-transformer-example-block.md`](theory/03b2-transformer-example-block.md) | 03a 計算案例・中等版（選讀）：承接 03b1，補上多頭、$W_O$、殘差、FFN，算到 Block 輸出 $Y$ |
 | [`03b3-transformer-architecture-example.md`](theory/03b3-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：§0 依前向順序推導每個矩陣的設計歷程，再算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
 | [`03b4-transformer-example-with-position.md`](theory/03b4-transformer-example-with-position.md) | 03b 選讀對照支線（純計算展演）：把位置編碼 $P$ 真的加進輸入（$X_{\text{in}}=X+P$，P≠0），沿用同一組權重從頭算一次完整 Block，對應 NB1 §13b（數字自成一組，不與 03b1–03b3 共用）|
-| [`04-gpt-decoder-only.md`](theory/04-gpt-decoder-only.md) | GPT Decoder-Only 的**原理與數學**：Scaled Dot-Product、Causal Masking、Multi-Head／FFN／Pre-LN、Next-token 與梯度鏈 |
+| [`04a-gpt-decoder-only.md`](theory/04a-gpt-decoder-only.md) | GPT Decoder-Only 的**原理與數學**：Scaled Dot-Product、Causal Masking、Multi-Head／FFN／Pre-LN、Next-token 與梯度鏈 |
 | [`04b-nanogpt-walkthrough.md`](theory/04b-nanogpt-walkthrough.md) | GPT Decoder-Only 的**程式對照**：nanoGPT 逐行解析、Pre-LN vs Post-LN、Tokenizer、自迴歸生成與 KV Cache（每節回指 04 數學）|
 | [`05-backpropagation.md`](theory/05-backpropagation.md) | Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀，decoder 家族出口） |

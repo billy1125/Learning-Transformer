@@ -1,6 +1,6 @@
 # 07｜BERT Encoder-Only：另一條路——雙向理解與 MLM 預訓練
 
-> **適合對象：** 讀完 [`04-gpt-decoder-only.md`](04-gpt-decoder-only.md) 後，想理解「不是為了生成，而是為了理解」的那一支 Transformer 的讀者。
+> **適合對象：** 讀完 [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md) 後，想理解「不是為了生成，而是為了理解」的那一支 Transformer 的讀者。
 >
 > **讀完後你能做什麼：**
 > - 說明 BERT 為什麼拿掉 Causal Mask，用「雙向」注意力，以及這對任務的意義
@@ -9,7 +9,7 @@
 > - 說明「預訓練 + 微調」範式，以及分類 / 序列標註 / QA 各自怎麼接 head
 > - 分辨 encoder 家族（RoBERTa、ELECTRA、Sentence-BERT…）並知道何時該選 encoder、何時選 decoder
 >
-> **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)（Transformer Block）、[`04-gpt-decoder-only.md`](04-gpt-decoder-only.md)（§1 Encoder-Decoder、§4 Causal Masking）
+> **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)（Transformer Block）、[`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（§1 Encoder-Decoder、§4 Causal Masking）
 >
 > **定位：** 主線的 **encoder-family 選讀分支**。主線（01→04→NB4）走的是 decoder-only 的 GPT；[`06`](06-modern-transformer-variants.md) 是往 LLaMA 的 decoder 出口；本文是往 BERT 的 encoder 出口。兩者共用同一個 Transformer Block，差別只在**遮罩**與**訓練目標**。
 >
@@ -33,7 +33,7 @@
 
 ## 0. 閱讀地圖：GPT 與 BERT 的分岔
 
-[`04`](04-gpt-decoder-only.md) §1 講過：2017 年原始 Transformer 是 **Encoder-Decoder**。之後兩大預訓練範式各自只取一半：
+[`04a`](04a-gpt-decoder-only.md) §1 講過：2017 年原始 Transformer 是 **Encoder-Decoder**。之後兩大預訓練範式各自只取一半：
 
 ```
                 原始 Transformer（Encoder + Decoder）
@@ -87,7 +87,7 @@
 
 ### 1.1 從下三角回到全連接
 
-回顧 [`04`](04-gpt-decoder-only.md) §4：GPT 為了「生成時不偷看未來」，在 softmax 前把未來位置的分數設成 $-\infty$，注意力矩陣因此是**下三角**：
+回顧 [`04a`](04a-gpt-decoder-only.md) §4：GPT 為了「生成時不偷看未來」，在 softmax 前把未來位置的分數設成 $-\infty$，注意力矩陣因此是**下三角**：
 
 ```
 GPT（Causal）— 位置 i 只能看 0..i：
@@ -145,7 +145,7 @@ The animal didn't cross the street because it was too ___.
 
 拿掉遮罩之後，還有一個問題：**訓練目標要換掉**。
 
-GPT 的目標是 next-token prediction（[`04`](04-gpt-decoder-only.md) §9）：位置 $i$ 看 $x_1..x_i$、預測 $x_{i+1}$。這個目標**只在因果遮罩下才成立**——如果雙向模型也做「預測下一個詞」，那位置 $i$ 早就直接看到答案 $x_{i+1}$ 了，等於抄答案，什麼都學不到。
+GPT 的目標是 next-token prediction（[`04a`](04a-gpt-decoder-only.md) §9）：位置 $i$ 看 $x_1..x_i$、預測 $x_{i+1}$。這個目標**只在因果遮罩下才成立**——如果雙向模型也做「預測下一個詞」，那位置 $i$ 早就直接看到答案 $x_{i+1}$ 了，等於抄答案，什麼都學不到。
 
 BERT 的解法是 **Masked Language Modeling（MLM，克漏字）**：把輸入句子隨機挖掉一些字，讓模型用**左右文**把它們填回來。
 
@@ -169,7 +169,7 @@ $$
 \mathcal{L}_{\text{MLM}} = -\frac{1}{|\mathcal{M}|}\sum_{i \in \mathcal{M}} \log p_i\big[\,y_i\,\big]
 $$
 
-其中 $y_i$ 是位置 $i$ 的原始（正確）token。這與 [`04`](04-gpt-decoder-only.md) §9 的 cross-entropy 形式完全相同，唯一差別是**求和範圍**：next-token 對**每個**位置都算損失（一個序列同時訓練 $T$ 個預測），MLM 只對**被遮的 15%** 算損失。
+其中 $y_i$ 是位置 $i$ 的原始（正確）token。這與 [`04a`](04a-gpt-decoder-only.md) §9 的 cross-entropy 形式完全相同，唯一差別是**求和範圍**：next-token 對**每個**位置都算損失（一個序列同時訓練 $T$ 個預測），MLM 只對**被遮的 15%** 算損失。
 
 程式上對應 `F.cross_entropy` 的 `ignore_index`——把沒被遮的位置的 target 設成 `-100`，就不計入損失：
 
@@ -285,7 +285,7 @@ Sentence-BERT ──> 句子 / 文件 embedding ──> 向量資料庫 ──> 
 
 RAG（檢索增強生成）常見的組合，正是**用 encoder 做檢索、用 decoder 做生成**——兩大家族各司其職。所以這條 encoder 分支不是主線的替代品，而是**補上另一半**：讀完主線你會生成，讀完本文你會理解與檢索。從句向量到 RAG 檢索流程的完整說明，見 [`09-text-to-vector-rag.md`](09-text-to-vector-rag.md)。
 
-> 補充：也有 **encoder-decoder** 模型（T5、BART），把「理解輸入」與「生成輸出」都要的 seq2seq 任務（翻譯、摘要）用兩半一起做。它就是原始 Transformer 的直系後代（[`04`](04-gpt-decoder-only.md) §1）。
+> 補充：也有 **encoder-decoder** 模型（T5、BART），把「理解輸入」與「生成輸出」都要的 seq2seq 任務（翻譯、摘要）用兩半一起做。它就是原始 Transformer 的直系後代（[`04a`](04a-gpt-decoder-only.md) §1）。
 
 ---
 

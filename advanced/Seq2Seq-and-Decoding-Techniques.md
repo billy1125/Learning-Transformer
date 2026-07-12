@@ -181,7 +181,7 @@ Self-Attention → Residual Add → LayerNorm
 Multi-Head Attention → Add & Norm → Feed Forward → Add & Norm
 ```
 
-要特別提醒：這個設計**不是唯一、也不永遠最佳**。後續研究探討過很多問題——layer normalization 該放在 residual 之後、還是放在 block 的輸入端（也就是 Pre-LN 與 Post-LN 之爭，主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §7 與 [`04b`](../theory/04b-nanogpt-walkthrough.md) §7 有專門對比）？為什麼 Transformer 裡 layer norm 通常比 batch norm 更常用？能不能提出 power normalization 之類的替代方案？這些都說明 Transformer 是一個**可以持續改良**的架構，而不是固定不變的標準答案。
+要特別提醒：這個設計**不是唯一、也不永遠最佳**。後續研究探討過很多問題——layer normalization 該放在 residual 之後、還是放在 block 的輸入端（也就是 Pre-LN 與 Post-LN 之爭，主線 [`theory/04a`](../theory/04a-gpt-decoder-only.md) §7 與 [`04b`](../theory/04b-nanogpt-walkthrough.md) §7 有專門對比）？為什麼 Transformer 裡 layer norm 通常比 batch norm 更常用？能不能提出 power normalization 之類的替代方案？這些都說明 Transformer 是一個**可以持續改良**的架構，而不是固定不變的標準答案。
 
 ### Encoder 與 RNN、CNN 的關係
 
@@ -249,7 +249,7 @@ Decoder 的 self-attention 和 Encoder 不完全一樣。Encoder 可以一次看
 產生第 3 個 token：只能看位置 1、2、3
 ```
 
-正在生第 3 個位置時，只能看位置 1、2、3，不能看第 4 個。這就是 **causal mask**（也叫 look-ahead mask）的概念，目的是避免訓練時模型偷看未來答案。（它在 nanoGPT 裡怎麼用下三角矩陣把未來位置設成 $-\infty$、以及數值演示，見主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §4。）
+正在生第 3 個位置時，只能看位置 1、2、3，不能看第 4 個。這就是 **causal mask**（也叫 look-ahead mask）的概念，目的是避免訓練時模型偷看未來答案。（它在 nanoGPT 裡怎麼用下三角矩陣把未來位置設成 $-\infty$、以及數值演示，見主線 [`theory/04a`](../theory/04a-gpt-decoder-only.md) §4。）
 
 ### End Token：讓生成自己停下來
 
@@ -293,11 +293,11 @@ Value 來自 Encoder
 
 > Decoder 每產生一個 token，都會回頭看 Encoder 輸入裡哪些部分最相關。
 
-值得一提的是，**cross attention 其實早於 Transformer**。早期的 Seq2Seq 語音辨識模型 Listen, Attend and Spell（LAS）就已經用了類似機制。這說明：cross attention 早於 Transformer、encoder-decoder 架構與 attention 概念在 Transformer 之前就存在，而 Transformer 真正的創新重點之一，是**大量使用 self-attention**。（原始 Transformer 的 encoder-decoder 與 cross-attention 分工，主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §1 也有對照。）
+值得一提的是，**cross attention 其實早於 Transformer**。早期的 Seq2Seq 語音辨識模型 Listen, Attend and Spell（LAS）就已經用了類似機制。這說明：cross attention 早於 Transformer、encoder-decoder 架構與 attention 概念在 Transformer 之前就存在，而 Transformer 真正的創新重點之一，是**大量使用 self-attention**。（原始 Transformer 的 encoder-decoder 與 cross-attention 分工，主線 [`theory/04a`](../theory/04a-gpt-decoder-only.md) §1 也有對照。）
 
 ### 訓練 Decoder：每一步都是一個分類問題
 
-訓練 Decoder 時，每個輸出位置都可以看成一個**分類問題**。假設 vocabulary 有 4000 個中文字，每一步模型都要從這 4000 個類別裡選出正確的 token；模型輸出的是 softmax 後的機率分布，正確答案是一個 one-hot vector。訓練目標是讓輸出分布靠近正確答案，因此用 **Cross Entropy**。整句的 loss，可以理解為每個位置的 cross entropy 加總，而且最後還要包含 **End token** 的預測。（next-token 訓練與 cross-entropy 在 nanoGPT 裡的實作，見主線 [`theory/04`](../theory/04-gpt-decoder-only.md) §9。）
+訓練 Decoder 時，每個輸出位置都可以看成一個**分類問題**。假設 vocabulary 有 4000 個中文字，每一步模型都要從這 4000 個類別裡選出正確的 token；模型輸出的是 softmax 後的機率分布，正確答案是一個 one-hot vector。訓練目標是讓輸出分布靠近正確答案，因此用 **Cross Entropy**。整句的 loss，可以理解為每個位置的 cross entropy 加總，而且最後還要包含 **End token** 的預測。（next-token 訓練與 cross-entropy 在 nanoGPT 裡的實作，見主線 [`theory/04a`](../theory/04a-gpt-decoder-only.md) §9。）
 
 ### Teacher Forcing 與它帶來的 Exposure Bias
 
@@ -362,6 +362,6 @@ Value 來自 Encoder
 如果你想把這些直覺換成能親手實作的數學與程式，回到主線：
 
 - Encoder 的 block、self-attention、多頭、殘差與 LayerNorm 的嚴謹版 → [`theory/03a-transformer-architecture.md`](../theory/03a-transformer-architecture.md)
-- Decoder-only、causal mask、next-token 訓練、自迴歸生成 → [`theory/04-gpt-decoder-only.md`](../theory/04-gpt-decoder-only.md)（原理）、[`04b-nanogpt-walkthrough.md`](../theory/04b-nanogpt-walkthrough.md)（程式）、[`NB4-nanoGPT`](../notebooks/NB4-nanoGPT.ipynb)
+- Decoder-only、causal mask、next-token 訓練、自迴歸生成 → [`theory/04a-gpt-decoder-only.md`](../theory/04a-gpt-decoder-only.md)（原理）、[`04b-nanogpt-walkthrough.md`](../theory/04b-nanogpt-walkthrough.md)（程式）、[`NB4-nanoGPT`](../notebooks/NB4-nanoGPT.ipynb)
 - BERT＝Encoder 的完整展開 → [`theory/07-bert-encoder-only.md`](../theory/07-bert-encoder-only.md)
 - 更多延伸論文 → [`Suggested-Papers.md`](Suggested-Papers.md)
