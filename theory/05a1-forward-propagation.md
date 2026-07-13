@@ -1,4 +1,4 @@
-# 05a｜向前傳播（Forward Pass）：GPT Decoder-Only 的數學
+# 05a1｜向前傳播（Forward Pass）：GPT Decoder-Only 的數學（符號推導）
 
 > **適合對象：** 讀完 [`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md) 的基本概念與 Pipeline 後，想逐節推導 GPT 前向傳播每個模組數學式的讀者。
 >
@@ -12,7 +12,9 @@
 >
 > **對照實作：** → [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md)（每段 nanoGPT 程式如何落實本文數學）→ [`../notebooks/NB4-nanoGPT.ipynb`](../notebooks/NB4-nanoGPT.ipynb)
 >
-> **學完後的下一步：** → [`05b-backward-propagation.md`](05b-backward-propagation.md)（反向傳播：從 loss 到 Embedding 的完整梯度推導＋數值計算）
+> **數值演算（選讀續篇）：** → [`05a2-forward-example.md`](05a2-forward-example.md)（用一組範例資料把本文每個階段實際算一次，T=2、d=3）
+>
+> **學完後的下一步：** → [`05b1-backward-propagation.md`](05b1-backward-propagation.md)（反向傳播數學）→ [`05b2-backward-example.md`](05b2-backward-example.md)（反向數值範例）
 
 ---
 
@@ -26,7 +28,7 @@
 6. Token Embedding 與位置編碼的數學
 7. Next-token Prediction 與 Cross-Entropy
 
-> **本文的定位：** [`04a`](04a-gpt-decoder-only.md) 講「基本概念、架構差異與 Pipeline 總覽」；本文（05a）補上前向每個模組的**數學推導**；[`05b`](05b-backward-propagation.md) 則推導反向梯度並附數值計算。建議 04a → 05a → 05b → 04b → NB4 依序讀。
+> **本文的定位：** [`04a`](04a-gpt-decoder-only.md) 講「基本概念、架構差異與 Pipeline 總覽」；本文（05a1）補上前向每個模組的**符號數學推導**；配套的 [`05a2`](05a2-forward-example.md) 用一組範例資料把每個階段實算一次。反向則見 [`05b1`](05b1-backward-propagation.md)（數學）＋ [`05b2`](05b2-backward-example.md)（數值）。建議 04a → 05a1 → 05a2 → 05b1 → 05b2 → 04b → NB4 依序讀。
 
 ---
 
@@ -342,7 +344,7 @@ $$
 | 深層表現 | 容易梯度爆炸/消失 | 梯度流更均勻 |
 | 代表模型 | 原始 Transformer | GPT-2、LLaMA、nanoGPT |
 
-> LayerNorm 的完整 Jacobian 與 Residual 的梯度恆等推導見 [`05b-backward-propagation.md`](05b-backward-propagation.md) §5.9／§5.10。Pre-LN 在 nanoGPT 程式裡長什麼樣，見 [`04b`](04b-nanogpt-walkthrough.md) §4、§7。
+> LayerNorm 的完整 Jacobian 與 Residual 的梯度恆等推導見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md) §5.9／§5.10。Pre-LN 在 nanoGPT 程式裡長什麼樣，見 [`04b`](04b-nanogpt-walkthrough.md) §4、§7。
 
 ---
 
@@ -358,7 +360,7 @@ $$
 x_i = E[t_i] = e_{t_i}^\top E
 $$
 
-其中 $e_{t_i} \in \mathbb{R}^{V}$ 是第 $t_i$ 個位置為 1 的 one-hot 向量。所以「查表（Lookup）」在數學上等於一次 one-hot 乘矩陣，實作上則是 $O(1)$ 的索引，不必真的做乘法。（形式化亦見 [`01b-prerequisites-math.md`](01b-prerequisites-math.md) §2；它如何被訓練見 [`05b-backward-propagation.md`](05b-backward-propagation.md) §6。）
+其中 $e_{t_i} \in \mathbb{R}^{V}$ 是第 $t_i$ 個位置為 1 的 one-hot 向量。所以「查表（Lookup）」在數學上等於一次 one-hot 乘矩陣，實作上則是 $O(1)$ 的索引，不必真的做乘法。（形式化亦見 [`01b-prerequisites-math.md`](01b-prerequisites-math.md) §2；它如何被訓練見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md) §6。）
 
 ### 6.2 位置編碼：把順序加回去
 
@@ -411,8 +413,12 @@ loss = F.cross_entropy(logits.view(B*T, C), targets.view(B*T))
 
 ## 下一步
 
-**反向傳播與數值計算：** → [`05b-backward-propagation.md`](05b-backward-propagation.md)
+**先看數值：把本文每個階段實算一次** → [`05a2-forward-example.md`](05a2-forward-example.md)
 
-前向每個模組的數學都齊了，接著把 loss 沿著同一條路徑反向傳回：softmax+CE 的合併梯度、穿越 LayerNorm／Residual／FFN／Attention 的梯度，一路流回 Embedding，並附上一個 $T=2$ 的完整數值計算範例。
+用一組範例資料（T=2、d=3、單頭、含因果遮罩）從 embedding 一路算到 CE loss，每個階段都給出實際數字，與本文各節的符號公式逐一對照。
+
+**反向傳播數學：** → [`05b1-backward-propagation.md`](05b1-backward-propagation.md)
+
+把 loss 沿同一條路徑反向傳回 Embedding：softmax+CE 的合併梯度、穿越 LayerNorm／Residual／FFN／Attention 的梯度。其逐階段數值計算（沿用 05a2 的數字）見 [`05b2-backward-example.md`](05b2-backward-example.md)。
 
 **對照程式實作：** → [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md) → [`../notebooks/NB4-nanoGPT.ipynb`](../notebooks/NB4-nanoGPT.ipynb)

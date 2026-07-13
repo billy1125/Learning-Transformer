@@ -1,6 +1,6 @@
-# 05b｜向後傳播（Backward Pass）：梯度推導與數值計算
+# 05b1｜向後傳播（Backward Pass）：梯度推導（符號）
 
-> **適合對象：** 讀完 [`05a-forward-propagation.md`](05a-forward-propagation.md)（前向數學）後，想從頭推導梯度、並看一個完整數值計算範例的讀者。需要熟悉矩陣微分與鏈式法則。
+> **適合對象：** 讀完 [`05a1-forward-propagation.md`](05a1-forward-propagation.md)（前向數學）後，想從頭推導 GPT 每個模組梯度的讀者。需要熟悉矩陣微分與鏈式法則。逐階段的實際數值計算另見配套的 [`05b2-backward-example.md`](05b2-backward-example.md)。
 >
 > **讀完後你能做什麼：**
 > - 推導 $\partial \mathcal{L}/\partial Q$、$\partial \mathcal{L}/\partial K$、$\partial \mathcal{L}/\partial V$ 的完整公式
@@ -9,11 +9,13 @@
 > - 解釋為什麼 Residual Connection 能讓梯度直接流過而不衰減
 > - 推導 Embedding 矩陣的完整梯度（含 Weight Tying 的稀疏／稠密雙通道）
 >
-> **前置文件：** [`05a-forward-propagation.md`](05a-forward-propagation.md)（前向數學）、[`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（基本概念與 Pipeline）、[`03a-transformer-architecture.md`](03a-transformer-architecture.md)
+> **前置文件：** [`05a1-forward-propagation.md`](05a1-forward-propagation.md)（前向數學）、[`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（基本概念與 Pipeline）、[`03a-transformer-architecture.md`](03a-transformer-architecture.md)
 >
 > **對應 Notebook：** [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb) — 本文每個公式都有對應的 Python 實作
 >
-> **與前向的對應：** 前向每個模組的數學見 [`05a`](05a-forward-propagation.md)（§1 Attention ↔ 本文 §1–§3、§5 LayerNorm ↔ 本文 §5、§6 Embedding ↔ 本文 §6）；整體資料流見 [`04a`](04a-gpt-decoder-only.md) 的「完整 Pipeline 總覽」。
+> **數值演算（選讀續篇）：** → [`05b2-backward-example.md`](05b2-backward-example.md)（沿用 [`05a2`](05a2-forward-example.md) 的一組數字，把本文每條梯度實際算一次）
+>
+> **與前向的對應：** 前向每個模組的數學見 [`05a1`](05a1-forward-propagation.md)（§1 Attention ↔ 本文 §1–§3、§5 LayerNorm ↔ 本文 §5、§6 Embedding ↔ 本文 §6）；整體資料流見 [`04a`](04a-gpt-decoder-only.md) 的「完整 Pipeline 總覽」。
 
 ---
 
@@ -27,7 +29,7 @@ loss.backward()
 optimizer.step()
 ```
 
-但每次 `loss.backward()` 都完整走一遍以下路徑，梯度從 loss 一路流回 `token_embedding.weight`（即 Embedding 矩陣 $E$）。前向各模組的數學見 [`05a-forward-propagation.md`](05a-forward-propagation.md)、整體資料流見 [`04a`](04a-gpt-decoder-only.md) 的「完整 Pipeline 總覽」；本節先給反向的**五步地圖**，接著用一個 $T=2$ 範例代入真實數字，最後 §1–§6 逐一展開完整推導。
+但每次 `loss.backward()` 都完整走一遍以下路徑，梯度從 loss 一路流回 `token_embedding.weight`（即 Embedding 矩陣 $E$）。前向各模組的數學見 [`05a1-forward-propagation.md`](05a1-forward-propagation.md)、整體資料流見 [`04a`](04a-gpt-decoder-only.md) 的「完整 Pipeline 總覽」；本節先給反向的**五步地圖**，接著 §1–§6 逐一展開完整推導（逐階段代入真實數字的計算見 [`05b2-backward-example.md`](05b2-backward-example.md)）。
 
 **Step 1｜Cross-Entropy + Softmax：**
 
@@ -52,7 +54,7 @@ $$
 
 **Step 3｜穿越 LayerNorm、Residual、FFN、Attention：**
 
-梯度沿 §1–§5 的每個模組反向傳回（Pre-LN 的殘差直通見 §5.10 與 [`05a`](05a-forward-propagation.md) §5.3），最終到達 $x_{\text{embed}}$ 的梯度記為 $g_i \in \mathbb{R}^d$。
+梯度沿 §1–§5 的每個模組反向傳回（Pre-LN 的殘差直通見 §5.10 與 [`05a1`](05a1-forward-propagation.md) §5.3），最終到達 $x_{\text{embed}}$ 的梯度記為 $g_i \in \mathbb{R}^d$。
 
 **Step 4｜Lookup 反向（$x_i = E[t_i]$）：**
 
@@ -77,113 +79,22 @@ $$
 
 ### 前向／反向 ↔ nanoGPT 元件對照
 
-前向數學（[`05a`](05a-forward-propagation.md)）與反向（本文），都對應 [`04b`](04b-nanogpt-walkthrough.md) 裡的一段程式：
+前向數學（[`05a1`](05a1-forward-propagation.md)）與反向（本文），都對應 [`04b`](04b-nanogpt-walkthrough.md) 裡的一段程式：
 
-| 數學（[`05a`](05a-forward-propagation.md) 前向 ／ 本文反向）| nanoGPT 程式（[`04b`](04b-nanogpt-walkthrough.md)）|
+| 數學（[`05a1`](05a1-forward-propagation.md) 前向 ／ 本文反向）| nanoGPT 程式（[`04b`](04b-nanogpt-walkthrough.md)）|
 |---|---|
-| 05a §1 Scaled Dot-Product ＋ §2 Causal Mask | §1 `Head` |
-| 05a §3 Multi-Head ＋ $W_O$ | §2 `MultiHeadAttention` |
-| 05a §4 FFN | §3 `FeedForward` |
-| 05a §5 LayerNorm／Pre-LN Block | §4 `Block`、§7 Pre-LN vs Post-LN |
-| 05a §6 Embedding／Learned PE | §5 `GPT`（`token_embedding`／`position_embedding`）|
-| 05a §7 Cross-Entropy、本文梯度鏈 | §5 `lm_head`、§6 對照總表 |
+| 05a1 §1 Scaled Dot-Product ＋ §2 Causal Mask | §1 `Head` |
+| 05a1 §3 Multi-Head ＋ $W_O$ | §2 `MultiHeadAttention` |
+| 05a1 §4 FFN | §3 `FeedForward` |
+| 05a1 §5 LayerNorm／Pre-LN Block | §4 `Block`、§7 Pre-LN vs Post-LN |
+| 05a1 §6 Embedding／Learned PE | §5 `GPT`（`token_embedding`／`position_embedding`）|
+| 05a1 §7 Cross-Entropy、本文梯度鏈 | §5 `lm_head`、§6 對照總表 |
 
 ---
 
-## 數值驗證範例（T=2, d_k=2）
+## 數值範例已獨立成兩篇
 
-> 先用具體數字跑一次完整的前向 + 反向傳播，再讀符號推導。
-
-### 設定
-
-$$
-Q = K = V = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix},\quad d_k = 2,\quad
-G^C = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}（假設上游梯度為單位矩陣）
-$$
-
-### 前向傳播
-
-**Step 1：注意力分數**
-
-$$
-E = \frac{QK^\top}{\sqrt{2}} = \frac{1}{\sqrt{2}}\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 0.707 & 0 \\ 0 & 0.707 \end{bmatrix}
-$$
-
-**Step 2：Softmax（逐行）**
-
-$$
-A = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
-\quad \left(\text{例如第一行：}\frac{e^{0.707}}{e^{0.707}+e^0} = \frac{2.028}{3.028} \approx 0.67\right)
-$$
-
-**Step 3：加權讀取**
-
-$$
-C = AV = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
-$$
-
-### 反向傳播
-
-**對 V 的梯度**
-
-$$
-G^V = A^\top G^C = \begin{bmatrix} 0.67 & 0.33 \\ 0.33 & 0.67 \end{bmatrix}
-$$
-
-**對 A 的梯度**
-
-$$
-G^A = G^C V^\top = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}
-$$
-
-**Softmax 反向（逐行）**
-
-以第一行為例，$A_{0,:} = [0.67, 0.33]$，$G^A_{0,:} = [1, 0]$：
-
-$$
-s_0 = \langle A_{0,:},\, G^A_{0,:} \rangle = 0.67 \times 1 + 0.33 \times 0 = 0.67
-$$
-
-$$
-G^E_{0,:} = A_{0,:} \odot (G^A_{0,:} - s_0) = [0.67, 0.33] \odot [0.33, -0.67] = [0.221, -0.221]
-$$
-
-完整矩陣：
-
-$$
-G^E = \begin{bmatrix} 0.221 & -0.221 \\ -0.221 & 0.221 \end{bmatrix}
-$$
-
-**對 Q 與 K 的梯度**
-
-本例中 $K = Q = I$（單位矩陣），所以「乘以 $K$」「乘以 $Q$」都不改變數值，只剩下乘以 $\frac{1}{\sqrt{2}} \approx 0.707$ 的縮放（$0.221 \times 0.707 \approx 0.156$）：
-
-$$
-G^Q = \frac{1}{\sqrt{2}}\, G^E K = \frac{1}{\sqrt{2}}\, G^E = \begin{bmatrix} 0.156 & -0.156 \\ -0.156 & 0.156 \end{bmatrix}
-$$
-
-$$
-G^K = \frac{1}{\sqrt{2}}\, (G^E)^\top Q = \frac{1}{\sqrt{2}}\, (G^E)^\top = \begin{bmatrix} 0.156 & -0.156 \\ -0.156 & 0.156 \end{bmatrix}
-$$
-
-因為 $Q=K$ 且 $G^C$ 是對稱矩陣，所以 $G^Q = G^K$——這是對稱輸入的特性，一般情況下兩者不同。
-
-**完整梯度流一覽：**
-
-$$
-G^C \xrightarrow{A^\top \cdot} G^V = \begin{bmatrix}0.67&0.33\\0.33&0.67\end{bmatrix},\quad
-G^C \xrightarrow{\cdot V^\top} G^A = I,\quad
-G^A \xrightarrow{\text{softmax}^{-1}} G^E = \begin{bmatrix}0.221&{-0.221}\\{-0.221}&0.221\end{bmatrix}
-$$
-
-$$
-G^E \xrightarrow{\frac{1}{\sqrt{d_k}}\cdot K} G^Q = \begin{bmatrix}0.156&{-0.156}\\{-0.156}&0.156\end{bmatrix},\quad
-G^E \xrightarrow{\frac{1}{\sqrt{d_k}}(\cdot)^\top Q} G^K = \begin{bmatrix}0.156&{-0.156}\\{-0.156}&0.156\end{bmatrix}
-$$
-
-以上每個數字都可以對照後面的符號推導逐步驗證。
-
-具體數字跑過一遍了，接下來用符號推導同樣的計算，得到對任意輸入都成立的一般公式。
+> 本文原本的 T=2 手算範例已拆成前後兩篇：**前向**逐階段數字見 [`05a2-forward-example.md`](05a2-forward-example.md)、**反向**逐階段梯度見 [`05b2-backward-example.md`](05b2-backward-example.md)（沿用 05a2 的同一組數字）。以下 §1–§6 專注符號推導。
 
 ---
 

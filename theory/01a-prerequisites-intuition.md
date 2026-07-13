@@ -862,7 +862,7 @@ $$
 
 **白話：** softmax 各個輸出之間是互相牽動的——某個輸出變大，其他必須變小（因為總和永遠是 1）。
 
-這條公式怎麼來的？完整的逐步推導見 [`05b-backward-propagation.md`](05b-backward-propagation.md) §1.4（需要微積分的商法則，現階段先眼熟即可）。
+這條公式怎麼來的？完整的逐步推導見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md) §1.4（需要微積分的商法則，現階段先眼熟即可）。
 
 ### C. 內積的線性代數性質
 

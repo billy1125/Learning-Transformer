@@ -10,8 +10,8 @@
 > **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)
 >
 > **數學細節（選讀續篇）：**
-> - 前向每個模組的推導 → [`05a-forward-propagation.md`](05a-forward-propagation.md)
-> - 反向梯度推導＋數值計算 → [`05b-backward-propagation.md`](05b-backward-propagation.md)
+> - 前向每個模組的推導 → [`05a1-forward-propagation.md`](05a1-forward-propagation.md)
+> - 反向梯度推導＋數值計算 → [`05b1-backward-propagation.md`](05b1-backward-propagation.md)
 >
 > **對照實作：** → [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md) → [`../notebooks/NB4-nanoGPT.ipynb`](../notebooks/NB4-nanoGPT.ipynb)
 
@@ -23,7 +23,7 @@
 2. GPT 為什麼只要 Decoder？
 - 完整 Pipeline 總覽（前向＋反向一覽）
 
-> **本文的定位：** 本文（04a）只講**基本概念、架構差異與 Pipeline 總覽**；前向每個模組的數學推導見 [`05a`](05a-forward-propagation.md)、反向梯度與數值計算見 [`05b`](05b-backward-propagation.md)、逐行程式對照見 [`04b`](04b-nanogpt-walkthrough.md)。建議 04a → 05a → 05b → 04b → NB4 依序讀。
+> **本文的定位：** 本文（04a）只講**基本概念、架構差異與 Pipeline 總覽**；前向每個模組的數學推導見 [`05a1`](05a1-forward-propagation.md)（數值範例 [`05a2`](05a2-forward-example.md)）、反向梯度見 [`05b1`](05b1-backward-propagation.md)（數值範例 [`05b2`](05b2-backward-example.md)）、逐行程式對照見 [`04b`](04b-nanogpt-walkthrough.md)。建議 04a → 05a1 → 05a2 → 05b1 → 05b2 → 04b → NB4 依序讀。
 
 ---
 
@@ -42,7 +42,7 @@
 - **Key（K，索引）**：每筆資料的標籤是什麼？
 - **Value（V，內容）**：每筆資料實際的內容是什麼？
 
-拿 Q 去和每個 K 比對相似度，愈相似的那筆，它的 V 就被取用愈多（Q/K/V 的完整推導見 [`05a-forward-propagation.md`](05a-forward-propagation.md) §1 與 [`03a-transformer-architecture.md`](03a-transformer-architecture.md) §2）。**Self-Attention** 是 Q、K、V 都來自同一串序列（自己查自己）；而 **Cross-Attention** 讓 Decoder 拿自己的 **Q**（「我下一個中文字該對到哪裡？」）去查 Encoder 那份筆記的 **K/V**（英文各詞的語意），這樣寫中文時就能對準正在翻的英文詞。資料流如下：
+拿 Q 去和每個 K 比對相似度，愈相似的那筆，它的 V 就被取用愈多（Q/K/V 的完整推導見 [`05a1-forward-propagation.md`](05a1-forward-propagation.md) §1 與 [`03a-transformer-architecture.md`](03a-transformer-architecture.md) §2）。**Self-Attention** 是 Q、K、V 都來自同一串序列（自己查自己）；而 **Cross-Attention** 讓 Decoder 拿自己的 **Q**（「我下一個中文字該對到哪裡？」）去查 Encoder 那份筆記的 **K/V**（英文各詞的語意），這樣寫中文時就能對準正在翻的英文詞。資料流如下：
 
 ```
 英文句子 → [Encoder] ──讀懂後產出 K, V（一份語意筆記）
@@ -91,7 +91,7 @@ GPT：            只有 N 層 Causal Decoder Block
 
 > 本文往下只談 Decoder-Only。Encoder-Only（BERT）那一支——雙向注意力、MLM 預訓練、預訓練+微調——是主線的選讀分支，見 [`07-bert-encoder-only.md`](07-bert-encoder-only.md)。
 
-Decoder-Only 架構確定了，但還有一個問題：訓練時如果讓模型看到未來的詞，等於作弊——這靠**因果遮罩（Causal Masking）**阻止，數學細節見 [`05a-forward-propagation.md`](05a-forward-propagation.md) §2（在此之前，05a §1 先把「Attention 到底在算什麼」寫成數學）。
+Decoder-Only 架構確定了，但還有一個問題：訓練時如果讓模型看到未來的詞，等於作弊——這靠**因果遮罩（Causal Masking）**阻止，數學細節見 [`05a1-forward-propagation.md`](05a1-forward-propagation.md) §2（在此之前，05a1 §1 先把「Attention 到底在算什麼」寫成數學）。
 
 事實上，目前的頂級主流大型語言模型（例如 ChatGPT、Claude、Gemini、LLaMA 等），其核心本質全都屬於 **Decoder-Only（僅解碼器）** 的架構，而不是把這三種架構混在一起。
 
@@ -103,79 +103,23 @@ Decoder-Only 架構確定了，但還有一個問題：訓練時如果讓模型�
 
 ## 完整 Pipeline 總覽
 
-在鑽進數學之前，先用一張**前向＋反向的速查圖**掌握全局——看資料怎麼一路流成 loss、梯度又怎麼一路流回 Embedding。圖中每一步都標了對應節號：前向數學見 [`05a-forward-propagation.md`](05a-forward-propagation.md)、反向數學與數值見 [`05b-backward-propagation.md`](05b-backward-propagation.md)。
+在鑽進數學之前，先用一張**前向＋反向的速查圖**掌握全局——看資料怎麼一路流成 loss、梯度又怎麼一路流回 Embedding。圖中每一步都標了對應節號：前向數學見 [`05a1-forward-propagation.md`](05a1-forward-propagation.md)、反向數學與數值見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md)。
 
-### Forward Pass（前向）
+![Forward Backward Pipeline](images/forward_backward_mirror_with_refs.png)
 
-```
-token ids (B, T)
-      │
-      ▼
-Token Embedding E[t] ─┐
-                      ├──▶ h₀ = E[t] + P[pos]          (05a §6：語意 + 位置)
-Position Embedding P ─┘
-      │
-      ▼
-┌─────────────────────────────────────────────┐
-│  Transformer Block × N 層                     │
-│                                               │
-│   x = x + MultiHead( LN(x) )                   │  ← 跨位置交換資訊，含因果遮罩（05a §1–§3、§5）
-│   x = x + FFN( LN(x) )                         │  ← 逐位置非線性加工（05a §4、§5）
-└─────────────────────────────────────────────┘
-      │
-      ▼
-最終 LayerNorm (05a §5)
-      │
-      ▼
-lm_head：Linear → logits (B, T, V)              (05a §7；獨立輸出頭，本倉庫未做 weight tying)
-      │
-      ▼
-softmax → 機率分佈 → Cross-Entropy Loss          (05a §7)
-```
-
-### Backward Pass（反向）
-
-```
-Loss
-  │  δ = p − one-hot（softmax+CE 合併微分）        (05b Step 1)
-  ▼
-lm_head 反向：δ·W_lm 傳回上一層、δᵀ·LN(h) 更新 lm_head  (05b Step 2)
-  │
-  ▼
-最終 LayerNorm 反向
-  │
-  ▼
-┌─────────────────────────────────────────────┐
-│  反向穿越 Transformer Block × N（第 N → 第 1 層）│
-│                                               │
-│   residual 的 I（單位矩陣）＝梯度高速公路 (05b §5.10)│
-│   FFN 反向：ReLU′ → W₂ → W₁              (05a §4)  │
-│   Attention 反向：softmax Jacobian → Q,K,V (05b §1)│
-└─────────────────────────────────────────────┘
-      │
-      ▼
-x_embed 的梯度 g，依 t_i 累加回對應列          (05b Step 4)
-      │
-      ├──▶ 更新 Token Embedding E（稀疏：只動出現過的列）
-      └──▶ 更新 Position Embedding P
-      │
-      ▼
-AdamW optimizer.step()  →  所有參數更新一次      (05b Step 5)
-```
-
-因為有因果遮罩（05a §2），一次 forward 就同時算出序列中每個位置「預測下一個 token」的 loss，一次 backward 就更新全部參數——這條前向產生 loss、反向回灌梯度的迴圈，重複跑就是 nanoGPT 的完整訓練。
+因為有因果遮罩（05a1 §2），一次 forward 就同時算出序列中每個位置「預測下一個 token」的 loss，一次 backward 就更新全部參數——這條前向產生 loss、反向回灌梯度的迴圈，重複跑就是 nanoGPT 的完整訓練。
 
 ---
 
 ## 下一步
 
-**前向每個模組的數學推導：** → [`05a-forward-propagation.md`](05a-forward-propagation.md)
+**前向每個模組的數學推導：** → [`05a1-forward-propagation.md`](05a1-forward-propagation.md)
 
-把 Pipeline 前向那半邊逐節寫成式子：Scaled Dot-Product、Causal Masking、Multi-Head、FFN、LayerNorm／Pre-LN、Embedding／PE、Cross-Entropy。
+把 Pipeline 前向那半邊逐節寫成式子：Scaled Dot-Product、Causal Masking、Multi-Head、FFN、LayerNorm／Pre-LN、Embedding／PE、Cross-Entropy。想看實際數字，配套的 [`05a2-forward-example.md`](05a2-forward-example.md) 用一組範例資料（T=2、d=3）把每個階段算一次。
 
-**反向梯度推導與數值計算：** → [`05b-backward-propagation.md`](05b-backward-propagation.md)
+**反向梯度推導：** → [`05b1-backward-propagation.md`](05b1-backward-propagation.md)
 
-把 loss 沿同一條路徑反向傳回 Embedding 的完整梯度鏈，附一個 $T=2$ 的手算範例。對應 [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb)（NumPy 手刻反向傳播）。
+把 loss 沿同一條路徑反向傳回 Embedding 的完整梯度鏈；逐階段的數值計算（沿用 05a2 的數字）見 [`05b2-backward-example.md`](05b2-backward-example.md)。對應 [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb)（NumPy 手刻反向傳播）。
 
 **對照程式實作：** → [`04b-nanogpt-walkthrough.md`](04b-nanogpt-walkthrough.md) → [`../notebooks/NB4-nanoGPT.ipynb`](../notebooks/NB4-nanoGPT.ipynb)
 

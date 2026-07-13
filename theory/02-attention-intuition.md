@@ -432,10 +432,10 @@ $$
 | 2 | $W = I$            | 獨立訓練的投影矩陣                | [`03a`](03a-transformer-architecture.md) §2 |
 | 3 | 單頭注意力         | Multi-Head Attention              | [`03a`](03a-transformer-architecture.md) §5 |
 | 4 | 沒有位置資訊       | Positional Encoding / RoPE        | [`03a`](03a-transformer-architecture.md) §7、[`06`](06-modern-transformer-variants.md) §3（RoPE）|
-| 5 | 可看未來詞         | Causal Mask                       | [`05a`](05a-forward-propagation.md) §2 |
+| 5 | 可看未來詞         | Causal Mask                       | [`05a1`](05a1-forward-propagation.md) §2 |
 | 6 | 單層               | 數十到上百層堆疊                  | [`03a`](03a-transformer-architecture.md) §6（Transformer Block 可串疊）|
 | 7 | 詞彙乾淨對應       | Subword tokenization              | [`04b`](04b-nanogpt-walkthrough.md) §8 |
-| 8 | 手動指定權重       | 反向傳播訓練                      | [`05a`](05a-forward-propagation.md) §7、[`05b`](05b-backward-propagation.md) 全篇 |
+| 8 | 手動指定權重       | 反向傳播訓練                      | [`05a1`](05a1-forward-propagation.md) §7、[`05b1`](05b1-backward-propagation.md) 全篇 |
 
 ### 本章小結
 1. 第五章的範例是「教學玩具」，目的是讓人看懂 attention 的數學流程。

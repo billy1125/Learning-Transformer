@@ -9,7 +9,7 @@
 > - 說明「預訓練 + 微調」範式，以及分類 / 序列標註 / QA 各自怎麼接 head
 > - 分辨 encoder 家族（RoBERTa、ELECTRA、Sentence-BERT…）並知道何時該選 encoder、何時選 decoder
 >
-> **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)（Transformer Block）、[`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（§1 Encoder-Decoder）、[`05a-forward-propagation.md`](05a-forward-propagation.md)（§2 Causal Masking）
+> **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)（Transformer Block）、[`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（§1 Encoder-Decoder）、[`05a1-forward-propagation.md`](05a1-forward-propagation.md)（§2 Causal Masking）
 >
 > **定位：** 主線的 **encoder-family 選讀分支**。主線（01→04→NB4）走的是 decoder-only 的 GPT；[`06`](06-modern-transformer-variants.md) 是往 LLaMA 的 decoder 出口；本文是往 BERT 的 encoder 出口。兩者共用同一個 Transformer Block，差別只在**遮罩**與**訓練目標**。
 >
@@ -87,7 +87,7 @@
 
 ### 1.1 從下三角回到全連接
 
-回顧 [`05a`](05a-forward-propagation.md) §2：GPT 為了「生成時不偷看未來」，在 softmax 前把未來位置的分數設成 $-\infty$，注意力矩陣因此是**下三角**：
+回顧 [`05a1`](05a1-forward-propagation.md) §2：GPT 為了「生成時不偷看未來」，在 softmax 前把未來位置的分數設成 $-\infty$，注意力矩陣因此是**下三角**：
 
 ```
 GPT（Causal）— 位置 i 只能看 0..i：
@@ -145,7 +145,7 @@ The animal didn't cross the street because it was too ___.
 
 拿掉遮罩之後，還有一個問題：**訓練目標要換掉**。
 
-GPT 的目標是 next-token prediction（[`05a`](05a-forward-propagation.md) §7）：位置 $i$ 看 $x_1..x_i$、預測 $x_{i+1}$。這個目標**只在因果遮罩下才成立**——如果雙向模型也做「預測下一個詞」，那位置 $i$ 早就直接看到答案 $x_{i+1}$ 了，等於抄答案，什麼都學不到。
+GPT 的目標是 next-token prediction（[`05a1`](05a1-forward-propagation.md) §7）：位置 $i$ 看 $x_1..x_i$、預測 $x_{i+1}$。這個目標**只在因果遮罩下才成立**——如果雙向模型也做「預測下一個詞」，那位置 $i$ 早就直接看到答案 $x_{i+1}$ 了，等於抄答案，什麼都學不到。
 
 BERT 的解法是 **Masked Language Modeling（MLM，克漏字）**：把輸入句子隨機挖掉一些字，讓模型用**左右文**把它們填回來。
 
@@ -169,7 +169,7 @@ $$
 \mathcal{L}_{\text{MLM}} = -\frac{1}{|\mathcal{M}|}\sum_{i \in \mathcal{M}} \log p_i\big[\,y_i\,\big]
 $$
 
-其中 $y_i$ 是位置 $i$ 的原始（正確）token。這與 [`05a`](05a-forward-propagation.md) §7 的 cross-entropy 形式完全相同，唯一差別是**求和範圍**：next-token 對**每個**位置都算損失（一個序列同時訓練 $T$ 個預測），MLM 只對**被遮的 15%** 算損失。
+其中 $y_i$ 是位置 $i$ 的原始（正確）token。這與 [`05a1`](05a1-forward-propagation.md) §7 的 cross-entropy 形式完全相同，唯一差別是**求和範圍**：next-token 對**每個**位置都算損失（一個序列同時訓練 $T$ 個預測），MLM 只對**被遮的 15%** 算損失。
 
 程式上對應 `F.cross_entropy` 的 `ignore_index`——把沒被遮的位置的 target 設成 `-100`，就不計入損失：
 

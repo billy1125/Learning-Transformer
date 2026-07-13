@@ -105,12 +105,12 @@ jupyter lab
 04a GPT 基本概念與 Pipeline   ──────▶  NB4 §4
   (架構差異、Causal Mask、資料流)        Head / Block / GPT 類別
         ↓
-05a 向前傳播數學              ──────▶  NB4 前向
+05a1 前向數學 ／ 05a2 前向數值範例 ─▶  NB4 前向
   (Scaled/Causal/MHA/FFN/LN/CE)
 
         ↓
 
-05b 向後傳播數學＋數值計算    ──────▶  NB3 每個 .backward()
+05b1 後向數學 ／ 05b2 後向數值範例 ─▶  NB3 每個 .backward()
   (QKV / LayerNorm / Embedding 梯度)
 
         ↓
@@ -151,10 +151,12 @@ jupyter lab
 | [`03b2-transformer-example-block.md`](theory/03b2-transformer-example-block.md) | 03a 計算案例・中等版（選讀）：承接 03b1，補上多頭、$W_O$、殘差、FFN，算到 Block 輸出 $Y$ |
 | [`03b3-transformer-architecture-example.md`](theory/03b3-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：§0 依前向順序推導每個矩陣的設計歷程，再算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
 | [`03b4-transformer-example-with-position.md`](theory/03b4-transformer-example-with-position.md) | 03b 選讀對照支線（純計算展演）：把位置編碼 $P$ 真的加進輸入（$X_{\text{in}}=X+P$，P≠0），沿用同一組權重從頭算一次完整 Block，對應 NB1 §13b（數字自成一組，不與 03b1–03b3 共用）|
-| [`04a-gpt-decoder-only.md`](theory/04a-gpt-decoder-only.md) | GPT Decoder-Only 的**基本概念、架構差異與 Pipeline 總覽**（前向＋反向一覽；數學細節見 05a／05b）|
-| [`05a-forward-propagation.md`](theory/05a-forward-propagation.md) | GPT **向前傳播數學**：Scaled Dot-Product、Causal Masking、Multi-Head／FFN／Pre-LN、Embedding／PE、Next-token 與 Cross-Entropy |
-| [`04b-nanogpt-walkthrough.md`](theory/04b-nanogpt-walkthrough.md) | GPT Decoder-Only 的**程式對照**：nanoGPT 逐行解析、Pre-LN vs Post-LN、Tokenizer、自迴歸生成與 KV Cache（每節回指 05a／05b 數學）|
-| [`05b-backward-propagation.md`](theory/05b-backward-propagation.md) | GPT **向後傳播數學＋數值計算**：Self-Attention、LayerNorm 與 Embedding 的完整梯度推導，附 $T=2$ 手算範例 |
+| [`04a-gpt-decoder-only.md`](theory/04a-gpt-decoder-only.md) | GPT Decoder-Only 的**基本概念、架構差異與 Pipeline 總覽**（前向＋反向一覽；數學細節見 05a1/05a2、05b1/05b2）|
+| [`05a1-forward-propagation.md`](theory/05a1-forward-propagation.md) | GPT **向前傳播數學（符號）**：Scaled Dot-Product、Causal Masking、Multi-Head／FFN／Pre-LN、Embedding／PE、Next-token 與 Cross-Entropy |
+| [`05a2-forward-example.md`](theory/05a2-forward-example.md) | GPT **前向數值範例**：用一組範例資料（$T=2$、$d=3$）把前向每個階段實際算一次，對照 05a1 各節 |
+| [`04b-nanogpt-walkthrough.md`](theory/04b-nanogpt-walkthrough.md) | GPT Decoder-Only 的**程式對照**：nanoGPT 逐行解析、Pre-LN vs Post-LN、Tokenizer、自迴歸生成與 KV Cache（每節回指 05a1／05b1 數學）|
+| [`05b1-backward-propagation.md`](theory/05b1-backward-propagation.md) | GPT **向後傳播數學（符號）**：Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
+| [`05b2-backward-example.md`](theory/05b2-backward-example.md) | GPT **後向數值範例**：沿用 05a2 的數字，把反向每個階段的梯度實際算一次，對照 05b1 各節 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀，decoder 家族出口） |
 | [`07-bert-encoder-only.md`](theory/07-bert-encoder-only.md) | BERT／Encoder-Only：雙向 Self-Attention、MLM 預訓練、`[CLS]`/`[SEP]`、預訓練+微調、encoder vs decoder 選型（選讀，encoder 家族分支） |
 | [`09-text-to-vector-rag.md`](theory/09-text-to-vector-rag.md) | 文字轉向量與語意檢索：分佈假說、Word2Vec、動態 embedding、餘弦相似度、RAG 檢索流程（選讀，encoder 分支的應用出口） |
@@ -165,8 +167,8 @@ jupyter lab
 |---|---|---|
 | [`NB1-simple-llm-vanilla.ipynb`](notebooks/NB1-simple-llm-vanilla.ipynb) | NumPy 從零實作，無框架依賴 | 01 + 02 + 03 |
 | [`NB2-simple-llm-pytorch.ipynb`](notebooks/NB2-simple-llm-pytorch.ipynb) | PyTorch 版本 | 01 + 02 + 03 |
-| [`NB3-llm-backpropagation.ipynb`](notebooks/NB3-llm-backpropagation.ipynb) | NumPy 手刻完整反向傳播 | 01–03 + 05b |
-| [`NB4-nanoGPT.ipynb`](notebooks/NB4-nanoGPT.ipynb) | 完整 nanoGPT，訓練莎士比亞文本 | 01–03 + 04a/05a/04b |
+| [`NB3-llm-backpropagation.ipynb`](notebooks/NB3-llm-backpropagation.ipynb) | NumPy 手刻完整反向傳播 | 01–03 + 05b1 |
+| [`NB4-nanoGPT.ipynb`](notebooks/NB4-nanoGPT.ipynb) | 完整 nanoGPT，訓練莎士比亞文本 | 01–03 + 04a/05a1/04b |
 | [`NB5-bert-mlm.ipynb`](notebooks/NB5-bert-mlm.ipynb) | 從零手刻最小 BERT（去 causal mask + MLM）＋ HuggingFace 選讀延伸（選讀分支） | 01–03 + 07 |
 
 #### 進階補充 (`advanced/`，選讀)
