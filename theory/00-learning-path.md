@@ -21,7 +21,7 @@
 | 1958–1980s | 早期類神經與符號 AI | 感知機（Perceptron）、規則式系統 | 單層無法處理非線性；規則難以擴展 |
 | 1986 | 反向傳播普及 | 多層感知機（MLP）| 能訓練多層網路，但不擅長處理「結構化輸入」|
 | 1998 / 1997 | 專用結構登場 | CNN（影像）、RNN／LSTM（序列）| CNN 抓空間局部性；RNN 處理序列，但**逐步計算、長距離依賴會衰減** |
-| 2013–2014 | 表示與對齊 | word2vec（Embedding）、seq2seq + Attention | 詞被映射成向量；Attention 讓 decoder 能「對齊」到輸入任意位置 |
+| 2013–2014 | 表示與對齊 | word2vec（Embedding）、[seq2seq + Attention](10a1-seq2seq-forward.md) | 詞被映射成向量；Attention 讓 decoder 能「對齊」到輸入任意位置 |
 | **2017** | **Transformer** | *Attention Is All You Need* | **完全用 Attention 取代遞迴**：可並行、長距離依賴變成 $O(1)$ 路徑 |
 | 2018–2020 | 預訓練範式 | [BERT（Encoder）](07-bert-encoder-only.md)、GPT（Decoder）| 「大規模預訓練 + 下游微調」成為主流 |
 | 2022– | 對齊與指令 | ChatGPT、GPT-4（RLHF、指令遵循）| 讓模型「聽得懂指令、答得有用」|
@@ -118,6 +118,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 - [`06`](06-modern-transformer-variants.md)：RMSNorm、SwiGLU、RoPE、GQA——nanoGPT 到 LLaMA 的橋接（decoder 家族出口）
 - [`07`](07-bert-encoder-only.md)：BERT／雙向理解／MLM 預訓練——另一條 encoder 家族分支（對應 NB5）
 - [`09`](09-text-to-vector-rag.md)：文字轉向量與 RAG——Word2Vec、動態 embedding、餘弦檢索（encoder 分支的應用出口）
+- [`10a1`](10a1-seq2seq-forward.md)→[`10a2`](10a2-seq2seq-forward-example.md)→[`10b1`](10b1-seq2seq-backward.md)→[`10b2`](10b2-seq2seq-backward-example.md)：Seq2Seq／Encoder-Decoder——RNN＋Bahdanau attention 與 Transformer Cross-Attention 兩代架構的前後向推導與手算範例（第三條家族分支，讀完 `03a` 即可讀）
 
 > 完整的「理論 ↔ Notebook」對應表，以及兩個起點（直覺版／數學版）的選擇，見 [`../README.md`](../README.md) 的〈學習路線〉。
 
@@ -145,13 +146,13 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 ```
                  Transformer（本教材）
                         │
-        ┌───────────────┴───────────────┐
-   Decoder 家族                     Encoder 家族
-   GPT / LLaMA                      BERT / RoBERTa
-   ← 06 已是橋接                    ← 07 是入口（生成 vs 理解）
-        │                                │
-        │                          Sentence-BERT
-        └───────────────┬────────────────┘
+    ┌───────────────────┼───────────────────┐
+Decoder 家族      Encoder-Decoder 家族   Encoder 家族
+GPT / LLaMA       T5 / 原始 Transformer  BERT / RoBERTa
+← 06 已是橋接     ← 10a1–10b2 是入口     ← 07 是入口（生成 vs 理解）
+    │             （翻譯、摘要）              │
+    │                                   Sentence-BERT
+    └───────────────────┬───────────────────┘
                         ↓
               Embedding → RAG   ← encoder 做檢索、decoder 做生成（見 09）
                         ↓

@@ -149,7 +149,31 @@ $$
 
 ## 3. Causal Self-Attention（對應 [`05a1`](05a1-forward-propagation.md) §1–§2；反向見 [`05b2`](05b2-backward-example.md) §5.2–§5.6）
 
-因為 $W_Q=W_K=W_V=I$，所以 $Q=K=V=\text{LN}_1(x_0)$。
+**先做三個投影** $Q=\text{LN}_1(x_0)\,W_Q$、$K=\text{LN}_1(x_0)\,W_K$、$V=\text{LN}_1(x_0)\,W_V$。本例三個矩陣都取單位矩陣 $I_3$，實際算一次看看：
+
+$$
+Q=\text{LN}_1(x_0)\,W_Q=
+\begin{bmatrix} 1.225 & 0 & -1.225 \\ 1.225 & -1.225 & 0 \end{bmatrix}
+\begin{bmatrix} 1&0&0 \\ 0&1&0 \\ 0&0&1 \end{bmatrix}
+$$
+
+以第 0 列為例，逐欄做內積（$q_{0,j}$ ＝第 0 列 $\cdot$ $W_Q$ 第 $j$ 欄）：
+
+$$
+\begin{aligned}
+q_{0,0} &= 1.225\times 1 + 0\times 0 + (-1.225)\times 0 = 1.225 \\
+q_{0,1} &= 1.225\times 0 + 0\times 1 + (-1.225)\times 0 = 0 \\
+q_{0,2} &= 1.225\times 0 + 0\times 0 + (-1.225)\times 1 = -1.225
+\end{aligned}
+$$
+
+每一欄都只有一個 1、其餘為 0，所以內積等於「把原向量的第 $j$ 個分量抄過來」，結果與輸入完全相同。第 1 列同理。$W_K,W_V$ 也是 $I_3$，於是
+
+$$
+Q=K=V=\text{LN}_1(x_0)=\begin{bmatrix} 1.225 & 0 & -1.225 \\ 1.225 & -1.225 & 0 \end{bmatrix}
+$$
+
+> **$Q=K=V$ 是本例的巧合，不是通則。** 三個投影相等只因為初始值都取了 $I$（§0.2）；真實模型中它們是三個不同的隨機矩陣，$Q\neq K\neq V$，投影才有「把同一個詞向量拆成問句／索引／內容三種角色」的意義（[`02`](02-attention-intuition.md)）。這三個矩陣也照樣要訓練——[`05b2`](05b2-backward-example.md) §5.7 算出的 $G^{W_Q},G^{W_K},G^{W_V}$ 都不是零矩陣，做完一步梯度下降後它們就不再是 $I$、也不再彼此相等。
 
 **分數（縮放後）** $S=\dfrac{QK^\top}{\sqrt{d_k}}=\dfrac{QK^\top}{\sqrt3}$。例如 $S_{00}=\dfrac{q_0\cdot k_0}{\sqrt3}=\dfrac{1.225^2+0+1.225^2}{1.732}=\dfrac{3.0}{1.732}=1.732$；$S_{01}=\dfrac{q_0\cdot k_1}{\sqrt3}=\dfrac{1.225^2+0+0}{1.732}=\dfrac{1.5}{1.732}=0.866$：
 

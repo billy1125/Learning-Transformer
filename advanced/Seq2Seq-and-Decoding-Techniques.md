@@ -361,6 +361,7 @@ Value 來自 Encoder
 
 如果你想把這些直覺換成能親手實作的數學與程式，回到主線：
 
+- **本文講的 Seq2Seq 本身的嚴謹數學** → [`theory/10a1`](../theory/10a1-seq2seq-forward.md)（前向符號）→ [`10a2`](../theory/10a2-seq2seq-forward-example.md)（前向手算）→ [`10b1`](../theory/10b1-seq2seq-backward.md)（後向符號）→ [`10b2`](../theory/10b2-seq2seq-backward-example.md)（後向手算）。那四份把**兩代架構**都推導了一遍：2014 年的 RNN Seq2Seq ＋ Bahdanau 加性 attention（含 BPTT 與梯度消失的定量分析），以及 2017 年的 Transformer Encoder-Decoder（含 Cross-Attention 的前向與反向）。本文提到的 teacher forcing、cross attention 早於 Transformer、每步都是分類問題等等，在那裡都有對應的公式與數字。
 - Encoder 的 block、self-attention、多頭、殘差與 LayerNorm 的嚴謹版 → [`theory/03a-transformer-architecture.md`](../theory/03a-transformer-architecture.md)
 - Decoder-only、causal mask、next-token 訓練、自迴歸生成 → [`theory/04a-gpt-decoder-only.md`](../theory/04a-gpt-decoder-only.md)（原理）、[`04b-nanogpt-walkthrough.md`](../theory/04b-nanogpt-walkthrough.md)（程式）、[`NB4-nanoGPT`](../notebooks/NB4-nanoGPT.ipynb)
 - BERT＝Encoder 的完整展開 → [`theory/07-bert-encoder-only.md`](../theory/07-bert-encoder-only.md)

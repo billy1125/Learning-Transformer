@@ -62,6 +62,8 @@
 
 **一句話總結：** Encoder 負責「讀懂」、Decoder 負責「寫出」，兩者靠 Cross-Attention 對接。記住這個分工，下一節就能看懂 GPT 為什麼可以把 Encoder 整個拿掉。
 
+> **這一節只給了架構分工，數學在別的地方。** Encoder-Decoder 與 Cross-Attention 的完整推導是 encoder-decoder 家族分支的內容：前向符號見 [`10a1`](10a1-seq2seq-forward.md) §B（§B3 專講 Cross-Attention，§B4 有三種 attention 的一表對照）、手算數字見 [`10a2`](10a2-seq2seq-forward-example.md) §B3、反向見 [`10b1`](10b1-seq2seq-backward.md) §B2 與 [`10b2`](10b2-seq2seq-backward-example.md) §B2。那組文件也回頭處理了 2014 年的 RNN Seq2Seq，說明 attention 當初是為了解決什麼問題被發明出來。
+
 ---
 
 ## 2. GPT 為什麼只要 Decoder？
