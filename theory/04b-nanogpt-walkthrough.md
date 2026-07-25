@@ -46,10 +46,11 @@ class Head(nn.Module):
         self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
 
     def forward(self, x):
-        B, T, C = x.shape
+        B, T, C = x.shape  # 注意 C = n_embd，不是 head_size
         k = self.key(x)    # K = X W_K
         q = self.query(x)  # Q = X W_Q
-        wei = q @ k.transpose(-2, -1) * C**-0.5           # QK^T / sqrt(d_k)
+        d_k = k.shape[-1]                                   # d_k = head_size
+        wei = q @ k.transpose(-2, -1) * d_k**-0.5           # QK^T / sqrt(d_k)
         wei = wei.masked_fill(self.tril[:T,:T]==0, -inf)   # Causal mask
         wei = F.softmax(wei, dim=-1)                        # A = softmax(...)
         wei = self.dropout(wei)                             # Dropout（見 §3）
@@ -57,9 +58,11 @@ class Head(nn.Module):
         return wei @ v                                      # C = AV
 ```
 
-逐行對回 [`05a1`](05a1-forward-propagation.md) §1 的式子：`self.key/query/value` 就是投影矩陣 $W_K,W_Q,W_V$；`q @ k.transpose(-2,-1)` 是 $QK^\top$；`* C**-0.5` 是除以 $\sqrt{d_k}$（見 05a1 §1 的方差論證）；`masked_fill(...,-inf)` 是 05a1 §2 的因果遮罩；`F.softmax` → `@ v` 就是 $A=\text{softmax}(\cdot)$、輸出 $AV$。
+逐行對回 [`05a1`](05a1-forward-propagation.md) §1 的式子：`self.key/query/value` 就是投影矩陣 $W_K,W_Q,W_V$；`q @ k.transpose(-2,-1)` 是 $QK^\top$；`* d_k**-0.5` 是除以 $\sqrt{d_k}$（見 05a1 §1 的方差論證）；`masked_fill(...,-inf)` 是 05a1 §2 的因果遮罩；`F.softmax` → `@ v` 就是 $A=\text{softmax}(\cdot)$、輸出 $AV$。
 
-**注意：** `C**-0.5` 中 `C = head_size`，即除以 $\sqrt{d_k}$，與 05a1 §1 一致。
+> **注意縮放要用 `head_size` 而不是 `n_embd`。** `B, T, C = x.shape` 解出的 `C` 是進入這個 head 的輸入維度，也就是 `n_embd`；但 $d_k$ 是 `head_size = n_embd // n_head`。多頭時（本倉庫 NB4 的 `n_head` 是 2 或 6）兩者並不相等，所以程式用 `k.shape[-1]` 取 $k$ 的最後一維，這才是 $d_k$。官方 nanoGPT 的 `model.py` 也是這樣寫（`1.0 / math.sqrt(k.size(-1))`）。
+>
+> Karpathy 影片版的早期程式碼寫成 `C**-0.5`，等於除以 $\sqrt{n\_embd}$——縮放常數偏大、attention 分佈偏平，不算致命但與 05a1 §1 的推導不符。本倉庫 NB4 已改為上面的寫法。
 
 ## 2. `MultiHeadAttention`：多頭 Attention
 
@@ -311,7 +314,7 @@ nanoGPT 為了教學簡潔沒有實作 KV Cache，但讀懂它之後，看任何
 | 問題 | 對應概念 |
 |---|---|
 | `Head` 裡的 `self.tril` 遮罩在做什麼？ | Causal Masking（[`05a1`](05a1-forward-propagation.md) §2）|
-| `C**-0.5` 是什麼？ | $1/\sqrt{d_k}$ 縮放（[`05a1`](05a1-forward-propagation.md) §1；幾何見 03a §3.4）|
+| `d_k**-0.5` 是什麼？ | $1/\sqrt{d_k}$ 縮放，$d_k=$ `head_size`（[`05a1`](05a1-forward-propagation.md) §1；幾何見 03a §3.4；別誤用 `n_embd`，見 §1 的註）|
 | `Block` 裡兩個 `x = x + ...` 是什麼結構？ | Residual Connection + Pre-LN（本文 §7、[`05a1`](05a1-forward-propagation.md) §5）|
 | `lm_head` 輸出的 `(B, T, vocab_size)` 裡，哪個位置是訓練用的目標？ | 每個位置 $i$ 預測 $i+1$（[`05a1`](05a1-forward-propagation.md) §7）|
 | 為什麼 `generate` 要截取 `idx[:, -block_size:]`？ | Context window 上限（本文 §9）|

@@ -159,7 +159,7 @@ $T$ 個字兩兩比對，就排成一張 $T \times T$ 的分數表，第 $i$ 列
 # 建立 T×T 的下三角矩陣（1 = 保留，0 = 封住），就是上面那張 ✓/✗ 表
 tril = torch.tril(torch.ones(T, T))
 
-wei = q @ k.transpose(-2, -1) * C**-0.5   # (B, T, T)  ① 算出 T×T 關注分數表
+wei = q @ k.transpose(-2, -1) * d_k**-0.5  # (B, T, T)  ① 算出 T×T 關注分數表（d_k = k.shape[-1]）
 wei = wei.masked_fill(tril[:T, :T] == 0, float('-inf'))  # ② 把 0 的格子（未來）改成 -∞
 wei = F.softmax(wei, dim=-1)               # ③ softmax 換算成比例，-∞ 自動變 0
 ```

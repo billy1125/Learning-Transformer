@@ -110,7 +110,7 @@ BERT（雙向）— 位置 i 能看全部：
 程式上的差異小到只有一行。GPT 的單頭注意力（[`04b`](04b-nanogpt-walkthrough.md) §1）長這樣：
 
 ```python
-wei = q @ k.transpose(-2, -1) * C**-0.5          # (B, T, T) 原始分數
+wei = q @ k.transpose(-2, -1) * d_k**-0.5        # (B, T, T) 原始分數（d_k = k.shape[-1]）
 wei = wei.masked_fill(tril[:T, :T] == 0, float('-inf'))  # ← GPT 專屬：遮住未來
 wei = F.softmax(wei, dim=-1)
 ```
@@ -118,7 +118,7 @@ wei = F.softmax(wei, dim=-1)
 BERT 版把中間那行**刪掉**即可：
 
 ```python
-wei = q @ k.transpose(-2, -1) * C**-0.5          # (B, T, T)
+wei = q @ k.transpose(-2, -1) * d_k**-0.5        # (B, T, T)
 # 沒有 masked_fill —— 這就是「雙向」
 wei = F.softmax(wei, dim=-1)
 ```
