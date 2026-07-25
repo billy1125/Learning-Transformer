@@ -41,7 +41,7 @@ jupyter nbconvert --to notebook --execute "notebooks/NB1-simple-llm-vanilla.ipyn
 ## 資料夾結構
 
 ```
-theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為 decoder 選讀出口、07 為 encoder 選讀分支、09 為 embedding→RAG 應用出口；04a 為 GPT 基本概念與 Pipeline、05a1 為向前傳播數學（符號）、05a2 為前向數值範例（T=2/d=3 逐階段實算）、05b1 為向後傳播數學（符號）、05b2 為後向數值範例（沿用 05a2 數字）、04b 為 nanoGPT 程式對照續篇；03a-transformer-block-plain 為 03a §6 的白話輔助版、03b1→03b2→03b3 為 03a 的選讀計算案例三階段、03b4 為含位置編碼（P≠0）的選讀對照支線）
+theory/          ← 理論主線（依序閱讀；00 為前言導讀、06 為 decoder 選讀出口、07 為 encoder 選讀分支、09 為 embedding→RAG 應用出口、10a1/10a2/10b1/10b2 為 encoder-decoder（Seq2Seq）選讀分支；04a 為 GPT 基本概念與 Pipeline、05a1 為向前傳播數學（符號）、05a2 為前向數值範例（T=2/d=3 逐階段實算）、05b1 為向後傳播數學（符號）、05b2 為後向數值範例（沿用 05a2 數字）、04b 為 nanoGPT 程式對照續篇；03a-transformer-block-plain 為 03a §6 的白話輔助版、03b1→03b2→03b3 為 03a 的選讀計算案例三階段、03b4 為含位置編碼（P≠0）的選讀對照支線）
 theory/images/   ← 理論文件內嵌圖檔（03a §5 的 attention_projection_vs_interaction、§5.5 的 multi_head_attention_diagram、§6.1 的 transformer_block_pre_ln_diagram）
 notebooks/       ← 實作主線（NB1–NB4）＋選讀分支（NB5 對應 07）
 notebooks/data/  ← Notebook 訓練資料（如 NB4／NB5 莎士比亞文本）
@@ -73,6 +73,10 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 | `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀；decoder 家族出口）|
 | `07-bert-encoder-only.md` | BERT／Encoder-Only：雙向 Self-Attention（拿掉 Causal Mask）、MLM 預訓練、`[CLS]`/`[SEP]`/三種 embedding、預訓練+微調、BERT 家族、encoder vs decoder 選型（選讀；encoder 家族分支，對應 NB5）|
 | `09-text-to-vector-rag.md` | 文字轉向量與語意檢索：分佈假說、Word2Vec（靜態）、Transformer/BERT 動態 embedding、餘弦相似度、RAG 檢索流程（選讀；encoder 分支的應用出口，重疊內容交叉引用 01a/02/03a/07 不重推）|
+| `10a1-seq2seq-forward.md` | Seq2Seq **前向數學（符號）**（選讀；encoder-decoder 家族分支，前置只需 01–03a）：§A RNN Seq2Seq＋Bahdanau 加性 attention（含固定 context vector 的瓶頸）、§B Transformer Encoder-Decoder（§B3 Cross-Attention、§B4 三種 attention 一表對照）、§C 兩代對照、§D 四份文件的節號鏡射表 |
+| `10a2-seq2seq-forward-example.md` | Seq2Seq **前向數值範例**：同一個翻譯任務（`我吃`→`I eat`，teacher forcing、target 右移一位）兩代架構各完整算一次到 loss。模型 A：$d_e=d_h=d_a=2$、14 張量 55 參數、$L=1.945$；模型 B：$d=3$、$T_s=T_t=2$、單頭、各一層 Pre-LN Block、32 張量 234 參數、$L=2.250$。模型 B 的 encoder 輸入刻意與 05a2 的 $x_0$ 相同（唯一差別是無因果遮罩）；$W_V^d$ 刻意非 $I$ 以免 LN 退化 |
+| `10b1-seq2seq-backward.md` | Seq2Seq **後向數學（符號）**：§A BPTT（§A3 $G^{h_i}$ 的時間鏈／attention 兩股分解、§A5 參數共享⇒累加、§A6 梯度消失的定量推導）、§B Transformer 反向（§B2 Cross-Attention 梯度分岔 $G^H=G^H\vert_{(K)}+G^H\vert_{(V)}$、§B5 反向五步總覽）、§C 兩代對照 |
+| `10b2-seq2seq-backward-example.md` | Seq2Seq **後向數值範例**：沿用 10a2 的兩組數字，14＋32 個參數梯度全部實算＋一步 SGD 示範；§D 三個量化結論（attention 那股是時間鏈的 1.48／2.90 倍、零梯度成因表、encoder 梯度比 decoder 小約 9 倍）|
 
 ## Notebook（`notebooks/`）
 
@@ -90,6 +94,7 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 - 理論文件與 Notebook 相互對應，每份理論文件的開頭都標示對應的 Notebook
 - `archive/` 保存所有舊版原始文件，不應修改；新版本在 `theory/` 和 `notebooks/`
 - `04a-gpt-decoder-only.md`（基本概念與 Pipeline）＋ `05a1-forward-propagation.md`（前向數學符號）＋ `05a2-forward-example.md`（前向數值範例）＋ `05b1-backward-propagation.md`（後向數學符號）＋ `05b2-backward-example.md`（後向數值範例）＋ `04b-nanogpt-walkthrough.md`（nanoGPT 程式對照）是關鍵橋接文件，連接理論與 nanoGPT 實作；04b 每節回指 05a1／05b1 的數學節，改章節號時兩邊要同步；05a2 與 05b2 共用同一組 T=2/d=3 數字（改一邊要同步另一邊）；04a 的 Pipeline 總覽節號亦指向 05a1（前向）／05b1（反向）
+- `10a1`／`10a2`／`10b1`／`10b2` 是 Seq2Seq 四件套，**四份的節號互為鏡射**（10a1 §D、10a2 §0.1 各有一張對照表）：§A1–§A5 是 RNN 版、§B1–§B4 是 Transformer 版，改任一份的節號要同步四份與那兩張表。10a2 與 10b2 共用同兩組數字（模型 A 55 參數、模型 B 234 參數），**改一邊要同步另一邊**；所有數值都以 PyTorch autograd 驗證過，勿手動調整
 
 ## 行文品質原則（編修理論文件時遵守）
 

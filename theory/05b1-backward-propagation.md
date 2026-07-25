@@ -388,6 +388,8 @@ $$
 
 若 $\left\|\dfrac{\partial h_t}{\partial h_{t-1}}\right\| < 1$，連乘後梯度趨於 $0$（梯度消失）；若 $> 1$，梯度爆炸。
 
+> **這裡只給結論，完整推導在 [`10b1`](10b1-seq2seq-backward.md) §A6。** 那裡把 $\partial h_t/\partial h_{t-1}$ 拆成 $\text{diag}(1-h_t^2)$ 與 $W_{hh}^\top$ 兩個因子，說明為何 $\tanh$ 保證前者恆 $\le1$、後者的 $\sigma_{\max}$ 又決定指數衰減或爆炸，並對照 LSTM 閘控與 Bahdanau attention 兩種緩解手段。數值版（含「attention 那條路帶回的梯度比時間鏈還大」的實測）見 [`10b2`](10b2-seq2seq-backward-example.md) §A3。
+
 **Transformer 的梯度優勢：**
 
 任意兩個 token $i \to j$ 的梯度路徑只穿越**一個** attention 層：
