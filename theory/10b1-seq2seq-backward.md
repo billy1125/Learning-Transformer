@@ -87,9 +87,9 @@ $$
 \boxed{\;G^{z_t} = \frac{1}{T_t}\Big(p_t - \text{onehot}(y_t)\Big)\;}
 $$
 
-**解讀：正確類別的分量為負（要調高），其餘為正（要調低），整列和為零**（因為 $\sum_j p_{t,j}=1$）。梯度下降就是把機率質量從錯的類別搬到對的類別。這與 GPT 的情形完全相同（[`05b1`](05b1-backward-propagation.md) §1 的反向總覽）。
+**解讀：正確類別的分量為負（要調高），其餘為正（要調低），整列和為零**（因為 $\sum_j p_{t,j}=1$）。梯度下降就是把機率質量從錯的類別搬到對的類別。這與 GPT 的情形完全相同（[`05b1`](05b1-backward-propagation.md) §3）。
 
-**輸出層參數：** $z_t=s_tW_{out}+b_{out}$ 是標準的線性層（[`05b1`](05b1-backward-propagation.md) §2）：
+**輸出層參數：** $z_t=s_tW_{out}+b_{out}$ 是標準的線性層（[`05b1`](05b1-backward-propagation.md) §4.1）：
 
 $$
 G^{W_{out}} = \sum_{t=1}^{T_t} s_t^\top\,G^{z_t},\qquad
@@ -152,7 +152,7 @@ $$
 G^{E_t[\tilde y_t]}\ \mathrel{+}=\ G^{e^t_t}
 $$
 
-**沒被查到的列梯度為零**——這就是 embedding 的**稀疏更新**（機制同 [`05b1`](05b1-backward-propagation.md) §6.4）。本例的 `eat` 只當過目標、沒當過 decoder 輸入，所以 $G^{E_t[2]}=\mathbf0$，即使它是正確答案。
+**沒被查到的列梯度為零**——這就是 embedding 的**稀疏更新**（機制同 [`05b1`](05b1-backward-propagation.md) §10.4）。本例的 `eat` 只當過目標、沒當過 decoder 輸入，所以 $G^{E_t[2]}=\mathbf0$，即使它是正確答案。
 
 **Decoder 的四個參數：**
 
@@ -244,7 +244,7 @@ $$
 
 （一個純量：把 $G^{c_t}$ 與 $h_i$ 做內積。）
 
-**(b) 穿過 softmax。** 這是 softmax 的標準反向，完整的 Jacobian 推導見 [`05b1`](05b1-backward-propagation.md) §1.4，結論是
+**(b) 穿過 softmax。** 這是 softmax 的標準反向，完整的 Jacobian 推導見 [`05b1`](05b1-backward-propagation.md) §3.2，結論是
 
 $$
 \boxed{\;G^{e_{t,i}} = \alpha_{t,i}\Big(G^{\alpha_{t,i}} - \sum_{j=1}^{T_s}\alpha_{t,j}G^{\alpha_{t,j}}\Big)\;}
@@ -289,7 +289,7 @@ G^{s_{t-1}}\big|_{\text{attention}} = \sum_i G^{w_{t,i}}W_a^\top,
 G^{h_i}\big|_{\text{打分}} = \sum_t G^{w_{t,i}}U_a^\top
 $$
 
-> **加性 attention 的梯度比點積 attention 長。** 對照 [`05b1`](05b1-backward-propagation.md) §1.5：點積 attention 從分數回到 $Q,K$ 只要一次矩陣乘法（$G^Q=G^SK/\sqrt{d_k}$）。這裡要先過 $v_a$、再過 $\tanh$、再過 $W_a$ 或 $U_a$——多兩個環節，其中 $\tanh'$ 又是一個 $\le1$ 的因子。**加性 attention 不只前向較慢，反向的梯度也被多壓一次。**
+> **加性 attention 的梯度比點積 attention 長。** 對照 [`05b1`](05b1-backward-propagation.md) §8.6：點積 attention 從分數回到 $Q,K$ 只要一次矩陣乘法（$G^Q=G^SK/\sqrt{d_k}$）。這裡要先過 $v_a$、再過 $\tanh$、再過 $W_a$ 或 $U_a$——多兩個環節，其中 $\tanh'$ 又是一個 $\le1$ 的因子。**加性 attention 不只前向較慢，反向的梯度也被多壓一次。**
 
 ## A5. 參數共享 ⇒ 梯度跨時間累加（前向見 [`10a1`](10a1-seq2seq-forward.md) §A1；數值見 [`10b2`](10b2-seq2seq-backward-example.md) §A5）
 
@@ -341,7 +341,7 @@ $$
 \boxed{\;G^{h_{i-k}}\big|_{\text{時間鏈}} = G^{h_i}\prod_{m=0}^{k-1}\Big(D_{i-m}W_{hh}^\top\Big)\;}
 $$
 
-這正是 [`05b1`](05b1-backward-propagation.md) §4 寫的那條連乘積 $\prod_t\partial h_t/\partial h_{t-1}$，只是這裡把它的兩個因子明確拆開了。
+這正是 [`05b1`](05b1-backward-propagation.md) 附錄 B 寫的那條連乘積 $\prod_t\partial h_t/\partial h_{t-1}$，只是這裡把它的兩個因子明確拆開了。
 
 **定量估計。** 取矩陣的 2-範數（最大奇異值 $\sigma_{\max}$），由次可乘性：
 
@@ -370,7 +370,7 @@ $$
 |---|---|
 | **LSTM／GRU 的閘控** | 記憶單元有一條**加法**路徑 $c_m=f_m\odot c_{m-1}+i_m\odot\tilde c_m$，於是 $\partial c_m/\partial c_{m-1}=\text{diag}(f_m)$——連乘的是遺忘閘 $f_m$ 而**不是權重矩陣**。模型可以學會讓 $f_m\approx1$，把某些維度的梯度**原封不動**傳很多步。 |
 | **Bahdanau Attention**（§A3）| 不動這條公式，而是**另開一條路**：$\sum_t\alpha_{t,i}G^{c_t}$ 完全不經過連乘鏈。 |
-| **Transformer**（§B）| 直接把遞迴拿掉，連乘鏈根本不存在；任兩個位置之間只隔一層 attention（[`05b1`](05b1-backward-propagation.md) §4）。|
+| **Transformer**（§B）| 直接把遞迴拿掉，連乘鏈根本不存在；任兩個位置之間只隔一層 attention（[`05b1`](05b1-backward-propagation.md) 附錄 B）。|
 
 **注意 Bahdanau attention 沒有修好 encoder 內部。** $h_1$ 從 attention 拿到的梯度是直達的，但 $E_s[x_1]$（來源第一個詞的**詞向量**）仍然只能透過 $G^{a_1}=G^{h_1}\odot(1-h_1^2)$ 這一條路——而 $G^{h_1}$ 裡的時間鏈那股照樣衰減。attention 縮短的是「$h_i$ 到 loss」的距離，不是「$h_1$ 到 $h_{T_s}$」的距離。要連這一段都拆掉，得等 Transformer。
 
@@ -384,8 +384,8 @@ $$
 
 | 模組 | 反向公式 | 推導 |
 |---|---|---|
-| 線性層 $Y=XW$ | $G^{W}=X^\top G^{Y}$，$G^{X}=G^{Y}W^\top$ | [`05b1`](05b1-backward-propagation.md) §2 |
-| Softmax（逐列）| $G^{S}_{ij}=A_{ij}\big(G^{A}_{ij}-\sum_k A_{ik}G^{A}_{ik}\big)$ | [`05b1`](05b1-backward-propagation.md) §1.4 |
+| 線性層 $Y=XW$ | $G^{W}=X^\top G^{Y}$，$G^{X}=G^{Y}W^\top$ | [`05b1`](05b1-backward-propagation.md) §4.1 |
+| Softmax（逐列）| $G^{S}_{ij}=A_{ij}\big(G^{A}_{ij}-\sum_k A_{ik}G^{A}_{ik}\big)$ | [`05b1`](05b1-backward-propagation.md) §8.4 |
 | LayerNorm | $G^{x}=\frac{1}{\sigma}\big(g-\overline{g}-\hat x\odot\overline{g\odot\hat x}\big)$，其中 $g=G^{y}\odot\gamma$、$\overline{\cdot}$ 是沿特徵維的平均；$G^{\gamma}_j=\sum_i G^y_{ij}\hat x_{ij}$、$G^{\beta}_j=\sum_i G^y_{ij}$ | [`05b1`](05b1-backward-propagation.md) §5.7 |
 
 殘差連接的反向也一樣簡單：$Y=X+F(X)$ 時 $G^{X}=G^{Y}+G^{F}$，梯度**兩條路都走**（[`05b1`](05b1-backward-propagation.md) §5.10）。
@@ -405,7 +405,7 @@ G^{W_{lm}} = \big(G^{\text{logit}}\big)^\top h^{\text{out}},\qquad
 G^{h^{\text{out}}} = G^{\text{logit}}\,W_{lm}
 $$
 
-接著依序穿過：最終 LayerNorm → 殘差 ③ → FFN → LayerNorm ③。這四步與 GPT 的對應段落**逐字相同**，可直接引用 [`05b1`](05b1-backward-propagation.md) §5.7（LayerNorm）與 §2（FFN 的兩個線性層），其中 ReLU 的反向是遮罩：
+接著依序穿過：最終 LayerNorm → 殘差 ③ → FFN → LayerNorm ③。這四步與 GPT 的對應段落**逐字相同**，可直接引用 [`05b1`](05b1-backward-propagation.md) §5.7（LayerNorm）與 §6（FFN 的兩個線性層＋ReLU），其中 ReLU 的反向是遮罩：
 
 $$
 G^{z} = G^{\text{ReLU}(z)}\odot\mathbb{1}[z>0]
@@ -525,7 +525,7 @@ $$
 G^{Y_1} = G^{Y_2} + G^{\text{LN}_{d2}}\text{ 穿過 LN}_{d2}\text{ 之後的結果}
 $$
 
-接著是帶因果遮罩的 self-attention。**公式與 GPT 逐字相同**（[`05b1`](05b1-backward-propagation.md) §1），這裡只強調遮罩帶來的兩個差異：
+接著是帶因果遮罩的 self-attention。**公式與 GPT 逐字相同**（[`05b1`](05b1-backward-propagation.md) §8），這裡只強調遮罩帶來的兩個差異：
 
 **(a) 被遮住的位置梯度必為零。** 前向 $S_{ij}=-\infty\Rightarrow A_{ij}=0$。反向的 softmax 公式 $G^{S}_{ij}=A_{ij}(\cdots)$ 前面有一個因子 $A_{ij}$，所以
 
@@ -542,7 +542,7 @@ G^{S}_{0,0} = A_{0,0}\Big(G^{A}_{0,0} - \sum_j A_{0,j}G^{A}_{0,j}\Big)
 = 1\cdot\big(G^{A}_{0,0} - 1\cdot G^{A}_{0,0}\big) = 0
 $$
 
-其餘 $j>0$ 因 $A_{0,j}=0$ 也是零。**整個第 0 列拿不到任何梯度**——這是 one-hot 分佈下 softmax Jacobian 退化的必然結果（[`05b1`](05b1-backward-propagation.md) §1.4），[`05b2`](05b2-backward-example.md) §5.4 有數值印證。
+其餘 $j>0$ 因 $A_{0,j}=0$ 也是零。**整個第 0 列拿不到任何梯度**——這是 one-hot 分佈下 softmax Jacobian 退化的必然結果（[`05b1`](05b1-backward-propagation.md) §3.2、§8.5），[`05b2`](05b2-backward-example.md) §5.4 有數值印證。
 
 **對照 §B2 的 cross-attention：沒有遮罩，就沒有這個問題**，每一列都拿得到梯度。這是「encoder 端與 cross-attention 端的 softmax 比 decoder self-attention 端更『通暢』」的結構性理由。
 
@@ -559,7 +559,7 @@ $P_t$ 拿到全部（位置編碼每個位置各一列，一一對應）；$E_t$
 
 **起點是 §B2 算出的 $G^{H}$**，不是 loss。這是 encoder-decoder 與 GPT 最大的結構差異：GPT 的每一層都直接連到 loss，encoder 則隔了整個 decoder。
 
-從 $G^H$ 開始的每一步都與 GPT 同形（依序：最終 LayerNorm → 殘差 ② → FFN → LayerNorm ② → self-attention → 殘差 ① → LayerNorm ① → embedding），可直接套 [`05b1`](05b1-backward-propagation.md) §5.7、§2、§1、§6 的結果。
+從 $G^H$ 開始的每一步都與 GPT 同形（依序：最終 LayerNorm → 殘差 ② → FFN → LayerNorm ② → self-attention → 殘差 ① → LayerNorm ① → embedding），可直接套 [`05b1`](05b1-backward-propagation.md) §5.7、§4.1、§8、§10 的結果。
 
 **唯一的差異仍然是遮罩：encoder 的 self-attention 沒有遮罩，所以**
 

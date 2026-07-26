@@ -65,10 +65,10 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 | `03b3-transformer-architecture-example.md` | 03a 計算案例・完整版（選讀）：§0 先依前向順序推導每個矩陣的設計歷程（維度咬合、投影＝選欄矩陣、$W_O$ 為可逆基底變換、FFN 形狀鏈），再從頭算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13；三份共用同一組數字 |
 | `03b4-transformer-example-with-position.md` | 03b 選讀對照支線（純計算展演）：把位置編碼 $P$ 真的加進輸入（$X_{\text{in}}=X+P$，P≠0），沿用 03b3 同一組權重從頭算一次完整 Pre-LN Block，對應 NB1 §13b；不重述概念，數字自成一組（不與 03b1–03b3 共用）|
 | `04a-gpt-decoder-only.md` | GPT Decoder-Only **基本概念、架構差異與 Pipeline 總覽**（§1 Encoder-Decoder、§2 為何只要 Decoder、完整 Pipeline 前向＋反向一覽；數學細節分流到 05a1/05a2、05b1/05b2）|
-| `05a1-forward-propagation.md` | GPT **向前傳播數學（符號）**（§1 Scaled Dot-Product、§2 Causal Masking、§3 Multi-Head、§4 FFN、§5 LayerNorm/Pre-LN、§6 Embedding/PE、§7 Next-token/CE；由原 04a §3–§9 搬移而來）|
+| `05a1-forward-propagation.md` | GPT **向前傳播數學（符號）**（§1 Scaled Dot-Product、§2 Causal Masking、§3 Multi-Head、§4 FFN、§5 LayerNorm/Pre-LN、§6 Embedding/PE、§7 Next-token/CE；由原 04a §3–§9 搬移而來）。**寫作層級為高中數學程度**：§1 前有不編號的「開始之前：三個記號約定」、每節末有「讀完這一節，你會」、文末有不編號的「全文回顧：七節怎麼串成一次 forward」11 步表；**§1–§7 與所有子節號未動**（被 04b／05b1／03a／05a2 大量硬引用）|
 | `05a2-forward-example.md` | GPT **前向數值範例**：一組範例資料（T=2、d=3、單頭、含因果遮罩）逐階段 embedding→…→CE loss 實算，對照 05a1 各節；與 05b2 共用同一組數字（勿改動數值）|
 | `04b-nanogpt-walkthrough.md` | GPT Decoder-Only **程式對照**（04a 的選讀續篇）：nanoGPT `Head`/`MultiHeadAttention`/`FeedForward`/`Block`/`GPT` 逐行、Pre-LN vs Post-LN、字元級 Tokenizer、自迴歸生成＋KV Cache、速查清單；每節回指 05a1／05b1 對應數學節 |
-| `05b1-backward-propagation.md` | GPT **向後傳播數學（符號）**：Self-Attention、LayerNorm 與 Embedding 的完整梯度推導＋反向五步總覽（吸收原 04a §10）；數值範例已移至 05b2 |
+| `05b1-backward-propagation.md` | GPT **向後傳播數學（符號）**：**章節順序＝05a1 的倒序**（§3 CE+Softmax ↔ 05a1 §7、§4 lm_head／線性層通則、§5 LayerNorm+Residual ↔ 05a1 §5、§6 FFN ↔ 05a1 §4、§7 Multi-Head ↔ 05a1 §3、§8 Attention+因果遮罩 ↔ 05a1 §1/§2、§9 QKV 投影、§10 Embedding+PE ↔ 05a1 §6、§11 optimizer；§1 最小數學工具箱、§2 五步總覽與鏡射表、附錄 A 查閱表、附錄 B RNN 對比）。**寫作層級為高中數學程度**，每章末有「讀完這一節，你會」；數值範例在 05b2 |
 | `05b2-backward-example.md` | GPT **後向數值範例**：沿用 05a2 的前向數字，逐階段 logits→…→embedding 梯度實算，對照 05b1 各節（LayerNorm 在 d=2 反向會全歸零，故範例用 d=3）|
 | `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀；decoder 家族出口）|
 | `07-bert-encoder-only.md` | BERT／Encoder-Only：雙向 Self-Attention（拿掉 Causal Mask）、MLM 預訓練、`[CLS]`/`[SEP]`/三種 embedding、預訓練+微調、BERT 家族、encoder vs decoder 選型（選讀；encoder 家族分支，對應 NB5）|
@@ -93,7 +93,7 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 - 所有文件以**繁體中文**撰寫，數學公式用 LaTeX，程式碼用 Python
 - 理論文件與 Notebook 相互對應，每份理論文件的開頭都標示對應的 Notebook
 - `archive/` 保存所有舊版原始文件，不應修改；新版本在 `theory/` 和 `notebooks/`
-- `04a-gpt-decoder-only.md`（基本概念與 Pipeline）＋ `05a1-forward-propagation.md`（前向數學符號）＋ `05a2-forward-example.md`（前向數值範例）＋ `05b1-backward-propagation.md`（後向數學符號）＋ `05b2-backward-example.md`（後向數值範例）＋ `04b-nanogpt-walkthrough.md`（nanoGPT 程式對照）是關鍵橋接文件，連接理論與 nanoGPT 實作；04b 每節回指 05a1／05b1 的數學節，改章節號時兩邊要同步；05a2 與 05b2 共用同一組 T=2/d=3 數字（改一邊要同步另一邊）；04a 的 Pipeline 總覽節號亦指向 05a1（前向）／05b1（反向）
+- `04a-gpt-decoder-only.md`（基本概念與 Pipeline）＋ `05a1-forward-propagation.md`（前向數學符號）＋ `05a2-forward-example.md`（前向數值範例）＋ `05b1-backward-propagation.md`（後向數學符號）＋ `05b2-backward-example.md`（後向數值範例）＋ `04b-nanogpt-walkthrough.md`（nanoGPT 程式對照）是關鍵橋接文件，連接理論與 nanoGPT 實作；05b1 的章節順序是 05a1 的倒序（對照表在 05b1 §2.2），改任一邊的節號要同步另一邊與那張表；05b1 的節號另被 05b2、10b1、04b、01a／01b、03a 硬引用，改號時要一併更新；04b 每節回指 05a1／05b1 的數學節，改章節號時兩邊要同步；05a2 與 05b2 共用同一組 T=2/d=3 數字（改一邊要同步另一邊）；04a 的 Pipeline 總覽節號亦指向 05a1（前向）／05b1（反向）
 - `10a1`／`10a2`／`10b1`／`10b2` 是 Seq2Seq 四件套，**四份的節號互為鏡射**（10a1 §D、10a2 §0.1 各有一張對照表）：§A1–§A5 是 RNN 版、§B1–§B4 是 Transformer 版，改任一份的節號要同步四份與那兩張表。10a2 與 10b2 共用同兩組數字（模型 A 55 參數、模型 B 234 參數），**改一邊要同步另一邊**；所有數值都以 PyTorch autograd 驗證過，勿手動調整
 
 ## 行文品質原則（編修理論文件時遵守）

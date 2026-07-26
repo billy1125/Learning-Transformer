@@ -111,7 +111,7 @@ jupyter lab
         ↓
 
 05b1 後向數學 ／ 05b2 後向數值範例 ─▶  NB3 每個 .backward()
-  (QKV / LayerNorm / Embedding 梯度)
+  (CE/LN/FFN/Attention/Embedding 梯度)
 
         ↓
 
@@ -152,10 +152,10 @@ jupyter lab
 | [`03b3-transformer-architecture-example.md`](theory/03b3-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：§0 依前向順序推導每個矩陣的設計歷程，再算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
 | [`03b4-transformer-example-with-position.md`](theory/03b4-transformer-example-with-position.md) | 03b 選讀對照支線（純計算展演）：把位置編碼 $P$ 真的加進輸入（$X_{\text{in}}=X+P$，P≠0），沿用同一組權重從頭算一次完整 Block，對應 NB1 §13b（數字自成一組，不與 03b1–03b3 共用）|
 | [`04a-gpt-decoder-only.md`](theory/04a-gpt-decoder-only.md) | GPT Decoder-Only 的**基本概念、架構差異與 Pipeline 總覽**（前向＋反向一覽；數學細節見 05a1/05a2、05b1/05b2）|
-| [`05a1-forward-propagation.md`](theory/05a1-forward-propagation.md) | GPT **向前傳播數學（符號）**：Scaled Dot-Product、Causal Masking、Multi-Head／FFN／Pre-LN、Embedding／PE、Next-token 與 Cross-Entropy |
+| [`05a1-forward-propagation.md`](theory/05a1-forward-propagation.md) | GPT **向前傳播數學（符號）**：Scaled Dot-Product、Causal Masking、Multi-Head／FFN／Pre-LN、Embedding／PE、Next-token 與 Cross-Entropy；高中數學程度，附記號約定、逐節學習目標與文末「一次 forward 的 11 步」回顧 |
 | [`05a2-forward-example.md`](theory/05a2-forward-example.md) | GPT **前向數值範例**：用一組範例資料（$T=2$、$d=3$）把前向每個階段實際算一次，對照 05a1 各節 |
 | [`04b-nanogpt-walkthrough.md`](theory/04b-nanogpt-walkthrough.md) | GPT Decoder-Only 的**程式對照**：nanoGPT 逐行解析、Pre-LN vs Post-LN、Tokenizer、自迴歸生成與 KV Cache（每節回指 05a1／05b1 數學）|
-| [`05b1-backward-propagation.md`](theory/05b1-backward-propagation.md) | GPT **向後傳播數學（符號）**：Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
+| [`05b1-backward-propagation.md`](theory/05b1-backward-propagation.md) | GPT **向後傳播數學（符號）**：以 05a1 的**倒序**走一遍（CE→lm_head→LayerNorm→FFN→Multi-Head→Attention→Embedding），高中數學程度，附最小工具箱與逐節學習目標 |
 | [`05b2-backward-example.md`](theory/05b2-backward-example.md) | GPT **後向數值範例**：沿用 05a2 的數字，把反向每個階段的梯度實際算一次，對照 05b1 各節 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀，decoder 家族出口） |
 | [`07-bert-encoder-only.md`](theory/07-bert-encoder-only.md) | BERT／Encoder-Only：雙向 Self-Attention、MLM 預訓練、`[CLS]`/`[SEP]`、預訓練+微調、encoder vs decoder 選型（選讀，encoder 家族分支） |

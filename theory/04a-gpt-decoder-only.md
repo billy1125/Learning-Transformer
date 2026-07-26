@@ -109,6 +109,8 @@ Decoder-Only 架構確定了，但還有一個問題：訓練時如果讓模型�
 
 ![Forward Backward Pipeline](images/forward_backward_mirror_with_refs.png)
 
+> **圖中 05b 節號的對照：** 圖是在 05b1 改版前繪製的，反向那一欄的「Step 1／2／4／5」對應現在的 [`05b1`](05b1-backward-propagation.md) §2.1 五步地圖（詳解分別在 §3、§4.3、§10.2、§11）；「residual 05b §5.10」不變；「Attention softmax Jacobian 05b §1」現在是 **§3.2（Jacobian 推導）＋ §8.4（套用到 attention）**。完整章節對照見 05b1 §2.2 的鏡射表。
+
 因為有因果遮罩（05a1 §2），一次 forward 就同時算出序列中每個位置「預測下一個 token」的 loss，一次 backward 就更新全部參數——這條前向產生 loss、反向回灌梯度的迴圈，重複跑就是 nanoGPT 的完整訓練。
 
 ---

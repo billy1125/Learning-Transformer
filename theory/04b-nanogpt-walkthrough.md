@@ -146,7 +146,7 @@ class GPT(nn.Module):
 
 **`nn.Embedding` 在做什麼？**
 
-`nn.Embedding(V, d)` 內部就是一個 $V \times d$ 的矩陣。forward 時輸入 token ID（整數），直接返回對應的列——這就是「查表（Lookup）」，是 $O(1)$ 的索引操作，不是矩陣乘法。（數學形式化見 [`05a1`](05a1-forward-propagation.md) §6 與 [`01b`](01b-prerequisites-math.md) §2；它如何被訓練見 [`05b1`](05b1-backward-propagation.md) §6）
+`nn.Embedding(V, d)` 內部就是一個 $V \times d$ 的矩陣。forward 時輸入 token ID（整數），直接返回對應的列——這就是「查表（Lookup）」，是 $O(1)$ 的索引操作，不是矩陣乘法。（數學形式化見 [`05a1`](05a1-forward-propagation.md) §6 與 [`01b`](01b-prerequisites-math.md) §2；它如何被訓練見 [`05b1`](05b1-backward-propagation.md) §10）
 
 **Weight Tying（權重共享）——一個值得知道的設計**
 
@@ -158,7 +158,7 @@ Karpathy 的原版 nanoGPT 因此讓兩者共用同一份參數：
 self.lm_head.weight = self.transformer.wte.weight   # Weight Tying
 ```
 
-共用的邏輯：「意義接近的詞，embedding 向量接近；接近的向量，預測時也應該分配相近的機率。」實作上共用同一份矩陣，embedding 訓練得更好，同時參數量減少 `vocab_size × n_embd`（GPT-2 規模約 38M 參數；本倉庫的字元級模型約 2.5 萬）。本倉庫的 NB4 為求簡單，未做 Weight Tying，兩個矩陣獨立訓練。（Weight Tying 對梯度的影響見 [`05b1`](05b1-backward-propagation.md) §6 的註）
+共用的邏輯：「意義接近的詞，embedding 向量接近；接近的向量，預測時也應該分配相近的機率。」實作上共用同一份矩陣，embedding 訓練得更好，同時參數量減少 `vocab_size × n_embd`（GPT-2 規模約 38M 參數；本倉庫的字元級模型約 2.5 萬）。本倉庫的 NB4 為求簡單，未做 Weight Tying，兩個矩陣獨立訓練。（Weight Tying 對梯度的影響見 [`05b1`](05b1-backward-propagation.md) §10.3）
 
 **等一下——這個 `position_embedding` 和 03 講的 PE 是同一件事嗎？**
 

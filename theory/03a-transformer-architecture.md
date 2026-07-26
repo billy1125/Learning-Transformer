@@ -439,7 +439,7 @@ $$
 \text{若 } S_{ij} \gg S_{ij'} \; \forall j' \neq j, \quad \text{則 } A_{ij} \to 1, \quad \nabla_{E} \mathcal{L} \to 0
 $$
 
-梯度幾乎消失，訓練停滯。（為什麼飽和會讓梯度消失：softmax 的導數含 $A_{ij}(1-A_{ij})$ 因子，$A_{ij}$ 趨近 0 或 1 時因子趨近 0——統計推導見 [`01b`](01b-prerequisites-math.md) §8，完整 Jacobian 見 [`05`](05b1-backward-propagation.md) §1.4。）除以 $\sqrt{d_k}$ 後：
+梯度幾乎消失，訓練停滯。（為什麼飽和會讓梯度消失：softmax 的導數含 $A_{ij}(1-A_{ij})$ 因子，$A_{ij}$ 趨近 0 或 1 時因子趨近 0——統計推導見 [`01b`](01b-prerequisites-math.md) §8，完整 Jacobian 見 [`05b1`](05b1-backward-propagation.md) §3.2。）除以 $\sqrt{d_k}$ 後：
 
 $$
 \text{Var}\!\left(\frac{q_i^\top k_j}{\sqrt{d_k}}\right) = \frac{d_k}{d_k} = 1
@@ -993,7 +993,7 @@ $$
 y_j = \gamma_j \hat{x}_j + \beta_j
 $$
 
-其中 $\gamma, \beta \in \mathbb{R}^d$ 是可學習的 scale／shift 參數，$\epsilon > 0$ 防止除以零。作用是穩定每一層的數值分佈、加速訓練（完整梯度推導見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md) §5.1）。
+其中 $\gamma, \beta \in \mathbb{R}^d$ 是可學習的 scale／shift 參數，$\epsilon > 0$ 防止除以零。作用是穩定每一層的數值分佈、加速訓練（完整梯度推導見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md) §5）。
 
 MHA 本身則捕捉序列中任意兩個位置之間的依賴關係（路徑長度 $O(1)$）。
 
