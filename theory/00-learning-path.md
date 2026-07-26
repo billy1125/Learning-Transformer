@@ -114,7 +114,7 @@ Transformer 之所以是 ★★★★，不是因為單一公式有多難，而�
 - [`03b3`](03b3-transformer-architecture-example.md)：用 $2\times4$ 輸入手算整個 Pre-LN Block（對應 NB1 §13）
   - [`03b4`](03b4-transformer-example-with-position.md)：對照支線——把位置編碼真的加進去（P≠0）從頭算一次（對應 NB1 §13b）
 - [`05a1`](05a1-forward-propagation.md)：GPT 前向每個模組的數學推導（Scaled Dot-Product、Causal Mask、Multi-Head／FFN／Pre-LN、Embedding、Next-token）
-- [`05b1`](05b1-backward-propagation.md)：Self-Attention／LayerNorm／Embedding 的完整梯度推導＋數值計算（對應 NB3）
+- [`05b1`](05b1-backward-propagation.md)：反向傳播完整梯度推導——把 [`05a1`](05a1-forward-propagation.md) **倒著走一遍**（CE→lm_head→LayerNorm／Residual→FFN→Multi-Head→Attention→Embedding）；只需高中數學，鏈式法則與記號都在 §1 從頭講起（對應 NB3）
 - [`06`](06-modern-transformer-variants.md)：RMSNorm、SwiGLU、RoPE、GQA——nanoGPT 到 LLaMA 的橋接（decoder 家族出口）
 - [`07`](07-bert-encoder-only.md)：BERT／雙向理解／MLM 預訓練——另一條 encoder 家族分支（對應 NB5）
 - [`09`](09-text-to-vector-rag.md)：文字轉向量與 RAG——Word2Vec、動態 embedding、餘弦檢索（encoder 分支的應用出口）

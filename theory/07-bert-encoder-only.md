@@ -6,7 +6,8 @@
 > - 說明 BERT 為什麼拿掉 Causal Mask，用「雙向」注意力，以及這對任務的意義
 > - 解釋 MLM（Masked Language Modeling）與 next-token prediction 的差異，並寫出它的損失
 > - 描述 `[CLS]` / `[SEP]` 與 token / segment / position 三種 embedding 的角色
-> - 說明「預訓練 + 微調」範式，以及分類 / 序列標註 / QA 各自怎麼接 head
+> - 說明「預訓練 + 微調」範式，講清楚它與「遷移學習」的包含關係，以及分類 / 序列標註 / QA 各自怎麼接 head
+> - 用 HuggingFace Transformers 寫出一段最小的微調程式，並判斷什麼樣的任務適合這樣做
 > - 分辨 encoder 家族（RoBERTa、ELECTRA、Sentence-BERT…）並知道何時該選 encoder、何時選 decoder
 >
 > **前置文件：** [`03a-transformer-architecture.md`](03a-transformer-architecture.md)（Transformer Block）、[`04a-gpt-decoder-only.md`](04a-gpt-decoder-only.md)（§1 Encoder-Decoder）、[`05a1-forward-propagation.md`](05a1-forward-propagation.md)（§2 Causal Masking）
@@ -24,7 +25,12 @@
 2. MLM 預訓練目標（Masked Language Modeling）
 3. 輸入表示：`[CLS]` / `[SEP]` 與三種 Embedding
 4. NSP 與後續的質疑
-5. 預訓練 + 微調範式
+5. 預訓練 + 微調範式：BERT 怎麼做遷移學習
+   - 5.1 遷移學習與微調不是同義詞
+   - 5.2 兩階段流程
+   - 5.3 下游任務怎麼接 head
+   - 5.4 實作：用 HuggingFace Transformers 微調
+   - 5.5 什麼樣的問題適合用 BERT 微調
 6. BERT 家族速覽
 7. encoder vs decoder 選型指南
 8. 對照表：BERT vs GPT
@@ -161,6 +167,15 @@ BERT 隨機挑 **15%** 的 token 當作預測目標。對每個被挑中的 toke
 
 **為什麼不是全部換成 `[MASK]`？** 因為微調與推論時輸入裡**沒有** `[MASK]`。若預訓練時模型只在看到 `[MASK]` 才需要輸出好的表示，就會與下游任務產生落差（train/inference mismatch）。混入 10% 隨機字與 10% 原字，讓模型對「每一個位置」都維持好的上下文表示，而不只針對 `[MASK]`。
 
+> **兩個「mask」不是同一回事。** BERT 與 GPT 都在做「猜字」、也都用到 mask，但遮的東西完全不同：
+>
+> | | 遮什麼 | 遮在哪一層 | 效果 |
+> |---|---|---|---|
+> | BERT 的 `[MASK]` | **輸入序列裡的 token**（約 15%）| 輸入端（embedding 之前）| 製造克漏字題目，答案要用左右文還原 |
+> | GPT 的因果遮罩 | **注意力矩陣中的未來位置** | 注意力分數上（softmax 之前）| 讓位置 $i$ 看不到 $i$ 之後，避免抄答案 |
+>
+> 換句話說，BERT 遮的是「題目」，GPT 遮的是「視野」。再加上 §1.1 提到的 **padding mask**（遮掉補齊長度的 `[PAD]`，兩家都要），本教材出現過的三種 mask 就到齊了。
+
 ### 2.2 損失：只在被遮位置算 Cross-Entropy
 
 設被挑中的位置集合為 $\mathcal{M}$（約佔 15%）。模型對每個位置輸出一個 vocab 上的機率分佈 $p_i = \text{softmax}(\text{logits}_i)$，損失**只累加 $\mathcal{M}$ 裡的位置**：
@@ -180,7 +195,9 @@ loss = F.cross_entropy(logits.view(B*T, vocab), labels.view(B*T), ignore_index=-
 
 ### 2.3 代價：訊號稀疏
 
-MLM 每個序列只從 15% 的位置得到學習訊號，next-token 則是 100%（每個位置都預測下一字）。所以 MLM 的**樣本效率較低**、通常需要更多預訓練步數——這是換取「雙向」的代價。後來的 ELECTRA（§6）就是為了解決這個稀疏問題而設計的。
+MLM 每個序列只從 15% 的位置得到學習訊號，next-token 則是 100%（每個位置都預測下一字）。用具體數字看更清楚：一條長度 $T = 512$ 的序列，GPT 提供 512 個預測目標，BERT 只有約 $512 \times 15\% \approx 77$ 個。所以 MLM 的**樣本效率較低**、通常需要更多預訓練步數——這是換取「雙向」的代價。後來的 ELECTRA（§6）就是為了解決這個稀疏問題而設計的。
+
+> 這裡要修正一個常見的誤解：「BERT 靠 mask 學得比較有效率」這句話是反的。就**訓練訊號密度**而言 GPT 才高，BERT 的優勢在**上下文品質**（雙向），不在樣本效率。
 
 ---
 
@@ -222,9 +239,22 @@ $$
 
 ---
 
-## 5. 預訓練 + 微調範式
+## 5. 預訓練 + 微調範式：BERT 怎麼做遷移學習
 
-BERT 讓「**預訓練一次、到處微調**」成為主流。流程分兩階段：
+BERT 讓「**預訓練一次、到處微調**」成為主流。這一節先釐清概念（§5.1、§5.2），再看下游怎麼接（§5.3）、程式怎麼寫（§5.4），最後回答「什麼樣的問題適合這樣做」（§5.5）。
+
+### 5.1 遷移學習與微調不是同義詞
+
+「BERT 是在做遷移學習」這句話沒錯，但常被說得太籠統，也常和「微調」混為一談。兩者其實是**包含關係**：
+
+- **遷移學習（transfer learning）** 是較大的概念，指把在**來源任務**（source task）上學到的知識，應用到**目標任務**（target task）上。BERT 的來源任務是 MLM 預訓練，目標任務是下游的分類、標註、抽取。遷移的主體是「表徵知識」——模型對詞彙、語法、語意甚至部分常識的內部表示。
+- **微調（fine-tuning）** 只是實現遷移的其中一種**手段**：拿預訓練權重當初始值，再用目標任務的資料繼續做梯度更新。
+
+除了微調，遷移學習還有別的做法，最常見的是**特徵萃取**（feature extraction）：把預訓練權重整個**凍結**（不參與梯度更新），只訓練後面新加的分類層，等於把 BERT 當成一台固定的「句子 → 向量」轉換器。資料量極小或算力有限時會這樣做；但 BERT 最常見、效果也最好的用法仍是**全模型微調**。
+
+這個模式在電腦視覺（computer vision, CV）領域早就成熟：先用 ImageNet 訓練一個 ResNet 學到通用的視覺特徵，再把它轉移到只有幾千張標註影像的目標任務上，避免從零訓練又缺標註資料的困境。BERT 把同一套邏輯搬到自然語言處理（Natural Language Processing, NLP），而且因為雙向架構的上下文表徵品質高（§1.2），轉移效果特別明顯——這正是它在 2018 年提出後迅速成為 NLP 標準做法的原因。
+
+### 5.2 兩階段流程
 
 ```
 階段一：預訓練（一次，昂貴）
@@ -234,7 +264,9 @@ BERT 讓「**預訓練一次、到處微調**」成為主流。流程分兩階�
   θ 當起點 + 接一個小 head + 少量標註資料 ──> 專用模型
 ```
 
-**下游任務怎麼接 head：**
+階段一用的是**無標註**語料（原始 BERT 用 BooksCorpus 與英文維基百科），透過 MLM（§2）與 NSP（§4）學到不針對任何特定任務的通用表徵。階段二則換上**有標註**的目標任務資料，讓 BERT 本體加上新接的 head 一起做梯度更新。由於大部分有用的表徵在階段一已經學好，階段二通常只要**很小的學習率**（常見 2e-5 到 5e-5）與**很少的 epoch**（2 到 4 個）——它做的是局部調整，不是重新學習。
+
+### 5.3 下游任務怎麼接 head
 
 | 任務類型 | 接在哪 | head 形狀 | 例子 |
 |---|---|---|---|
@@ -246,6 +278,65 @@ BERT 讓「**預訓練一次、到處微調**」成為主流。流程分兩階�
 關鍵在於：**主體 encoder 不變，只換最上面那層薄薄的 head**，再用該任務的少量標註資料微調整個網路。這就是為什麼一個 BERT 預訓練權重能撐起幾十種下游應用。
 
 > 這與 GPT 家族後來的路線（zero-shot / few-shot prompting，不改權重）形成對比：BERT 時代靠「微調」，GPT-3 之後靠「提示」。兩條路各有適用場景。
+
+### 5.4 實作：用 HuggingFace Transformers 微調
+
+實務上不必自己手刻 head。HuggingFace Transformers 針對上表每一列都提供了包好的類別，載入預訓練權重時 head 會一併建好（隨機初始化）：
+
+| 任務類型 | 對應類別 |
+|---|---|
+| 句子分類 | `BertForSequenceClassification` |
+| 序列標註 | `BertForTokenClassification` |
+| 抽取式 QA | `BertForQuestionAnswering` |
+| 句子對任務 | 同 `BertForSequenceClassification`，靠 `token_type_ids` 區分前後句 |
+
+微調流程有四步：
+
+1. **載入預訓練模型與對應的 tokenizer**。兩者必須**配對**（例如都用 `bert-base-chinese`），因為 tokenizer 決定了詞彙表與子詞切分規則，跟預訓練時用的必須一致——換了 tokenizer，token ID 就對不上預訓練學到的 embedding。
+2. **資料前處理**：把原始文字轉成 BERT 的輸入格式，包含 `input_ids`（token 的數字 ID）、`attention_mask`（標記哪些是真實 token、哪些是 padding，即 §1.1 的 padding mask）、必要時還有 `token_type_ids`（§3.2 的 segment embedding 索引）。
+3. **接上任務 head**：用上表的類別，或自己在 `[CLS]` 輸出上接一層 `nn.Linear`。
+4. **微調訓練**：小學習率、少量 epoch，整個模型一起更新。
+
+```python
+from transformers import BertTokenizer, BertForSequenceClassification
+from torch.optim import AdamW
+
+# load pretrained BERT with a classification head already attached
+tokenizer = BertTokenizer.from_pretrained("bert-base-chinese")
+model = BertForSequenceClassification.from_pretrained(
+    "bert-base-chinese", num_labels=3  # e.g. negative / neutral / positive
+)
+
+# tokenize input text into BERT's expected format
+inputs = tokenizer(texts, padding=True, truncation=True, return_tensors="pt")
+inputs["labels"] = labels
+
+optimizer = AdamW(model.parameters(), lr=2e-5)   # small lr: pretrained weights are already good
+
+# standard fine-tuning loop
+for batch in dataloader:
+    outputs = model(**batch)
+    loss = outputs.loss          # CE over [CLS] logits, computed inside the model
+    loss.backward()
+    optimizer.step()
+    optimizer.zero_grad()
+```
+
+整段核心邏輯不到 50 行——這就是遷移學習在工程上的樣子：昂貴的部分（預訓練）別人做完了，你只付微調的成本。
+
+> 這段程式需要 `pip install transformers`，不在本教材主線的相依範圍內。想實際跑一次，見 [`NB5`](../notebooks/NB5-bert-mlm.ipynb) 末尾的選讀延伸段（預設 `RUN_HF=False`，要自行開啟）。
+
+### 5.5 什麼樣的問題適合用 BERT 微調
+
+判斷標準看三件事：
+
+**一、任務本質是理解而非生成。** BERT 是 encoder-only，沒有生成能力（原因見 §1.2），只能對輸入做判斷或抽取，寫不出一段新文字。摘要、對話、翻譯這類任務不適合直接用 BERT 微調，該找 decoder（GPT）或 encoder-decoder（T5、BART）——選型判斷見 §7。
+
+**二、標註資料量偏小。** 目標任務只有幾百到幾萬筆標註時，從零訓練一個 Transformer 學不到好的表徵，用預訓練權重當起點會明顯勝出。反過來，如果標註資料已到千萬等級，從零訓練與微調的差距會縮小，遷移學習的優勢就沒那麼明顯。
+
+**三、任務的語言與領域跟預訓練語料相近。** 若目標任務屬於高度專業領域（醫療、法律），用字習慣與一般預訓練語料（維基百科、新聞）差很多，直接微調效果可能不理想。此時常見做法是先做**領域內持續預訓練**（domain-adaptive pretraining）——拿該領域的無標註文本再跑一輪 MLM，得到 BioBERT、LegalBERT 這類模型——再進入任務微調，等於在兩階段之間多插一個中間步驟。
+
+實務上像客服工單分類、產品評論情感分析、履歷與職缺配對、法律條文的關鍵資訊抽取，都是典型會用 BERT 微調的場景：輸出格式套得進「分類 / 序列標記 / 片段抽取」這幾種模板，而且標註資料通常只有幾千筆。
 
 ---
 
@@ -277,6 +368,8 @@ BERT（2018）之後，encoder 家族沿著「更好的預訓練」與「更小�
             分類、NER、抽取式 QA、句子相似、檢索嵌入
 ```
 
+這棵樹只切「生成 vs 理解」這一刀。確定要走 encoder 之後，還要再確認標註資料量與領域落差是否適合微調——三條判準見 §5.5。
+
 其中「**把句子變成一個向量**」是 encoder 最有價值的出口，直接銜接 RAG 檢索（完整展開見 [`09`](09-text-to-vector-rag.md)）：
 
 ```
@@ -296,8 +389,9 @@ RAG（檢索增強生成）常見的組合，正是**用 encoder 做檢索、用
 | 取自原始 Transformer 的 | Encoder | Decoder |
 | 注意力遮罩 | 無因果遮罩（雙向）| 下三角（因果）|
 | 注意力矩陣 | 全連接 | 下三角 |
+| 訓練時 mask 遮的對象 | **輸入 token**（15% 換成 `[MASK]`）| **注意力矩陣的未來位置** |
 | 預訓練目標 | MLM（填 15% 被遮的字）| Next-token（預測下一字）|
-| 訓練訊號密度 | 稀疏（15% 位置）| 稠密（每個位置）|
+| 訓練訊號密度 | 稀疏（15% 位置，$T{=}512$ 約 77 個）| 稠密（每個位置，$T{=}512$ 有 512 個）|
 | 特殊 token | `[CLS]` / `[SEP]` | 通常只有句界／BOS |
 | Embedding | token + **segment** + position | token + position |
 | 天生擅長 | 理解、分類、抽取、嵌入 | 生成、續寫、對話 |

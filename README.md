@@ -111,7 +111,7 @@ jupyter lab
         ↓
 
 05b1 後向數學 ／ 05b2 後向數值範例 ─▶  NB3 每個 .backward()
-  (QKV / LayerNorm / Embedding 梯度)
+  (CE/LN/FFN/Attention/Embedding 梯度)
 
         ↓
 
@@ -152,13 +152,13 @@ jupyter lab
 | [`03b3-transformer-architecture-example.md`](theory/03b3-transformer-architecture-example.md) | 03a 計算案例・完整版（選讀）：§0 依前向順序推導每個矩陣的設計歷程，再算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13 |
 | [`03b4-transformer-example-with-position.md`](theory/03b4-transformer-example-with-position.md) | 03b 選讀對照支線（純計算展演）：把位置編碼 $P$ 真的加進輸入（$X_{\text{in}}=X+P$，P≠0），沿用同一組權重從頭算一次完整 Block，對應 NB1 §13b（數字自成一組，不與 03b1–03b3 共用）|
 | [`04a-gpt-decoder-only.md`](theory/04a-gpt-decoder-only.md) | GPT Decoder-Only 的**基本概念、架構差異與 Pipeline 總覽**（前向＋反向一覽；數學細節見 05a1/05a2、05b1/05b2）|
-| [`05a1-forward-propagation.md`](theory/05a1-forward-propagation.md) | GPT **向前傳播數學（符號）**：Scaled Dot-Product、Causal Masking、Multi-Head／FFN／Pre-LN、Embedding／PE、Next-token 與 Cross-Entropy |
+| [`05a1-forward-propagation.md`](theory/05a1-forward-propagation.md) | GPT **向前傳播數學（符號）**：Scaled Dot-Product、Causal Masking、Multi-Head／FFN／Pre-LN、Embedding／PE、Next-token 與 Cross-Entropy；高中數學程度，附記號約定、逐節學習目標與文末「一次 forward 的 11 步」回顧 |
 | [`05a2-forward-example.md`](theory/05a2-forward-example.md) | GPT **前向數值範例**：用一組範例資料（$T=2$、$d=3$）把前向每個階段實際算一次，對照 05a1 各節 |
 | [`04b-nanogpt-walkthrough.md`](theory/04b-nanogpt-walkthrough.md) | GPT Decoder-Only 的**程式對照**：nanoGPT 逐行解析、Pre-LN vs Post-LN、Tokenizer、自迴歸生成與 KV Cache（每節回指 05a1／05b1 數學）|
-| [`05b1-backward-propagation.md`](theory/05b1-backward-propagation.md) | GPT **向後傳播數學（符號）**：Self-Attention、LayerNorm 與 Embedding 的完整梯度推導 |
+| [`05b1-backward-propagation.md`](theory/05b1-backward-propagation.md) | GPT **向後傳播數學（符號）**：以 05a1 的**倒序**走一遍（CE→lm_head→LayerNorm→FFN→Multi-Head→Attention→Embedding），高中數學程度，附最小工具箱與逐節學習目標 |
 | [`05b2-backward-example.md`](theory/05b2-backward-example.md) | GPT **後向數值範例**：沿用 05a2 的數字，把反向每個階段的梯度實際算一次，對照 05b1 各節 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀，decoder 家族出口） |
-| [`07-bert-encoder-only.md`](theory/07-bert-encoder-only.md) | BERT／Encoder-Only：雙向 Self-Attention、MLM 預訓練、`[CLS]`/`[SEP]`、預訓練+微調、encoder vs decoder 選型（選讀，encoder 家族分支） |
+| [`07-bert-encoder-only.md`](theory/07-bert-encoder-only.md) | BERT／Encoder-Only：雙向 Self-Attention、MLM 預訓練、`[CLS]`/`[SEP]`、預訓練+微調與遷移學習（含 HuggingFace 微調實作與適用場景）、encoder vs decoder 選型（選讀，encoder 家族分支） |
 | [`09-text-to-vector-rag.md`](theory/09-text-to-vector-rag.md) | 文字轉向量與語意檢索：分佈假說、Word2Vec、動態 embedding、餘弦相似度、RAG 檢索流程（選讀，encoder 分支的應用出口） |
 | [`10a1-seq2seq-forward.md`](theory/10a1-seq2seq-forward.md) | Seq2Seq **前向數學（符號）**：RNN Seq2Seq＋Bahdanau 加性 attention、Transformer Encoder-Decoder、Cross-Attention、三種 attention 對照（選讀，encoder-decoder 家族分支）|
 | [`10a2-seq2seq-forward-example.md`](theory/10a2-seq2seq-forward-example.md) | Seq2Seq **前向數值範例**：同一個翻譯任務（`我吃`→`I eat`）兩代架構各完整算一次到 loss |
@@ -200,12 +200,16 @@ jupyter lab
 
 ## 文件品質改善紀錄
 
-本倉庫的理論文件經過多輪系統性檢視與補強，規劃與執行紀錄保存在 `draft/` 資料夾（僅供維護參考，不在主線閱讀路徑上）：
+本倉庫的理論文件經過多輪系統性檢視與補強，重點如下：
 
-| 計劃 | 重點 |
+| 輪次 | 重點 |
 |---|---|
-| `draft/improvement-00-fixes.md` | 錯誤修正、數值範例、ASCII 圖表、章節銜接語 |
-| `draft/improvement-01-mainline-gaps.md` | 主線概念缺口（$W_O$、FFN、PE、Dropout、KV Cache、Embedding 梯度）、新增 `06` 當代架構文件 |
-| `draft/improvement-02-writing.md` | 數學推導逐步化（Softmax Jacobian、LayerNorm 合併代數等）、程式範例說明、失效引用修正 |
-| `draft/improvement-03-notebooks.md` | Notebook 執行驗證：NB3 梯度驗證 bug 修復、NB4 首次執行、路徑隔離與 .gitignore 補強 |
-| `draft/improvement-04-llama.md` | （規劃中）把 `06` 文末「下一步」做成可執行出口：新增 NB6 改造實作、`theory/08` 官方碼對照（原規劃 07／NB5 已改給 BERT 選讀分支） |
+| 第一輪 | 錯誤修正、數值範例、圖表、章節銜接語 |
+| 第二輪 | 主線概念缺口（$W_O$、FFN、PE、Dropout、KV Cache、Embedding 梯度）、新增 `06` 當代架構文件 |
+| 第三輪 | 數學推導逐步化（Softmax Jacobian、LayerNorm 合併代數等）、程式範例說明、失效引用修正 |
+| 第四輪 | Notebook 執行驗證：NB3 梯度驗證 bug 修復、NB4 首次執行、路徑隔離與 .gitignore 補強 |
+| 第五輪 | `05a1`／`05b1` 兩份數學文件改寫為高中數學程度（每節加「讀完這一節，你會」、全文回顧表）|
+
+各輪的規劃與執行紀錄原存於 `draft/improvement-*.md`，均已完成並移除，內容可從 git 歷史查閱。`draft/` 目前僅保留 `learning-route-notes.md`（`theory/00-learning-path.md` 的素材來源），不在主線閱讀路徑上。
+
+尚未完成的延伸方向：把 `06` 文末「下一步」做成可執行出口（新增 NB6 LLaMA 改造實作、`theory/08` 官方碼對照）、RAG demo notebook、解碼策略 demo。

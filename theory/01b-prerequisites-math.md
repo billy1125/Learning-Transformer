@@ -478,7 +478,7 @@ $$
 
 此時 softmax 飽和，梯度幾乎為 $0$，訓練停滯。
 
-**為什麼飽和會讓梯度為零？** 先用 sigmoid 類比建立直覺：sigmoid 的輸出接近 0 或 1 時，函數曲線幾乎水平，輸入改變一點點對輸出幾乎沒有影響，梯度因此接近零。softmax 是同樣的情況——輸出分布越尖銳，各個輸出對輸入的敏感度越低。正式地，softmax 的導數為 $\frac{\partial \alpha_j}{\partial e_l} = \alpha_j(\delta_{jl} - \alpha_l)$（完整推導見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md) §1.4）。觀察對角項 $\alpha_j(1 - \alpha_j)$：當 $\alpha_j \to 1$ 或 $\alpha_j \to 0$ 時，這個乘積都趨近 $0$；非對角項 $-\alpha_j \alpha_l$ 同樣趨近 $0$。也就是說，**飽和時 softmax 的整個導數矩陣趨近零**，loss 傳回 attention score 的調整訊號變得極弱——模型知道自己錯了，卻很難有效修正 query、key 的參數。
+**為什麼飽和會讓梯度為零？** 先用 sigmoid 類比建立直覺：sigmoid 的輸出接近 0 或 1 時，函數曲線幾乎水平，輸入改變一點點對輸出幾乎沒有影響，梯度因此接近零。softmax 是同樣的情況——輸出分布越尖銳，各個輸出對輸入的敏感度越低。正式地，softmax 的導數為 $\frac{\partial \alpha_j}{\partial e_l} = \alpha_j(\delta_{jl} - \alpha_l)$（完整推導見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md) §3.2）。觀察對角項 $\alpha_j(1 - \alpha_j)$：當 $\alpha_j \to 1$ 或 $\alpha_j \to 0$ 時，這個乘積都趨近 $0$；非對角項 $-\alpha_j \alpha_l$ 同樣趨近 $0$。也就是說，**飽和時 softmax 的整個導數矩陣趨近零**，loss 傳回 attention score 的調整訊號變得極弱——模型知道自己錯了，卻很難有效修正 query、key 的參數。
 
 ### 解法：除以 $\sqrt{d}$ 把標準差壓回 $O(1)$
 
@@ -658,7 +658,7 @@ $$
 
 也就是說，「查表」在數學上等價於「one-hot 向量乘以矩陣」——但實作上直接索引取列（$O(1)$），不做矩陣乘法。
 
-**梯度特性：** 反向傳播時，梯度 $\frac{\partial \mathcal{L}}{\partial E}$ 只有第 $t_i$ 列非零——未被本 batch 選中的 token，其 embedding 本步不更新。這意味著稀有詞需要更多訓練樣本才能讓 embedding 收斂。（完整推導見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md) §6）
+**梯度特性：** 反向傳播時，梯度 $\frac{\partial \mathcal{L}}{\partial E}$ 只有第 $t_i$ 列非零——未被本 batch 選中的 token，其 embedding 本步不更新。這意味著稀有詞需要更多訓練樣本才能讓 embedding 收斂。（完整推導見 [`05b1-backward-propagation.md`](05b1-backward-propagation.md) §10.2）
 
 ---
 

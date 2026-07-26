@@ -61,7 +61,7 @@ target:        吃   魚     y = (1, 2)
 
 所以「未用到」精確的意思是「**未被 embedding 查表用到**」，而不是「與計算無關」。「魚」從頭到尾沒當過輸入，卻是這個樣本要學的答案——而正因為 embedding 只在輸入側查表，[`05b2`](05b2-backward-example.md) §7 仍然會得到 $G^{E[2]}=0$：這一步不會更新「魚」的詞向量，儘管它是正確答案。這個看似矛盾的結果，恰好把「稀疏更新」的性質講透了。
 
-這個區分直接決定反向的結果：[`05b2`](05b2-backward-example.md) §7 會得到 $G^{E[2]}=0$（稀疏更新，這一步不動它），但同一份文件 §2 的 $G^{W_{lm}}$ 第 2 列 $[0.121,-0.051,-0.070]$ 並不為零——token 2 的那份梯度流向 lm_head 的 $W_{lm}$，而不是 $E$。兩者是不同參數，本例並未共用。若啟用 **weight tying**（讓 $W_{lm}=E$ 共用同一份矩陣，Karpathy 原版 nanoGPT 即如此，見 [`05b1`](05b1-backward-propagation.md) 反向傳播總覽的 Weight Tying 註），$E[2]$ 就會從 lm_head 那條路收到梯度，不再是零；本倉庫的 NB4 與本範例都沒做 weight tying。
+這個區分直接決定反向的結果：[`05b2`](05b2-backward-example.md) §7 會得到 $G^{E[2]}=0$（稀疏更新，這一步不動它），但同一份文件 §2 的 $G^{W_{lm}}$ 第 2 列 $[0.121,-0.051,-0.070]$ 並不為零——token 2 的那份梯度流向 lm_head 的 $W_{lm}$，而不是 $E$。兩者是不同參數，本例並未共用。若啟用 **weight tying**（讓 $W_{lm}=E$ 共用同一份矩陣，Karpathy 原版 nanoGPT 即如此，見 [`05b1`](05b1-backward-propagation.md) §2.1 的 Weight Tying 註與 §10.3），$E[2]$ 就會從 lm_head 那條路收到梯度，不再是零；本倉庫的 NB4 與本範例都沒做 weight tying。
 
 ### 0.1 前向 ↔ 反向的節號鏡像
 
@@ -223,7 +223,7 @@ $$
 2. **Concat。** $H$ 個頭各產出 $T\times d_k$，沿特徵維拼接回 $T\times d$。
 3. **$W_O$（$d\times d$）。** 拼接後再做一次投影，把各頭的結果混合。這是單頭時不存在的元件——理由見 §0.2。
 
-**反向也只多這三步**（[`05b1`](05b1-backward-propagation.md) §3）：梯度先過 $W_O$、再依 Concat 的切法分給各頭、**各頭內部與 [`05b2`](05b2-backward-example.md) §5.2–§5.6 完全相同**、最後每個頭的 $W_Q,W_K,W_V$ 各自拿到梯度。
+**反向也只多這三步**（[`05b1`](05b1-backward-propagation.md) §7）：梯度先過 $W_O$、再依 Concat 的切法分給各頭、**各頭內部與 [`05b2`](05b2-backward-example.md) §5.2–§5.6 完全相同**、最後每個頭的 $W_Q,W_K,W_V$ 各自拿到梯度。
 
 > **想看多頭的實際數字：** 前向手算見 [`03a`](03a-transformer-architecture.md) §5.6 與 [`03b2`](03b2-transformer-example-block.md)；反向見 [`../notebooks/NB3-llm-backpropagation.ipynb`](../notebooks/NB3-llm-backpropagation.ipynb)，那裡用 NumPy 手刻了 `MultiHeadAttention` 的 `_split`／`_merge`／`backward`（$H=4$），並用數值梯度（finite difference）驗證正確性。
 

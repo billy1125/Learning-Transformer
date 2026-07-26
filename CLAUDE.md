@@ -46,7 +46,7 @@ theory/images/   ← 理論文件內嵌圖檔（03a §5 的 attention_projection
 notebooks/       ← 實作主線（NB1–NB4）＋選讀分支（NB5 對應 07）
 notebooks/data/  ← Notebook 訓練資料（如 NB4／NB5 莎士比亞文本）
 advanced/        ← 進階補充（選讀，非主線）
-archive/         ← 所有舊版文件備份（不會動到）
+archive/         ← 舊版文件備份，已壓成 old-version.zip 單一檔（不會動到）
 environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / CUDA；安裝說明見 README.md）
 ```
 
@@ -65,13 +65,13 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 | `03b3-transformer-architecture-example.md` | 03a 計算案例・完整版（選讀）：§0 先依前向順序推導每個矩陣的設計歷程（維度咬合、投影＝選欄矩陣、$W_O$ 為可逆基底變換、FFN 形狀鏈），再從頭算整個 Pre-LN Block，含縮放對照與 PE 旋轉驗證，對應 NB1 §13；三份共用同一組數字 |
 | `03b4-transformer-example-with-position.md` | 03b 選讀對照支線（純計算展演）：把位置編碼 $P$ 真的加進輸入（$X_{\text{in}}=X+P$，P≠0），沿用 03b3 同一組權重從頭算一次完整 Pre-LN Block，對應 NB1 §13b；不重述概念，數字自成一組（不與 03b1–03b3 共用）|
 | `04a-gpt-decoder-only.md` | GPT Decoder-Only **基本概念、架構差異與 Pipeline 總覽**（§1 Encoder-Decoder、§2 為何只要 Decoder、完整 Pipeline 前向＋反向一覽；數學細節分流到 05a1/05a2、05b1/05b2）|
-| `05a1-forward-propagation.md` | GPT **向前傳播數學（符號）**（§1 Scaled Dot-Product、§2 Causal Masking、§3 Multi-Head、§4 FFN、§5 LayerNorm/Pre-LN、§6 Embedding/PE、§7 Next-token/CE；由原 04a §3–§9 搬移而來）|
+| `05a1-forward-propagation.md` | GPT **向前傳播數學（符號）**（§1 Scaled Dot-Product、§2 Causal Masking、§3 Multi-Head、§4 FFN、§5 LayerNorm/Pre-LN、§6 Embedding/PE、§7 Next-token/CE；由原 04a §3–§9 搬移而來）。**寫作層級為高中數學程度**：§1 前有不編號的「開始之前：三個記號約定」、每節末有「讀完這一節，你會」、文末有不編號的「全文回顧：七節怎麼串成一次 forward」11 步表；**§1–§7 與所有子節號未動**（被 04b／05b1／03a／05a2 大量硬引用）|
 | `05a2-forward-example.md` | GPT **前向數值範例**：一組範例資料（T=2、d=3、單頭、含因果遮罩）逐階段 embedding→…→CE loss 實算，對照 05a1 各節；與 05b2 共用同一組數字（勿改動數值）|
 | `04b-nanogpt-walkthrough.md` | GPT Decoder-Only **程式對照**（04a 的選讀續篇）：nanoGPT `Head`/`MultiHeadAttention`/`FeedForward`/`Block`/`GPT` 逐行、Pre-LN vs Post-LN、字元級 Tokenizer、自迴歸生成＋KV Cache、速查清單；每節回指 05a1／05b1 對應數學節 |
-| `05b1-backward-propagation.md` | GPT **向後傳播數學（符號）**：Self-Attention、LayerNorm 與 Embedding 的完整梯度推導＋反向五步總覽（吸收原 04a §10）；數值範例已移至 05b2 |
+| `05b1-backward-propagation.md` | GPT **向後傳播數學（符號）**：**章節順序＝05a1 的倒序**（§3 CE+Softmax ↔ 05a1 §7、§4 lm_head／線性層通則、§5 LayerNorm+Residual ↔ 05a1 §5、§6 FFN ↔ 05a1 §4、§7 Multi-Head ↔ 05a1 §3、§8 Attention+因果遮罩 ↔ 05a1 §1/§2、§9 QKV 投影、§10 Embedding+PE ↔ 05a1 §6、§11 optimizer；§1 最小數學工具箱、§2 五步總覽與鏡射表、附錄 A 查閱表、附錄 B RNN 對比）。**寫作層級為高中數學程度**，每章末有「讀完這一節，你會」；數值範例在 05b2 |
 | `05b2-backward-example.md` | GPT **後向數值範例**：沿用 05a2 的前向數字，逐階段 logits→…→embedding 梯度實算，對照 05b1 各節（LayerNorm 在 d=2 反向會全歸零，故範例用 d=3）|
 | `06-modern-transformer-variants.md` | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention（nanoGPT → LLaMA 橋接，選讀；decoder 家族出口）|
-| `07-bert-encoder-only.md` | BERT／Encoder-Only：雙向 Self-Attention（拿掉 Causal Mask）、MLM 預訓練、`[CLS]`/`[SEP]`/三種 embedding、預訓練+微調、BERT 家族、encoder vs decoder 選型（選讀；encoder 家族分支，對應 NB5）|
+| `07-bert-encoder-only.md` | BERT／Encoder-Only：雙向 Self-Attention（拿掉 Causal Mask）、MLM 預訓練（§2.1 附三種 mask 對照）、`[CLS]`/`[SEP]`/三種 embedding、§5 預訓練+微調＝遷移學習（§5.1 遷移學習 vs 微調、§5.4 HuggingFace 微調程式、§5.5 適用場景三判準）、BERT 家族、encoder vs decoder 選型（選讀；encoder 家族分支，對應 NB5）|
 | `09-text-to-vector-rag.md` | 文字轉向量與語意檢索：分佈假說、Word2Vec（靜態）、Transformer/BERT 動態 embedding、餘弦相似度、RAG 檢索流程（選讀；encoder 分支的應用出口，重疊內容交叉引用 01a/02/03a/07 不重推）|
 | `10a1-seq2seq-forward.md` | Seq2Seq **前向數學（符號）**（選讀；encoder-decoder 家族分支，前置只需 01–03a）：§A RNN Seq2Seq＋Bahdanau 加性 attention（含固定 context vector 的瓶頸）、§B Transformer Encoder-Decoder（§B3 Cross-Attention、§B4 三種 attention 一表對照）、§C 兩代對照、§D 四份文件的節號鏡射表 |
 | `10a2-seq2seq-forward-example.md` | Seq2Seq **前向數值範例**：同一個翻譯任務（`我吃`→`I eat`，teacher forcing、target 右移一位）兩代架構各完整算一次到 loss。模型 A：$d_e=d_h=d_a=2$、14 張量 55 參數、$L=1.945$；模型 B：$d=3$、$T_s=T_t=2$、單頭、各一層 Pre-LN Block、32 張量 234 參數、$L=2.250$。模型 B 的 encoder 輸入刻意與 05a2 的 $x_0$ 相同（唯一差別是無因果遮罩）；$W_V^d$ 刻意非 $I$ 以免 LN 退化 |
@@ -92,8 +92,8 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 
 - 所有文件以**繁體中文**撰寫，數學公式用 LaTeX，程式碼用 Python
 - 理論文件與 Notebook 相互對應，每份理論文件的開頭都標示對應的 Notebook
-- `archive/` 保存所有舊版原始文件，不應修改；新版本在 `theory/` 和 `notebooks/`
-- `04a-gpt-decoder-only.md`（基本概念與 Pipeline）＋ `05a1-forward-propagation.md`（前向數學符號）＋ `05a2-forward-example.md`（前向數值範例）＋ `05b1-backward-propagation.md`（後向數學符號）＋ `05b2-backward-example.md`（後向數值範例）＋ `04b-nanogpt-walkthrough.md`（nanoGPT 程式對照）是關鍵橋接文件，連接理論與 nanoGPT 實作；04b 每節回指 05a1／05b1 的數學節，改章節號時兩邊要同步；05a2 與 05b2 共用同一組 T=2/d=3 數字（改一邊要同步另一邊）；04a 的 Pipeline 總覽節號亦指向 05a1（前向）／05b1（反向）
+- `archive/old-version.zip` 保存所有舊版原始文件（已封存為壓縮檔），不應修改；新版本在 `theory/` 和 `notebooks/`
+- `04a-gpt-decoder-only.md`（基本概念與 Pipeline）＋ `05a1-forward-propagation.md`（前向數學符號）＋ `05a2-forward-example.md`（前向數值範例）＋ `05b1-backward-propagation.md`（後向數學符號）＋ `05b2-backward-example.md`（後向數值範例）＋ `04b-nanogpt-walkthrough.md`（nanoGPT 程式對照）是關鍵橋接文件，連接理論與 nanoGPT 實作；05b1 的章節順序是 05a1 的倒序（對照表在 05b1 §2.2），改任一邊的節號要同步另一邊與那張表；05b1 的節號另被 05b2、10b1、04b、01a／01b、03a 硬引用，改號時要一併更新；04b 每節回指 05a1／05b1 的數學節，改章節號時兩邊要同步；05a2 與 05b2 共用同一組 T=2/d=3 數字（改一邊要同步另一邊）；04a 的 Pipeline 總覽節號亦指向 05a1（前向）／05b1（反向）
 - `10a1`／`10a2`／`10b1`／`10b2` 是 Seq2Seq 四件套，**四份的節號互為鏡射**（10a1 §D、10a2 §0.1 各有一張對照表）：§A1–§A5 是 RNN 版、§B1–§B4 是 Transformer 版，改任一份的節號要同步四份與那兩張表。10a2 與 10b2 共用同兩組數字（模型 A 55 參數、模型 B 234 參數），**改一邊要同步另一邊**；所有數值都以 PyTorch autograd 驗證過，勿手動調整
 
 ## 行文品質原則（編修理論文件時遵守）
@@ -103,21 +103,20 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 - **程式碼行行有著落**：教學程式片段每行對應理論公式或有註解，但不加無關的工程細節
 - **引用必須有效**：指向的章節、文件必須真實存在；文件內容必須與 Notebook 實際程式碼一致（如本倉庫 NB4 無 Weight Tying、dropout 在三處）
 
-## 改善計劃文件
+## 改善計劃與維護紀錄
 
-歷次規劃與草稿統一存放於 `draft/`（不在主線閱讀路徑上，僅供維護參考）：
+`draft/` 只剩一份草稿（不在主線閱讀路徑上，僅供維護參考）：
 
-- `draft/restructure-plan.md` — 倉庫重整計劃草稿（理論／實作／進階／archive 四區結構的原始規劃，已完成）
 - `draft/learning-route-notes.md` — 學習路線與未來 AI 趨勢的原始筆記（`theory/00-learning-path.md` 的素材來源）
 
-`draft/improvement-*.md` 為歷次品質改善的規劃與執行紀錄（均已完成，狀態標記在各檔的優先順序表中；檔名編號對應各檔標題的「改善計劃 0X」）：
+歷次規劃文件（`draft/restructure-plan.md`、`draft/improvement-00`～`05`）都已執行完畢並自倉庫移除，需要決策脈絡時從 git 歷史查閱。各輪重點：
 
-- `draft/improvement-00-fixes.md` — 第一輪：修正錯誤、補數值範例與圖表、銜接語
-- `draft/improvement-01-mainline-gaps.md` — 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
-- `draft/improvement-02-writing.md` — 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
-- `draft/improvement-03-notebooks.md` — 第四輪：Notebook 逐 cell 執行驗證（NB3 梯度 bug 修復、NB4 首次執行、路徑隔離）
-
-（`improvement-00`～`03` 為已完成的歷史存檔，保留供決策脈絡查閱，不再更動。）
+- 第一輪：修正錯誤、補數值範例與圖表、銜接語
+- 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
+- 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
+- 第四輪：Notebook 逐 cell 執行驗證（NB3 梯度 bug 修復、NB4 首次執行、路徑隔離）
+- 第五輪：`05a1`／`05b1` 改寫為高中數學程度（加「讀完這一節，你會」與全文回顧表，節號未動）
+- 另有倉庫重整計劃（理論／實作／進階／archive 四區結構）已完成
 
 **臨時新增內容（非改善輪次，已完成，見 `add-bert-encoder-only` 分支）：**
 
@@ -125,7 +124,11 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 - `theory/09-text-to-vector-rag.md` — 文字轉向量與語意檢索（分佈假說、Word2Vec、動態 embedding、餘弦、RAG；encoder 分支的應用出口）
 - `advanced/Seq2Seq-and-Decoding-Techniques.md` — Seq2Seq 應用脈絡與解碼/訓練工藝（整理自李宏毅課程，延伸閱讀）
 
-**開放中的 backlog：**
+**開放中的 backlog**（原記於已刪除的 `draft/improvement-04-llama.md`／`improvement-05-current-backlog.md`，內容移錄於此）：
 
-- `draft/improvement-04-llama.md` — 第五輪（規劃中）：把 `06` 文末「下一步」做成可執行出口（新增 NB6 改造實作、`theory/08` 官方碼對照；原規劃的 07／NB5 已改給 BERT 選讀分支）
-- `draft/improvement-05-current-backlog.md` — 整倉盤點後的當前待辦（C1 RAG demo notebook、~~C2 孤兒檔~~【✅ 已改名 `03a-transformer-block-plain.md` 並納入導覽】、C3 06 補連結 07/09、C4 Notebook 前向連結、C5 解碼策略 demo），並彙整承接自 04 的 LLaMA 出口項目
+- LLaMA 出口：把 `06` 文末「下一步」做成可執行出口 — 新增 NB6 改造實作、`theory/08` 官方碼對照（原規劃的 07／NB5 已改給 BERT 選讀分支）
+- C1 — RAG demo notebook（承接 `09`）
+- C3 — `06` 補上連往 `07`／`09` 的連結
+- C4 — Notebook 補前向連結（指回對應理論文件）
+- C5 — 解碼策略 demo（承接 `advanced/Seq2Seq-and-Decoding-Techniques.md`）
+- （C2 孤兒檔已完成：改名為 `03a-transformer-block-plain.md` 並納入導覽）

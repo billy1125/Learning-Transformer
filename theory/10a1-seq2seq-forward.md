@@ -104,7 +104,7 @@ Encoder 負責把長度 $T_s$ 的輸入讀成某種內部表示，Decoder 負責
 
 本節推導的模型用 **vanilla RNN（$\tanh$）** 當遞迴單元。
 
-> **為什麼不用 LSTM？** Sutskever 等人 2014 年的原始論文用的確實是 LSTM。但 LSTM 一個時間步有四個閘（輸入、遺忘、輸出、候選記憶），手算與梯度推導會被閘的代數淹沒，而本文真正要講的是**遞迴結構本身**帶來的性質——狀態逐步傳遞、參數跨時間共享、梯度連乘。這些性質在 vanilla RNN 裡最乾淨。[`05b1`](05b1-backward-propagation.md) §4 寫的那條連乘積 $\prod_t \partial h_t/\partial h_{t-1}$ 正是 vanilla 形式。LSTM 的閘控之所以能緩解連乘衰減，是因為它讓記憶單元有一條**加法**的傳遞路徑（$c_t = f_t\odot c_{t-1}+i_t\odot\tilde c_t$），$\partial c_t/\partial c_{t-1}$ 裡有一項是遺忘閘 $f_t$ 而不是權重矩陣的乘積——這在 [`10b1`](10b1-seq2seq-backward.md) §A6 會再回來談。
+> **為什麼不用 LSTM？** Sutskever 等人 2014 年的原始論文用的確實是 LSTM。但 LSTM 一個時間步有四個閘（輸入、遺忘、輸出、候選記憶），手算與梯度推導會被閘的代數淹沒，而本文真正要講的是**遞迴結構本身**帶來的性質——狀態逐步傳遞、參數跨時間共享、梯度連乘。這些性質在 vanilla RNN 裡最乾淨。[`05b1`](05b1-backward-propagation.md) 附錄 B 寫的那條連乘積 $\prod_t \partial h_t/\partial h_{t-1}$ 正是 vanilla 形式。LSTM 的閘控之所以能緩解連乘衰減，是因為它讓記憶單元有一條**加法**的傳遞路徑（$c_t = f_t\odot c_{t-1}+i_t\odot\tilde c_t$），$\partial c_t/\partial c_{t-1}$ 裡有一項是遺忘閘 $f_t$ 而不是權重矩陣的乘積——這在 [`10b1`](10b1-seq2seq-backward.md) §A6 會再回來談。
 
 ### A1. Encoder RNN
 
@@ -313,7 +313,7 @@ $$
 | 位置 0 看得到 | 只有自己 | 全部 $T_s$ 個 |
 | 第一列的 softmax | 只有一項存活 ⇒ 恆為 $[1,0,\dots,0]$ | 正常分佈 |
 
-最後一列在反向時很關鍵：GPT 第 0 列的 attention 權重是 one-hot，而 one-hot 會讓 softmax 的 Jacobian 退化成零矩陣（[`05b1`](05b1-backward-propagation.md) §1.4），於是那一列**完全拿不到梯度**（[`05b2`](05b2-backward-example.md) §5.4 的 $G^S$ 第 0 列就是 $[0,0]$）。Encoder 沒有遮罩，就沒有這個飽和問題。
+最後一列在反向時很關鍵：GPT 第 0 列的 attention 權重是 one-hot，而 one-hot 會讓 softmax 的 Jacobian 退化成零矩陣（[`05b1`](05b1-backward-propagation.md) §3.2、§8.5），於是那一列**完全拿不到梯度**（[`05b2`](05b2-backward-example.md) §5.4 的 $G^S$ 第 0 列就是 $[0,0]$）。Encoder 沒有遮罩，就沒有這個飽和問題。
 
 **這正是 BERT。** 把 GPT 的因果遮罩拿掉，剩下的就是 encoder；BERT 就是把這種 Block 疊 $N$ 層（[`07`](07-bert-encoder-only.md) §1）。所以本節不是新架構，而是主線已有的兩個東西的交集。
 
