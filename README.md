@@ -200,12 +200,16 @@ jupyter lab
 
 ## 文件品質改善紀錄
 
-本倉庫的理論文件經過多輪系統性檢視與補強，規劃與執行紀錄保存在 `draft/` 資料夾（僅供維護參考，不在主線閱讀路徑上）：
+本倉庫的理論文件經過多輪系統性檢視與補強，重點如下：
 
-| 計劃 | 重點 |
+| 輪次 | 重點 |
 |---|---|
-| `draft/improvement-00-fixes.md` | 錯誤修正、數值範例、ASCII 圖表、章節銜接語 |
-| `draft/improvement-01-mainline-gaps.md` | 主線概念缺口（$W_O$、FFN、PE、Dropout、KV Cache、Embedding 梯度）、新增 `06` 當代架構文件 |
-| `draft/improvement-02-writing.md` | 數學推導逐步化（Softmax Jacobian、LayerNorm 合併代數等）、程式範例說明、失效引用修正 |
-| `draft/improvement-03-notebooks.md` | Notebook 執行驗證：NB3 梯度驗證 bug 修復、NB4 首次執行、路徑隔離與 .gitignore 補強 |
-| `draft/improvement-04-llama.md` | （規劃中）把 `06` 文末「下一步」做成可執行出口：新增 NB6 改造實作、`theory/08` 官方碼對照（原規劃 07／NB5 已改給 BERT 選讀分支） |
+| 第一輪 | 錯誤修正、數值範例、圖表、章節銜接語 |
+| 第二輪 | 主線概念缺口（$W_O$、FFN、PE、Dropout、KV Cache、Embedding 梯度）、新增 `06` 當代架構文件 |
+| 第三輪 | 數學推導逐步化（Softmax Jacobian、LayerNorm 合併代數等）、程式範例說明、失效引用修正 |
+| 第四輪 | Notebook 執行驗證：NB3 梯度驗證 bug 修復、NB4 首次執行、路徑隔離與 .gitignore 補強 |
+| 第五輪 | `05a1`／`05b1` 兩份數學文件改寫為高中數學程度（每節加「讀完這一節，你會」、全文回顧表）|
+
+各輪的規劃與執行紀錄原存於 `draft/improvement-*.md`，均已完成並移除，內容可從 git 歷史查閱。`draft/` 目前僅保留 `learning-route-notes.md`（`theory/00-learning-path.md` 的素材來源），不在主線閱讀路徑上。
+
+尚未完成的延伸方向：把 `06` 文末「下一步」做成可執行出口（新增 NB6 LLaMA 改造實作、`theory/08` 官方碼對照）、RAG demo notebook、解碼策略 demo。

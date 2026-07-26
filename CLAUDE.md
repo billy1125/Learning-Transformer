@@ -46,7 +46,7 @@ theory/images/   ← 理論文件內嵌圖檔（03a §5 的 attention_projection
 notebooks/       ← 實作主線（NB1–NB4）＋選讀分支（NB5 對應 07）
 notebooks/data/  ← Notebook 訓練資料（如 NB4／NB5 莎士比亞文本）
 advanced/        ← 進階補充（選讀，非主線）
-archive/         ← 所有舊版文件備份（不會動到）
+archive/         ← 舊版文件備份，已壓成 old-version.zip 單一檔（不會動到）
 environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / CUDA；安裝說明見 README.md）
 ```
 
@@ -92,7 +92,7 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 
 - 所有文件以**繁體中文**撰寫，數學公式用 LaTeX，程式碼用 Python
 - 理論文件與 Notebook 相互對應，每份理論文件的開頭都標示對應的 Notebook
-- `archive/` 保存所有舊版原始文件，不應修改；新版本在 `theory/` 和 `notebooks/`
+- `archive/old-version.zip` 保存所有舊版原始文件（已封存為壓縮檔），不應修改；新版本在 `theory/` 和 `notebooks/`
 - `04a-gpt-decoder-only.md`（基本概念與 Pipeline）＋ `05a1-forward-propagation.md`（前向數學符號）＋ `05a2-forward-example.md`（前向數值範例）＋ `05b1-backward-propagation.md`（後向數學符號）＋ `05b2-backward-example.md`（後向數值範例）＋ `04b-nanogpt-walkthrough.md`（nanoGPT 程式對照）是關鍵橋接文件，連接理論與 nanoGPT 實作；05b1 的章節順序是 05a1 的倒序（對照表在 05b1 §2.2），改任一邊的節號要同步另一邊與那張表；05b1 的節號另被 05b2、10b1、04b、01a／01b、03a 硬引用，改號時要一併更新；04b 每節回指 05a1／05b1 的數學節，改章節號時兩邊要同步；05a2 與 05b2 共用同一組 T=2/d=3 數字（改一邊要同步另一邊）；04a 的 Pipeline 總覽節號亦指向 05a1（前向）／05b1（反向）
 - `10a1`／`10a2`／`10b1`／`10b2` 是 Seq2Seq 四件套，**四份的節號互為鏡射**（10a1 §D、10a2 §0.1 各有一張對照表）：§A1–§A5 是 RNN 版、§B1–§B4 是 Transformer 版，改任一份的節號要同步四份與那兩張表。10a2 與 10b2 共用同兩組數字（模型 A 55 參數、模型 B 234 參數），**改一邊要同步另一邊**；所有數值都以 PyTorch autograd 驗證過，勿手動調整
 
@@ -103,21 +103,20 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 - **程式碼行行有著落**：教學程式片段每行對應理論公式或有註解，但不加無關的工程細節
 - **引用必須有效**：指向的章節、文件必須真實存在；文件內容必須與 Notebook 實際程式碼一致（如本倉庫 NB4 無 Weight Tying、dropout 在三處）
 
-## 改善計劃文件
+## 改善計劃與維護紀錄
 
-歷次規劃與草稿統一存放於 `draft/`（不在主線閱讀路徑上，僅供維護參考）：
+`draft/` 只剩一份草稿（不在主線閱讀路徑上，僅供維護參考）：
 
-- `draft/restructure-plan.md` — 倉庫重整計劃草稿（理論／實作／進階／archive 四區結構的原始規劃，已完成）
 - `draft/learning-route-notes.md` — 學習路線與未來 AI 趨勢的原始筆記（`theory/00-learning-path.md` 的素材來源）
 
-`draft/improvement-*.md` 為歷次品質改善的規劃與執行紀錄（均已完成，狀態標記在各檔的優先順序表中；檔名編號對應各檔標題的「改善計劃 0X」）：
+歷次規劃文件（`draft/restructure-plan.md`、`draft/improvement-00`～`05`）都已執行完畢並自倉庫移除，需要決策脈絡時從 git 歷史查閱。各輪重點：
 
-- `draft/improvement-00-fixes.md` — 第一輪：修正錯誤、補數值範例與圖表、銜接語
-- `draft/improvement-01-mainline-gaps.md` — 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
-- `draft/improvement-02-writing.md` — 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
-- `draft/improvement-03-notebooks.md` — 第四輪：Notebook 逐 cell 執行驗證（NB3 梯度 bug 修復、NB4 首次執行、路徑隔離）
-
-（`improvement-00`～`03` 為已完成的歷史存檔，保留供決策脈絡查閱，不再更動。）
+- 第一輪：修正錯誤、補數值範例與圖表、銜接語
+- 第二輪：主線缺口（W_O、FFN、PE、Dropout、KV Cache、Embedding 梯度）與新增 `06` 當代架構文件
+- 第三輪：行文清晰度（數學推導補跳步、程式範例說明、失效引用修正）
+- 第四輪：Notebook 逐 cell 執行驗證（NB3 梯度 bug 修復、NB4 首次執行、路徑隔離）
+- 第五輪：`05a1`／`05b1` 改寫為高中數學程度（加「讀完這一節，你會」與全文回顧表，節號未動）
+- 另有倉庫重整計劃（理論／實作／進階／archive 四區結構）已完成
 
 **臨時新增內容（非改善輪次，已完成，見 `add-bert-encoder-only` 分支）：**
 
@@ -125,7 +124,11 @@ environment/     ← 環境檢測 notebook（test.ipynb：驗證 torch / MPS / C
 - `theory/09-text-to-vector-rag.md` — 文字轉向量與語意檢索（分佈假說、Word2Vec、動態 embedding、餘弦、RAG；encoder 分支的應用出口）
 - `advanced/Seq2Seq-and-Decoding-Techniques.md` — Seq2Seq 應用脈絡與解碼/訓練工藝（整理自李宏毅課程，延伸閱讀）
 
-**開放中的 backlog：**
+**開放中的 backlog**（原記於已刪除的 `draft/improvement-04-llama.md`／`improvement-05-current-backlog.md`，內容移錄於此）：
 
-- `draft/improvement-04-llama.md` — 第五輪（規劃中）：把 `06` 文末「下一步」做成可執行出口（新增 NB6 改造實作、`theory/08` 官方碼對照；原規劃的 07／NB5 已改給 BERT 選讀分支）
-- `draft/improvement-05-current-backlog.md` — 整倉盤點後的當前待辦（C1 RAG demo notebook、~~C2 孤兒檔~~【✅ 已改名 `03a-transformer-block-plain.md` 並納入導覽】、C3 06 補連結 07/09、C4 Notebook 前向連結、C5 解碼策略 demo），並彙整承接自 04 的 LLaMA 出口項目
+- LLaMA 出口：把 `06` 文末「下一步」做成可執行出口 — 新增 NB6 改造實作、`theory/08` 官方碼對照（原規劃的 07／NB5 已改給 BERT 選讀分支）
+- C1 — RAG demo notebook（承接 `09`）
+- C3 — `06` 補上連往 `07`／`09` 的連結
+- C4 — Notebook 補前向連結（指回對應理論文件）
+- C5 — 解碼策略 demo（承接 `advanced/Seq2Seq-and-Decoding-Techniques.md`）
+- （C2 孤兒檔已完成：改名為 `03a-transformer-block-plain.md` 並納入導覽）
