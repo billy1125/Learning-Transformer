@@ -158,7 +158,7 @@ jupyter lab
 | [`05b1-backward-propagation.md`](theory/05b1-backward-propagation.md) | GPT **向後傳播數學（符號）**：以 05a1 的**倒序**走一遍（CE→lm_head→LayerNorm→FFN→Multi-Head→Attention→Embedding），高中數學程度，附最小工具箱與逐節學習目標 |
 | [`05b2-backward-example.md`](theory/05b2-backward-example.md) | GPT **後向數值範例**：沿用 05a2 的數字，把反向每個階段的梯度實際算一次，對照 05b1 各節 |
 | [`06-modern-transformer-variants.md`](theory/06-modern-transformer-variants.md) | RMSNorm、SwiGLU、RoPE、GQA、Flash Attention——nanoGPT 到 LLaMA 的橋接（選讀，decoder 家族出口） |
-| [`07-bert-encoder-only.md`](theory/07-bert-encoder-only.md) | BERT／Encoder-Only：雙向 Self-Attention、MLM 預訓練、`[CLS]`/`[SEP]`、預訓練+微調、encoder vs decoder 選型（選讀，encoder 家族分支） |
+| [`07-bert-encoder-only.md`](theory/07-bert-encoder-only.md) | BERT／Encoder-Only：雙向 Self-Attention、MLM 預訓練、`[CLS]`/`[SEP]`、預訓練+微調與遷移學習（含 HuggingFace 微調實作與適用場景）、encoder vs decoder 選型（選讀，encoder 家族分支） |
 | [`09-text-to-vector-rag.md`](theory/09-text-to-vector-rag.md) | 文字轉向量與語意檢索：分佈假說、Word2Vec、動態 embedding、餘弦相似度、RAG 檢索流程（選讀，encoder 分支的應用出口） |
 | [`10a1-seq2seq-forward.md`](theory/10a1-seq2seq-forward.md) | Seq2Seq **前向數學（符號）**：RNN Seq2Seq＋Bahdanau 加性 attention、Transformer Encoder-Decoder、Cross-Attention、三種 attention 對照（選讀，encoder-decoder 家族分支）|
 | [`10a2-seq2seq-forward-example.md`](theory/10a2-seq2seq-forward-example.md) | Seq2Seq **前向數值範例**：同一個翻譯任務（`我吃`→`I eat`）兩代架構各完整算一次到 loss |
